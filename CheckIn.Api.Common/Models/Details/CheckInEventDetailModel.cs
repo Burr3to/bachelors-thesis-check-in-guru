@@ -2,8 +2,8 @@ using CheckIn.Api.Common.Models.Lists;
 
 namespace CheckIn.Api.Common.Models.Details;
 
-public record CheckInEventDetailModel : CheckInEventListModel
+public class CheckInEventDetailModel : CheckInEventListModel
 {
-	public string? Notes { get; init; }
-	public ICollection<CheckInResponseListModel> Responses { get; init; } = new List<CheckInResponseListModel>();
+	public string? Notes { get; set; }
+	public ICollection<CheckInResponseListModel> Responses { get; set; } = new List<CheckInResponseListModel>();
 }

@@ -1,13 +1,19 @@
-//using CheckIn.Api.App.Installers;
-//using CheckIn.Api.Dal.Installers;
-//using CheckIn.Api.Bl.Mappers;
-
-using AutoMapper;
+using CheckIn.Api.Bl.Installers;
+using CheckIn.Api.Dal.Installers;
+using CheckIn.Api.Bl.Mappers;
 using CheckIn.Api.Dal;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using AutoMapper;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddAutoMapper(
+	cfg => cfg.LicenseKey = builder.Configuration.GetSection("Licenses")["Automapper"],
+	typeof(CheckInEventMapperProfile));
+
+// --- Registrácia Fasád/BL služieb 
+ApiBlInstaller.Install(builder.Services);
 
 // CORS - Dôležité pre Flutter
 builder.Services.AddCors(options =>
@@ -22,8 +28,7 @@ builder.Services.AddCors(options =>
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
                        ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
-builder.Services.AddDbContext<CheckInDbContext>(options => { options.UseNpgsql(connectionString); });
-
+ApiDalInstaller.Install(builder.Services, connectionString);
 
 // Add services to the container.
 

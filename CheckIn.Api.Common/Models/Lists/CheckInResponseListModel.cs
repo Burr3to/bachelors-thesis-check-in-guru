@@ -2,10 +2,10 @@ using CheckIn.Api.Common.Models.Interfaces;
 
 namespace CheckIn.Api.Common.Models.Lists;
 
-public record CheckInResponseListModel : IEntityModel
+public class CheckInResponseListModel : IEntityModel
 {
-	public Guid Id { get; init; }
-	public required string RespondentName { get; init; }
-	public required string Comment { get; init; }
-	public DateTime SubmittedAt { get; init; }
+	public Guid Id { get; set; }
+	public required string RespondentName { get; set; }
+	public required string Comment { get; set; }
+	public DateTime SubmittedAt { get; set; }
 }
