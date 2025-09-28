@@ -34,6 +34,12 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+  go_router: ^16.2.4
+  http: ^1.5.0
+  json_annotation: ^4.9.0  # OK
+  flutter_riverpod: ^2.5.1  # Znížime verziu, aby sme sa vyhli major verzii 3.0.0, ktorá spôsobuje problémy.
+  freezed_annotation: ^2.4.1 # Staršia, ale stabilne kompatibilná verzia
+  riverpod_annotation: ^2.3.4  # MUSÍ byť kompatibilné s generatorom, znížime ju
 
 dev_dependencies:
   flutter_test:
@@ -45,6 +51,11 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+  build_runner: ^2.4.8
+  json_serializable: ^6.7.1
+  # Tieto dva riadky pridajte/upravte:
+  freezed: ^2.4.1 # Musí sedieť s freezed_annotation v dependencies
+  riverpod_generator: ^2.3.4 # Musí sedieť s riverpod_annotation v dependencies
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

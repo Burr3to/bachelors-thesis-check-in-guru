@@ -15,8 +15,8 @@ namespace CheckIn.Api.App.Controllers;
 public class CheckInEventController(ICheckInEventFacade facade)
 	: ControllerBase<CheckInEventEntity, CheckInEventListModel, CheckInEventDetailModel>(facade)
 {
-	// Toto je ID testovacieho používateľa, ktoré sa bude používať kým nezapneme Google Login.
-	private readonly Guid TestOwnerId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+	// TODO: remove hardcoded user
+	private readonly Guid TestOwnerId = Guid.Parse("11111111-1111-1111-1111-111111111111");
 
 	// IMPLEMENTÁCIA ABSTRAKTNÝCH METÓD
 	protected override Expression<Func<CheckInEventEntity, bool>> CreateFilter(string? strFilterAtrib, string? strFilter)
@@ -24,9 +24,6 @@ public class CheckInEventController(ICheckInEventFacade facade)
 		// V testovacom režime filtrujeme podľa napevno určeného ID.
 		// Neskôr nahradíme TestOwnerId za dynamicky získané ID z tokenu.
 		Expression<Func<CheckInEventEntity, bool>> filter = l => l.OwnerId == TestOwnerId;
-
-		// ... Logika triedenia zostáva rovnaká ...
-		// Pridáš tu dodatočné filtre (napr. vyhľadávanie podľa Title)
 
 		return filter;
 	}
@@ -46,7 +43,6 @@ public class CheckInEventController(ICheckInEventFacade facade)
 		return orderBy;
 	}
 
-	// PREPÍSANIE POST PRE NASTAVENIE VLASTNÍKA
 	[HttpPost]
 	public override async Task<ActionResult<CheckInEventDetailModel>> Post([FromBody] CheckInEventDetailModel model)
 	{
@@ -55,6 +51,4 @@ public class CheckInEventController(ICheckInEventFacade facade)
 
 		return await base.Post(model);
 	}
-
-	// POZNÁMKA: Akonáhle zapneš autentifikáciu, musíš odstrániť TestOwnerId a vrátiť sa k logike získavania ID z tokenu.
 }
