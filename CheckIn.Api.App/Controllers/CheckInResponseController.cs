@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using System.Security.Claims;
 using CheckIn.Api.Bl.Facades.Interfaces;
 using CheckIn.Api.Dal.Entities;
+
 using CheckIn.Api.Common.Models.Details;
 using CheckIn.Api.Common.Models.Lists;
 using Microsoft.AspNetCore.Authorization;

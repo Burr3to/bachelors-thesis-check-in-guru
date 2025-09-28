@@ -66,20 +66,21 @@ public abstract class FacadeBase
 		var entity = mapper.Map<TEntity>(model);
 
 		var idProperty = entity.GetType().GetProperty("Id");
+		var idValue = (Guid)(idProperty?.GetValue(entity) ??
+		                     throw new InvalidOperationException("Entity must have an Id property."));
+		var existingEntity = await dbContext.Set<TEntity>().AsNoTracking().FirstOrDefaultAsync(e => e.Id == idValue);
 
-		var idValue = (Guid)(idProperty?.GetValue(entity) ?? throw new InvalidOperationException());
-
-		if (idValue == Guid.Empty)
+		if (existingEntity == null)
 		{
 			dbContext.Set<TEntity>().Add(entity);
 		}
 		else
 		{
-			dbContext.Set<TEntity>().Update(entity);
+			dbContext.Set<TEntity>().Attach(entity);
+			dbContext.Entry(entity).State = EntityState.Modified;
 		}
 
 		await dbContext.SaveChangesAsync();
-
 		mapper.Map(entity, model);
 
 		return model;

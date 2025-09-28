@@ -1,9 +1,10 @@
 using System.Linq.Expressions;
 using System.Security.Claims;
 using CheckIn.Api.Bl.Facades.Interfaces;
-using CheckIn.Api.Dal.Entities;
 using CheckIn.Api.Common.Models.Details;
 using CheckIn.Api.Common.Models.Lists;
+using CheckIn.Api.Dal.Entities;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,27 +12,35 @@ namespace CheckIn.Api.App.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-// [Authorize] // DOČASNE ZAKOMENTOVANÉ PRE JEDNODUCHÉ TESTOVANIE
+[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 public class CheckInEventController(ICheckInEventFacade facade)
 	: ControllerBase<CheckInEventEntity, CheckInEventListModel, CheckInEventDetailModel>(facade)
 {
-	// TODO: remove hardcoded user
-	private readonly Guid TestOwnerId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+	// Pomocná metóda na získanie OwnerId z kontextu používateľa
+	private Guid GetCurrentOwnerId()
+	{
+		var ownerIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+		if (!Guid.TryParse(ownerIdString, out var ownerId))
+			throw new UnauthorizedAccessException("Owner ID claim is missing or invalid.");
+		return ownerId;
+	}
 
 	// IMPLEMENTÁCIA ABSTRAKTNÝCH METÓD
-	protected override Expression<Func<CheckInEventEntity, bool>> CreateFilter(string? strFilterAtrib, string? strFilter)
+	protected override Expression<Func<CheckInEventEntity, bool>> CreateFilter(string? strFilterAtrib,
+		string? strFilter)
 	{
-		// V testovacom režime filtrujeme podľa napevno určeného ID.
-		// Neskôr nahradíme TestOwnerId za dynamicky získané ID z tokenu.
-		Expression<Func<CheckInEventEntity, bool>> filter = l => l.OwnerId == TestOwnerId;
+		var currentOwnerID = GetCurrentOwnerId();
+		Expression<Func<CheckInEventEntity, bool>> filter = l => l.OwnerId == currentOwnerID;
 
 		return filter;
 	}
 
-	protected override Func<IQueryable<CheckInEventEntity>, IOrderedQueryable<CheckInEventEntity>> CreateOrderBy(string? strSortBy, bool sortDesc)
+	protected override Func<IQueryable<CheckInEventEntity>, IOrderedQueryable<CheckInEventEntity>> CreateOrderBy(
+		string? strSortBy, bool sortDesc)
 	{
 		// Triedenie zostáva rovnaké (napr. podľa dátumu vytvorenia)
-		Func<IQueryable<CheckInEventEntity>, IOrderedQueryable<CheckInEventEntity>> orderBy = l => l.OrderByDescending(s => s.CreatedAt);
+		Func<IQueryable<CheckInEventEntity>, IOrderedQueryable<CheckInEventEntity>> orderBy = l =>
+			l.OrderByDescending(s => s.CreatedAt);
 
 		if (strSortBy == nameof(CheckInEventEntity.Title))
 		{
@@ -47,8 +56,31 @@ public class CheckInEventController(ICheckInEventFacade facade)
 	public override async Task<ActionResult<CheckInEventDetailModel>> Post([FromBody] CheckInEventDetailModel model)
 	{
 		// Nastavenie ID vlastníka na testovacie ID.
-		model.OwnerId = TestOwnerId;
+		model.OwnerId = GetCurrentOwnerId();
 
 		return await base.Post(model);
+	}
+
+	[HttpGet("{id}")]
+	[ProducesResponseType(typeof(CheckInEventDetailModel), StatusCodes.Status200OK)]
+	[ProducesResponseType(StatusCodes.Status401Unauthorized)]
+	[ProducesResponseType(StatusCodes.Status404NotFound)]
+	public override async Task<ActionResult<CheckInEventDetailModel>> GetById(Guid id)
+	{
+		var currentOwnerId = GetCurrentOwnerId();
+		var eventDetail = await facade.GetByIdAsync(id);
+
+		if (eventDetail == null)
+		{
+			return NotFound("CheckInEvent not found.");
+		}
+
+		// Ak event nepatrí prihlásenému používateľovi
+		if (eventDetail.OwnerId != currentOwnerId)
+		{
+			return NotFound("CheckInEvent not found..");
+		}
+
+		return Ok(eventDetail);
 	}
 }

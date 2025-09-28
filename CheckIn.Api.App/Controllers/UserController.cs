@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using CheckIn.Api.Bl.Facades.Interfaces;
 using CheckIn.Api.Common.Models.Details;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,7 +9,6 @@ namespace CheckIn.Api.App.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-[AllowAnonymous]
 public class UserController : ControllerBase
 {
 	private readonly IUserFacade _userFacade;
@@ -18,12 +18,9 @@ public class UserController : ControllerBase
 		_userFacade = userFacade;
 	}
 
-	// TODO: Remove harccoded user
-	private readonly Guid TestOwnerId = Guid.Parse("11111111-1111-1111-1111-111111111111");
-
 	// GET: api/User/profile
 	[HttpGet("profile")]
-	//[Authorize] // Kľúčové: iba pre prihláseného užívateľa!
+	[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 	[ProducesResponseType(typeof(UserDetailModel), StatusCodes.Status200OK)]
 	[ProducesResponseType(StatusCodes.Status401Unauthorized)]
 	[ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -33,8 +30,7 @@ public class UserController : ControllerBase
 		var ownerIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
 		if (!Guid.TryParse(ownerIdString, out var userId))
 		{
-			//return Unauthorized("User ID claim is missing.");
-			userId = TestOwnerId;
+			return Unauthorized("Invalid or missing User ID claim.");
 		}
 
 		var userDetail = await _userFacade.GetByIdAsync(userId);
