@@ -4,10 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:checkin_frontend/config/app_constants.dart';
 import 'package:checkin_frontend/viewmodels/auth_provider.dart';
-// import 'package:url_launcher/url_launcher.dart'; // ZAKOMENTUJTE ALEBO ODSTRÁŇTE TENTO IMPORT
-import 'dart:js_interop'; // PRIDAJTE TENTO IMPORT
-import 'package:web/web.dart' as web; // PRIDAJTE TENTO IMPORT
-import 'package:checkin_frontend/config/app_constants.dart';
+
+import 'package:web/web.dart' as web;
 
 class AppNavigationBar extends ConsumerWidget implements PreferredSizeWidget {
   const AppNavigationBar({super.key});
@@ -15,39 +13,34 @@ class AppNavigationBar extends ConsumerWidget implements PreferredSizeWidget {
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 
+  // Handles the Google Sign-In process by opening a new browser window
   void _handleGoogleSignIn(BuildContext context, WidgetRef ref) async {
     final String backendGoogleLoginUrl = kBackendGoogleLoginEndpoint;
-    print('AppNavigationBar: Pokúšam sa spustiť Google prihlásenie cez URL: $backendGoogleLoginUrl'); // DIAGNOSTIKA
 
     try {
-      // *** KĽÚČOVÁ ZMENA: Priame volanie window.open bez noopener ***
-      final web.Window? newWindow = web.window.open(backendGoogleLoginUrl, '_blank'); // Tretí parameter 'features' je prázdny reťazec, čo znamená žiadne špeciálne vlastnosti ako 'noopener'.
+      final web.Window? newWindow = web.window.open(
+        backendGoogleLoginUrl,
+        '_blank',
+      );
 
       if (newWindow == null) {
-        print('AppNavigationBar: Chyba: Nepodarilo sa otvoriť nové okno pre Google prihlásenie.'); // DIAGNOSTIKA
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Nepodarilo sa spustiť Google prihlásenie.')),
-        );
-      } else {
-        print('AppNavigationBar: Úspešne otvorené nové okno pre Google prihlásenie pomocou window.open.'); // DIAGNOSTIKA
-        // Môžete zvážiť uloženie referencie na newWindow a sledovať jeho stav, ak potrebujete.
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Nepodarilo sa spustiť Google prihlásenie.')));
       }
     } catch (e) {
-      print('AppNavigationBar: Chyba pri otváraní okna pomocou window.open: $e'); // DIAGNOSTIKA
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Chyba pri spúšťaní Google prihlásenia: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Chyba pri spúšťaní Google prihlásenia: $e')));
     }
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Watch the authProvider to get the current user's profile and react to changes.
     final userProfile = ref.watch(authProvider);
     final isLoggedIn = userProfile != null;
     final authNotifier = ref.read(authProvider.notifier);
-
-    print('AppNavigationBar: build volaný. Používateľ je ${isLoggedIn ? 'prihlásený (${userProfile!.email})' : 'odhlásený'}.'); // DIAGNOSTIKA
-
 
     return AppBar(
       title: InkWell(
@@ -73,7 +66,6 @@ class AppNavigationBar extends ConsumerWidget implements PreferredSizeWidget {
       actions: [
         TextButton(
           onPressed: () {
-            print('AppNavigationBar: Kliknuté na "Eventy".'); // DIAGNOSTIKA
             GoRouter.of(context).go(navBarPaths[1]);
           },
           child: const Text(
@@ -110,7 +102,6 @@ class AppNavigationBar extends ConsumerWidget implements PreferredSizeWidget {
                 icon: const Icon(Icons.logout, color: Colors.white),
                 tooltip: 'Odhlásiť sa',
                 onPressed: () {
-                  print('AppNavigationBar: Kliknuté na "Odhlásiť sa".'); // DIAGNOSTIKA
                   authNotifier.signOut();
                   GoRouter.of(context).go(navBarPaths[0]);
                 },
@@ -125,7 +116,6 @@ class AppNavigationBar extends ConsumerWidget implements PreferredSizeWidget {
               style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
             ),
             onPressed: () {
-              print('AppNavigationBar: Kliknuté na "Prihlásiť sa".'); // DIAGNOSTIKA
               _handleGoogleSignIn(context, ref);
             },
           ),

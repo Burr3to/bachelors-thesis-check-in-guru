@@ -7,7 +7,7 @@ part of 'checkin_event_provider.dart';
 // **************************************************************************
 
 String _$checkInEventServiceHash() =>
-    r'3bae5dda5275c92d82a01138db4b5319bc18b012';
+    r'7f9c98a4428087cc9054f88dd6a2192b00975537';
 
 /// See also [checkInEventService].
 @ProviderFor(checkInEventService)
@@ -25,7 +25,7 @@ final checkInEventServiceProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef CheckInEventServiceRef = AutoDisposeProviderRef<CheckInEventService>;
-String _$checkInEventsHash() => r'73f1df21bbb4bf8c22f262aa49dfea8859a295cd';
+String _$checkInEventsHash() => r'63a8b3dfae6642d53654be726b1eff2507002ffb';
 
 /// See also [checkInEvents].
 @ProviderFor(checkInEvents)

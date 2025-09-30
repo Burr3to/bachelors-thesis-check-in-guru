@@ -25,7 +25,6 @@ class LoginPage extends StatelessWidget {
               ),
             const SizedBox(height: 20),
             const Text('Použite tlačidlo "Prihlásiť sa" v hornej lište.'),
-            // Tu môžete pridať aj tlačidlo "Skúsiť znova"
           ],
         ),
       ),

@@ -14,7 +14,7 @@ const String kRouteHome = '/';
 const String kRouteCheckInEvents = '/CheckInEvents';
 const String kRouteLoginSuccess = '/login-success';
 
-// NavBar cesty (ako to máte teraz)
+// NavBar
 const List<String> navBarPaths = [
   kRouteHome,
   kRouteCheckInEvents,

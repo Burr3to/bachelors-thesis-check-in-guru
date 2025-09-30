@@ -4,16 +4,20 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:checkin_frontend/config/app_constants.dart';
 
-// Predpokladaný UserProfile model
+// TODO: Review correctness of the UserProfile fields based on backend response.
+// TODO look for more secure storage for JWT tokens
 class UserProfile {
   final String userId;
   final String email;
   final String? name;
   final String jwtToken;
 
+  // instance.
   UserProfile({required this.userId, required this.email, this.name, required this.jwtToken});
 }
 
+// A [StateNotifier] that manages the authentication state of the application.
+// It handles logging in, loading user profiles from stored tokens, and logging out.
 class AuthNotifier extends StateNotifier<UserProfile?> {
   AuthNotifier() : super(null) {
     _loadUserProfile();
@@ -21,48 +25,45 @@ class AuthNotifier extends StateNotifier<UserProfile?> {
 
   late SharedPreferences _prefs;
 
+  /// `SharedPreferences` instance.
   Future<void> _initStorage() async {
     _prefs = await SharedPreferences.getInstance();
   }
 
+  /// Attempts to load a user profile from a stored JWT token in `SharedPreferences`.
+  /// If a token is found, it calls `fetchUserProfile` to validate it and get user data.
   Future<void> _loadUserProfile() async {
-    print('AuthNotifier: Načítavam profil pri štarte...'); // DIAGNOSTIKA
     await _initStorage();
     final token = _prefs.getString('jwt_token');
     if (token != null) {
-      print('AuthNotifier: Našiel som uložený token, volám fetchUserProfile.'); // DIAGNOSTIKA
       await fetchUserProfile(token);
     } else {
-      print('AuthNotifier: Žiadny uložený token.'); // DIAGNOSTIKA
+      // user remains logged out (state is null)
     }
   }
 
+  /// Logs in the user by storing the provided JWT token and fetching their profile.
   Future<void> signInWithToken(String token) async {
-    print('AuthNotifier: Volaná signInWithToken. Token začína: ${token.substring(0, 10)}...'); // DIAGNOSTIKA
     await _initStorage();
     await _prefs.setString('jwt_token', token);
-    print('AuthNotifier: Token uložený v SharedPreferences, volám fetchUserProfile.'); // DIAGNOSTIKA
     await fetchUserProfile(token);
   }
 
   void setLoginError(String message) {
-    print('AuthNotifier: Nastavujem chybu pri prihlásení: $message'); // DIAGNOSTIKA
     state = null;
   }
 
+  /// Fetches the user's profile information from the backend using the provided JWT token.
+  /// If successful, it updates the `state` with the new `UserProfile`.
+  /// On failure, it calls `_handleError` and initiates a `signOut`.
   Future<void> fetchUserProfile(String token) async {
-    print('AuthNotifier: Volaná fetchUserProfile pre získanie detailov.'); // DIAGNOSTIKA
-    final String baseUrl = kBackendBaseUrl;
     final Uri profileUrl = Uri.parse(kBackendUserProfileEndpoint);
-    print('AuthNotifier: Volám backend API pre profil: $profileUrl'); // DIAGNOSTIKA
 
     try {
       final response = await http.get(
         profileUrl,
         headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
       );
-
-      print('AuthNotifier: API odpoveď z /api/User/profile - Status: ${response.statusCode}, Body: ${response.body.length > 200 ? response.body.substring(0,200) + '...' : response.body}'); // DIAGNOSTIKA
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> userData = json.decode(response.body);
@@ -72,32 +73,33 @@ class AuthNotifier extends StateNotifier<UserProfile?> {
           name: userData['name'] ?? userData['email'],
           jwtToken: token,
         );
-        print('AuthNotifier: Stav UserProfile aktualizovaný. Prihlásený používateľ: ${state?.email}, ID: ${state?.userId}, Token začína: ${state?.jwtToken.substring(0, 10)}...'); // DIAGNOSTIKA
       } else {
-        _handleError(
-          'Nepodarilo sa načítať profil používateľa: ${response.statusCode} - ${response.body}',
-        );
+        // token invalid
+        _handleError('Failed to load user profile: ${response.statusCode} - ${response.body}');
         await signOut();
       }
-    } catch (e, st) { // Pridané st pre stack trace
-      _handleError('Chyba pri načítaní profilu: $e\n$st'); // DIAGNOSTIKA
+    } catch (e) {
+      _handleError('Error fetching profile: $e');
       await signOut();
     }
   }
 
   void _handleError(String message) {
-    print('AuthNotifier ERROR: $message'); // DIAGNOSTIKA
+    // print('AuthNotifier Error: $message'); // For debugging
   }
 
+  // Logs out the user by removing the JWT token from `SharedPreferences`
   Future<void> signOut() async {
-    print('AuthNotifier: Odhlasujem používateľa.'); // DIAGNOSTIKA
     await _initStorage();
     await _prefs.remove('jwt_token');
     state = null;
-    print('AuthNotifier: Stav UserProfile nastavený na null.'); // DIAGNOSTIKA
   }
 }
 
+// A Riverpod `StateNotifierProvider` that exposes the `AuthNotifier`
+// and its `UserProfile?` state.
+// This allows widgets to listen to authentication changes and interact
+// with the authentication logic.
 final authProvider = StateNotifierProvider<AuthNotifier, UserProfile?>((ref) {
   return AuthNotifier();
 });

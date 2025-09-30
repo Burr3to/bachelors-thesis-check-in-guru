@@ -6,13 +6,7 @@ import 'package:checkin_frontend/config/router.dart';
 import 'package:checkin_frontend/widgets/auth_listener_initializer.dart';
 
 void main() {
-  runApp(
-    const ProviderScope(
-      child: AuthListenerInitializer(
-        child: MyApp(),
-      ),
-    ),
-  );
+  runApp(const ProviderScope(child: AuthListenerInitializer(child: MyApp())));
 }
 
 class MyApp extends ConsumerWidget {
