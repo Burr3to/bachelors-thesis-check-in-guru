@@ -42,27 +42,4 @@ public class UserController : ControllerBase
 
 		return Ok(userDetail);
 	}
-
-	// 2. GOOGLE LOGIN
-
-	// POST: api/User/login-google
-	// Táto metóda by v budúcnosti spracovala token od Google (alebo nejaký kód)
-	// a vymenila ho za náš JWT token.
-	[HttpPost("login-google")]
-	[AllowAnonymous] // Tento endpoint musí byť otvorený!
-	[ProducesResponseType(StatusCodes.Status200OK)]
-	public async Task<IActionResult> GoogleLogin([FromBody] string googleToken)
-	{
-		// POZNÁMKA: Implementácia OAuth 2.0 je rozsiahla. 
-		// Pre MVP to stačí ako placeholder:
-
-		// 1. Zavolaj Fasádu, aby overila token u Google (nie je implementované)
-		// 2. Fasáda vytvorí alebo nájde UserEntity v DB
-		// 3. Fasáda vygeneruje a vráti JWT token pre Flutter
-
-		// Zatiaľ len vrátime placeholder
-		var placeholderJwtToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9....";
-
-		return Ok(new { token = placeholderJwtToken });
-	}
 }

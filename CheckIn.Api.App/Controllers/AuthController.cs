@@ -67,13 +67,11 @@ namespace CheckIn.Api.App.Controllers
 			}
 
 			IdentityUser user;
-			// Pokúsime sa prihlásiť používateľa s externým poskytovateľom
 			var signInResult = await _signInManager.ExternalLoginSignInAsync(info.LoginProvider, info.ProviderKey,
 				isPersistent: false, bypassTwoFactor: true);
 
 			if (signInResult.Succeeded)
 			{
-				// Používateľ už existuje v našej DB Identity a je prepojený s Google účtom. Načítame ho.
 				user = await _userManager.FindByLoginAsync(info.LoginProvider, info.ProviderKey);
 			}
 			else // Používateľ neexistuje v Identity, alebo nie je prepojený s externým loginom.
@@ -87,7 +85,6 @@ namespace CheckIn.Api.App.Controllers
 				user = await _userManager.FindByEmailAsync(email);
 				if (user == null)
 				{
-					// Používateľ s týmto emailom neexistuje v Identity, vytvoríme nového IdentityUser.
 					user = new IdentityUser { UserName = email, Email = email, EmailConfirmed = true };
 					var createResult = await _userManager.CreateAsync(user);
 					if (!createResult.Succeeded)
@@ -97,8 +94,6 @@ namespace CheckIn.Api.App.Controllers
 					}
 				}
 
-				// Prepojíme existujúceho alebo novovytvoreného IdentityUser s jeho Google účtom.
-				// Toto sa uloží do tabuľky AspNetUserLogins.
 				var addLoginResult = await _userManager.AddLoginAsync(user, info);
 				if (!addLoginResult.Succeeded)
 				{
@@ -107,15 +102,12 @@ namespace CheckIn.Api.App.Controllers
 				}
 			}
 
-			// *** TÁTO ČASŤ JE KĽÚČOVÁ PRE VYTVORENIE/AKTUALIZÁCIU VÁŠHO CUSTOM UserEntity ***
-			// Bez ohľadu na to, či bol používateľ práve vytvorený alebo už existoval,
-			// zabezpečíme, aby mal záznam aj vo vašej vlastnej tabuľke 'Users' cez fasádu.
 			var userDetailModel = new UserDetailModel
 			{
-				Id = Guid.Parse(user.Id), // IdentityUser.Id je string, ale pre naše entitity ho parsujeme na Guid
+				Id = Guid.Parse(user.Id),
 				Name = info.Principal.FindFirstValue(ClaimTypes.Name) ?? "Nezname meno",
 				Email = user.Email,
-				GoogleId = info.ProviderKey // Jedinečný identifikátor používateľa od Google
+				GoogleId = info.ProviderKey
 			};
 
 			// Metóda SaveAsync vo vašej fasáde teraz správne zistí, či ide o pridanie alebo aktualizáciu.
@@ -126,11 +118,11 @@ namespace CheckIn.Api.App.Controllers
 			// ale môže byť užitočná pre interné ASP.NET Identity mechanizmy.
 			await _signInManager.SignInAsync(user, isPersistent: false);
 
-			// Generovanie JWT tokenu
 			var token = GenerateJwtToken(user);
 
-			// Presmerovanie späť na Flutter aplikáciu s JWT tokenom
-			return Redirect($"{frontendBaseUrl}/login-success?token={token}");
+			return Content(
+				$"<script>window.opener.postMessage({{ type: 'loginSuccess', token: '{token}' }}, '*'); window.close();</script>",
+				"text/html");
 		}
 
 		private string GenerateJwtToken(IdentityUser user)
@@ -142,10 +134,6 @@ namespace CheckIn.Api.App.Controllers
 				new Claim(ClaimTypes.NameIdentifier, user.Id),
 				new Claim(ClaimTypes.Email, user.Email)
 			};
-
-			// V budúcnosti tu môžete pridať roly
-			// var roles = await _userManager.GetRolesAsync(user);
-			// claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
 
 			var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
 			var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
