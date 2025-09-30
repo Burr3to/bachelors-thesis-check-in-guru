@@ -6,7 +6,26 @@ part of 'checkin_event_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$checkInEventsHash() => r'6218ba4319284928882095a0ed928211b7a451b2';
+String _$checkInEventServiceHash() =>
+    r'3bae5dda5275c92d82a01138db4b5319bc18b012';
+
+/// See also [checkInEventService].
+@ProviderFor(checkInEventService)
+final checkInEventServiceProvider =
+    AutoDisposeProvider<CheckInEventService>.internal(
+      checkInEventService,
+      name: r'checkInEventServiceProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$checkInEventServiceHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef CheckInEventServiceRef = AutoDisposeProviderRef<CheckInEventService>;
+String _$checkInEventsHash() => r'73f1df21bbb4bf8c22f262aa49dfea8859a295cd';
 
 /// See also [checkInEvents].
 @ProviderFor(checkInEvents)

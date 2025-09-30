@@ -40,6 +40,10 @@ dependencies:
   flutter_riverpod: ^2.5.1  # Znížime verziu, aby sme sa vyhli major verzii 3.0.0, ktorá spôsobuje problémy.
   freezed_annotation: ^2.4.1 # Staršia, ale stabilne kompatibilná verzia
   riverpod_annotation: ^2.3.4  # MUSÍ byť kompatibilné s generatorom, znížime ju
+  url_launcher: ^6.2.2
+  shared_preferences: ^2.2.2
+  web: ^1.1.1 # <--- Pridajte toto
+  
 
 dev_dependencies:
   flutter_test:
