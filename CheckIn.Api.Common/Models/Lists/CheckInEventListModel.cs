@@ -8,5 +8,6 @@ public class CheckInEventListModel : IEntityModel
     public required string Title { get; set; }
     public required string Hash { get; set; }
     public DateTime CreatedAt { get; set; }
+	public DateTime DeadLine { get; set; }
     public Guid OwnerId { get; set; }
 }

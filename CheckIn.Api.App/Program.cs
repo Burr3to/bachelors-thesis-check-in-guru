@@ -6,6 +6,9 @@ using CheckIn.Api.Dal;
 using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
+using FirebaseAdmin;
+using FirebaseAdmin.Auth;
+using Google.Apis.Auth.OAuth2;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,32 +16,47 @@ var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationExcep
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "https://localhost:7084";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "https://localhost:7084";
 
+var firebaseConfigSection = builder.Configuration.GetSection("FirebaseAdmin");
+if (!firebaseConfigSection.Exists())
+{
+    throw new InvalidOperationException("FirebaseAdmin configuration section is missing. Check User Secrets.");
+}
+
+// Prevod konfigurácie na JSON reťazec
+var firebaseConfigJson = System.Text.Json.JsonSerializer.Serialize(firebaseConfigSection.Get<object>());
+
+// Inicializácia Firebase Admin SDK
+FirebaseApp.Create(new AppOptions()
+{
+    Credential = GoogleCredential.FromJson(firebaseConfigJson)
+});
+
+// Zaregistruj Singleton pre jednoduché injektovanie v kontroléroch
+builder.Services.AddSingleton(FirebaseAuth.DefaultInstance); 
+
+
 builder.Services.AddAuthentication(options =>
 	{
-		options.DefaultScheme = Microsoft.AspNetCore.Identity.IdentityConstants.ApplicationScheme;
-		options.DefaultChallengeScheme = Microsoft.AspNetCore.Authentication.Google.GoogleDefaults.AuthenticationScheme;
+		// Nastavujeme JWT ako predvolenú schému pre autentifikáciu a Challenge
+		options.DefaultAuthenticateScheme = "Bearer"; 
+		options.DefaultChallengeScheme = "Bearer"; 
 	})
-	.AddGoogle(googleOptions =>
+	// Odstránená Google OAuth schéma, pretože prechádzame na Firebase klientskú autentifikáciu.
+	.AddJwtBearer("Bearer", jwtOptions =>
 	{
-		googleOptions.ClientId = builder.Configuration["Authentication:Google:ClientId"];
-		googleOptions.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
-		googleOptions.CallbackPath = "/signin-google";
-	})
-	.AddJwtBearer(jwtOptions =>
-	{
-		// Toto je kľúčová konfigurácia pre validáciu prichádzajúcich JWT tokenov
+		// Kľúčová konfigurácia pre validáciu prichádzajúcich JWT tokenov
 		jwtOptions.TokenValidationParameters = new TokenValidationParameters
 		{
-			ValidateIssuer = true, // Overiť vydavateľa tokenu
-			ValidateAudience = true, // Overiť príjemcu tokenu
-			ValidateLifetime = true, // Overiť platnosť tokenu (expiráciu)
-			ValidateIssuerSigningKey = true, // Overiť podpisový kľúč tokenu
-			ValidIssuer = jwtIssuer, // Použijte hodnotu z User Secrets
-			ValidAudience = jwtAudience, // Použijte hodnotu z User Secrets
-			IssuerSigningKey =
-				new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)) // Použijte podpisový kľúč z User Secrets
+			ValidateIssuer = true,
+			ValidateAudience = true,
+			ValidateLifetime = true,
+			ValidateIssuerSigningKey = true,
+			ValidIssuer = jwtIssuer,
+			ValidAudience = jwtAudience,
+			IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
 		};
 	});
+
 builder.Services.AddIdentity<IdentityUser, IdentityRole>(options => { options.SignIn.RequireConfirmedAccount = false; })
 	.AddEntityFrameworkStores<CheckInDbContext>()
 	.AddDefaultTokenProviders();
@@ -61,8 +79,6 @@ builder.Services.AddSwaggerGen(options =>
 		Description = "Zadajte JWT Bearer token pre autorizáciu."
 	});
 
-	// Priradenie bezpečnostnej požiadavky k celej dokumentácii
-	// To znamená, že všetky endpointy budú vyžadovať túto schému (alebo explicitné AllowAnonymous)
 	options.AddSecurityRequirement(new OpenApiSecurityRequirement
 	{
 		{
@@ -100,7 +116,8 @@ ApiDalInstaller.Install(builder.Services, connectionString);
 // Add services to the container.
 
 builder.Services.AddSwaggerGen();
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddNewtonsoftJson();
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
@@ -108,14 +125,12 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-	// --- Dodatočný kód ---
 	app.UseSwagger();
 	app.UseSwaggerUI(options =>
 	{
 		options.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
-		options.RoutePrefix = string.Empty; // URL bude priamo na hlavnej stránke
+		options.RoutePrefix = string.Empty;
 	});
-	// --- Koniec dodatočného kódu ---
 
 	app.MapOpenApi();
 }

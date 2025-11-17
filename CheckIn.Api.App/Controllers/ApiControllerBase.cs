@@ -2,32 +2,38 @@ using System.Linq.Expressions;
 using CheckIn.Api.Bl.Facades.Interfaces;
 using CheckIn.Api.Dal.Entities;
 using CheckIn.Api.Common.Models.Interfaces;
+using CheckIn.Api.Common.Models.Query;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CheckIn.Api.App.Controllers;
 
-public abstract class ControllerBase<TEntity, TListModel, TDetailModel>(IFacade<TEntity, TListModel, TDetailModel> facade)
-	: ControllerBase where TDetailModel : IEntityModel
+public abstract class ApiControllerBase<TEntity, TListModel, TDetailModel, TCreateModel, TUpdateModel, TQueryModel>(
+	IFacade<TEntity, TListModel, TDetailModel, TCreateModel, TUpdateModel> facade)
+	: ControllerBase
+	where TDetailModel : IEntityModel
+	where TCreateModel : class
+	where TUpdateModel : IEntityModel
+	where TQueryModel : IPageableQuery, new()
 {
 	// Abstraktné metódy, ktoré MUSÍ implementovať každá konkrétna Controller trieda
-	protected abstract Expression<Func<TEntity, bool>> CreateFilter(string? strFilterAtrib, string? strFilter);
-	protected abstract Func<IQueryable<TEntity>, IOrderedQueryable<TEntity>> CreateOrderBy(string? strSortBy, bool sortDesc);
+	protected abstract Expression<Func<TEntity, bool>> CreateFilter(TQueryModel query);
+	protected abstract Func<IQueryable<TEntity>, IOrderedQueryable<TEntity>> CreateOrderBy(TQueryModel query);
 
 	// GET: api/ControllerName
 	// Implementuje Paging a Filtering pre zoznam
 	[HttpGet]
 	public virtual async Task<ActionResult<IEnumerable<TListModel>>> GetList(
-		[FromQuery] string? strFilterAtrib,
-		[FromQuery] string? strFilter,
-		[FromQuery] string? strSortBy,
-		[FromQuery] bool sortDesc = false,
-		[FromQuery] int pageNumber = 1,
-		[FromQuery] int pageSize = 10)
+		[FromQuery] TQueryModel query)
 	{
-		var filter = CreateFilter(strFilterAtrib, strFilter);
-		var orderBy = CreateOrderBy(strSortBy, sortDesc);
+		var filter = CreateFilter(query);
+		var orderBy = CreateOrderBy(query);
 
-		var result = await facade.GetAsync(filter, orderBy, pageNumber, pageSize);
+		var result = await facade.GetAsync(
+			filter,
+			orderBy,
+			query.PageNumber,
+			query.PageSize);
+
 		return Ok(result.ToList());
 	}
 
@@ -46,25 +52,23 @@ public abstract class ControllerBase<TEntity, TListModel, TDetailModel>(IFacade<
 
 	// PUT: api/ControllerName/5
 	[HttpPut("{id}")]
-	public virtual async Task<IActionResult> Put(Guid id, [FromBody] TDetailModel model)
+	public virtual async Task<IActionResult> Put(Guid id, [FromBody] TUpdateModel model)
 	{
 		if (id != model.Id)
 		{
 			return BadRequest("ID mismatch.");
 		}
 
-		await facade.SaveAsync(model);
+		await facade.SaveUpdateModelAsync(model);
 
 		return NoContent(); // Vrátenie 204 No Content (Úspešne, ale bez tela)
 	}
 
 	// POST: api/ControllerName (Vytvorenie)
 	[HttpPost]
-	public virtual async Task<ActionResult<TDetailModel>> Post([FromBody] TDetailModel model)
+	public virtual async Task<ActionResult<TDetailModel>> Post([FromBody] TCreateModel model)
 	{
-		// Vytvorenie nového ID na strane servera
-		model.Id = Guid.Empty;
-		var result = await facade.SaveAsync(model);
+		var result = await facade.SaveCreateModelAsync(model);
 
 		return CreatedAtAction(nameof(GetById), new { id = result.Id }, result); // Vrátenie 201 Created
 	}

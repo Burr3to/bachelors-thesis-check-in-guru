@@ -3,11 +3,16 @@ using System.Security.Claims;
 using System.Text;
 using CheckIn.Api.Bl.Facades.Interfaces;
 using CheckIn.Api.Common.Models.Details;
+using CheckIn.Api.Common.Models.Auth;
+using CheckIn.Api.Dal;
+using CheckIn.Api.Dal.Entities;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
+using FirebaseAdmin.Auth;
+using Microsoft.EntityFrameworkCore;
 
 namespace CheckIn.Api.App.Controllers
 {
@@ -17,120 +22,190 @@ namespace CheckIn.Api.App.Controllers
 	{
 		private readonly SignInManager<IdentityUser> _signInManager;
 		private readonly UserManager<IdentityUser> _userManager;
+		private readonly CheckInDbContext _dbContext;
 		private readonly IUserFacade _userFacade;
 		private readonly IConfiguration _configuration;
+		private readonly FirebaseAuth _firebaseAuth;
 
 		public AuthController(
 			SignInManager<IdentityUser> signInManager,
 			UserManager<IdentityUser> userManager,
+			CheckInDbContext dbContext,
 			IUserFacade userFacade,
-			IConfiguration configuration)
+			IConfiguration configuration,
+			FirebaseAuth firebaseAuth)
 		{
 			_signInManager = signInManager;
 			_userManager = userManager;
+			_dbContext = dbContext;
 			_userFacade = userFacade;
 			_configuration = configuration;
+			_firebaseAuth = firebaseAuth;
 		}
 
 		/// <summary>
-		/// Krok 1: Iniciuje Google OAuth prihlasovací tok.
-		/// Flutter klient zavolá tento endpoint na spustenie prihlásenia cez Google.
+		/// Prijme Firebase ID Token od Flutter klienta, overí ho a vydá vlastný JWT.
 		/// </summary>
-		[HttpGet("google-login")]
+		[HttpPost("verify-firebase-token")]
 		[AllowAnonymous]
-		public IActionResult GoogleLogin()
+		public async Task<IActionResult> VerifyFirebaseToken([FromBody] FirebaseTokenRequest request)
 		{
-			// Pripravíme URL pre callback, na ktorú nás Google vráti.
-			var redirectUrl = Url.Action(nameof(GoogleCallback), "Auth", new { }, Request.Scheme);
-			var properties =
-				_signInManager.ConfigureExternalAuthenticationProperties(GoogleDefaults.AuthenticationScheme,
-					redirectUrl);
+			if (string.IsNullOrEmpty(request.IdToken))
+			{
+				return BadRequest("Firebase ID Token is required.");
+			}
 
-			// Vrátime "Challenge", čo spôsobí presmerovanie na prihlasovaciu stránku Google.
-			return Challenge(properties, GoogleDefaults.AuthenticationScheme);
+			FirebaseToken decodedToken;
+			try
+			{
+				// Kľúčová linka: Overenie tokenu, využíva injektovaný _firebaseAuth
+				decodedToken = await _firebaseAuth.VerifyIdTokenAsync(request.IdToken);
+			}
+			catch (FirebaseAuthException e)
+			{
+				// Neplatný token (vypršaný, zmenený, zlá signatúra)
+				return Unauthorized($"Invalid Firebase token: {e.Message}");
+			}
+
+			// Extrahovanie dát z Firebase tokenu
+			var email = decodedToken.Claims.ContainsKey("email")
+				? decodedToken.Claims["email"].ToString()
+				: null;
+
+			var name = decodedToken.Claims.ContainsKey("name")
+				? decodedToken.Claims["name"].ToString()
+				: "Nezname meno";
+
+			var firebaseUid = decodedToken.Uid;
+
+			if (string.IsNullOrEmpty(email))
+			{
+				return BadRequest("Email not provided by Firebase.");
+			}
+
+			// --- Spracovanie lokálnej Identity (ASP.NET Identity / PostgreSQL) ---
+			IdentityUser user = await _userManager.FindByEmailAsync(email);
+
+			if (user == null)
+			{
+				// Používateľ neexistuje, vytvoríme ho
+				user = new IdentityUser { UserName = email, Email = email, EmailConfirmed = true };
+				var createResult = await _userManager.CreateAsync(user);
+
+				if (!createResult.Succeeded)
+				{
+					var errors = string.Join(", ", createResult.Errors.Select(e => e.Description));
+					return StatusCode(500, $"User creation failed: {errors}");
+				}
+			}
+
+			await _userFacade.SaveAsync(Guid.Parse(user.Id), firebaseUid, user.Email, name);
+
+			// 1. Vygeneruj NOVÝ Access Token (teraz s krátkou expiráciou, napr. 15 minút)
+			var accessToken = GenerateJwtToken(user, TimeSpan.FromMinutes(15));
+
+			// 2. Vygeneruj a ulož Refresh Token (dlhá expiráciu, napr. 30 dní)
+			var refreshToken = await GenerateAndSaveRefreshToken(user.Id, TimeSpan.FromDays(30));
+
+			// 3. Pridaj Refresh Token do HttpOnly Cookie
+			AttachRefreshTokenToCookie(refreshToken.Token);
+
+			// 4. Vráť Access Token v tele odpovede
+			return Ok(new
+			{
+				token = accessToken, // Krátkožijúci JWT
+				userId = user.Id,
+				email = user.Email
+			});
 		}
 
-		/// <summary>
-		/// Krok 2: Callback endpoint, na ktorý Google presmeruje po úspešnej autentifikácii.
-		/// Backend tu spracuje Google autentifikáciu a vydá JWT token.
-		/// </summary>
-		[HttpGet("callback")]
-		[AllowAnonymous]
-		public async Task<IActionResult> GoogleCallback()
+		[HttpPost("refresh")]
+		[AllowAnonymous] // Tento endpoint musí byť neautorizovaný, pretože používa Refresh Token, nie JWT.
+		public async Task<IActionResult> RefreshToken()
 		{
-			var frontendBaseUrl = _configuration["Frontend:BaseUrl"] ?? "http://localhost:5000";
+			// 1. Získa Refresh Token z Cookie
+			var refreshToken = Request.Cookies["refresh_token"];
 
-			var info = await _signInManager.GetExternalLoginInfoAsync();
-			if (info == null)
+			if (string.IsNullOrEmpty(refreshToken))
 			{
-				return Redirect($"{frontendBaseUrl}/login-error?message=External login info not available.");
+				return Unauthorized("Refresh token missing.");
 			}
 
-			IdentityUser user;
-			var signInResult = await _signInManager.ExternalLoginSignInAsync(info.LoginProvider, info.ProviderKey,
-				isPersistent: false, bypassTwoFactor: true);
+			// 2. Nájdeme ho v databáze
+			var tokenRecord = await _dbContext.RefreshTokens
+				.Include(t => t.User)
+				.SingleOrDefaultAsync(t => t.Token == refreshToken);
 
-			if (signInResult.Succeeded)
+			if (tokenRecord == null || tokenRecord.ExpiryDate < DateTime.UtcNow)
 			{
-				user = await _userManager.FindByLoginAsync(info.LoginProvider, info.ProviderKey);
-			}
-			else // Používateľ neexistuje v Identity, alebo nie je prepojený s externým loginom.
-			{
-				var email = info.Principal.FindFirstValue(ClaimTypes.Email);
-				if (string.IsNullOrEmpty(email))
-				{
-					return Redirect($"{frontendBaseUrl}/login-error?message=Email not found from Google.");
-				}
-
-				user = await _userManager.FindByEmailAsync(email);
-				if (user == null)
-				{
-					user = new IdentityUser { UserName = email, Email = email, EmailConfirmed = true };
-					var createResult = await _userManager.CreateAsync(user);
-					if (!createResult.Succeeded)
-					{
-						var errors = string.Join(", ", createResult.Errors.Select(e => e.Description));
-						return Redirect($"{frontendBaseUrl}/login-error?message=User creation failed: {errors}");
-					}
-				}
-
-				var addLoginResult = await _userManager.AddLoginAsync(user, info);
-				if (!addLoginResult.Succeeded)
-				{
-					var errors = string.Join(", ", addLoginResult.Errors.Select(e => e.Description));
-					return Redirect($"{frontendBaseUrl}/login-error?message=Failed to add external login: {errors}");
-				}
+				// Token neexistuje alebo vypršal
+				return Unauthorized("Invalid or expired refresh token.");
 			}
 
-			var userDetailModel = new UserDetailModel
+			// 3. Vydáme nový Access Token (15m)
+			var newAccessToken = GenerateJwtToken(tokenRecord.User, TimeSpan.FromMinutes(15));
+
+			// 4. Vydáme NOVÝ Refresh Token a starý zneplatníme (tzv. Rotating Refresh Tokens)
+			// Týmto zvyšujeme bezpečnosť - ak by bol token ukradnutý, platí iba raz.
+			var newRefreshToken = await GenerateAndSaveRefreshToken(tokenRecord.UserId, TimeSpan.FromDays(30));
+
+			// 5. Nahradíme Cookie novým tokenom
+			AttachRefreshTokenToCookie(newRefreshToken.Token);
+
+			// 6. Vrátime nový Access Token
+			return Ok(new
 			{
-				Id = Guid.Parse(user.Id),
-				Name = info.Principal.FindFirstValue(ClaimTypes.Name) ?? "Nezname meno",
-				Email = user.Email,
-				GoogleId = info.ProviderKey
+				token = newAccessToken,
+				userId = tokenRecord.UserId,
+				email = tokenRecord.User.Email
+			});
+		}
+
+		private async Task<RefreshToken> GenerateAndSaveRefreshToken(string userId, TimeSpan lifespan)
+		{
+			var token = Guid.NewGuid().ToString("N");
+			var expiryDate = DateTime.UtcNow.Add(lifespan);
+
+			// Odstránenie starých tokenov (best practice)
+			var existingTokens = _dbContext.RefreshTokens.Where(t => t.UserId == userId);
+			_dbContext.RefreshTokens.RemoveRange(existingTokens);
+
+			var refreshToken = new RefreshToken
+			{
+				Token = token,
+				ExpiryDate = expiryDate,
+				UserId = userId
 			};
 
-			// Metóda SaveAsync vo vašej fasáde teraz správne zistí, či ide o pridanie alebo aktualizáciu.
-			await _userFacade.SaveAsync(userDetailModel);
+			await _dbContext.RefreshTokens.AddAsync(refreshToken);
+			await _dbContext.SaveChangesAsync();
 
-			// Prihlásime používateľa do ASP.NET Core Identity (ak ešte nie je)
-			// Toto vytvorí session cookie, ktorá je pre náš JWT tok technicky voliteľná,
-			// ale môže byť užitočná pre interné ASP.NET Identity mechanizmy.
-			await _signInManager.SignInAsync(user, isPersistent: false);
-
-			var token = GenerateJwtToken(user);
-
-			return Content(
-				$"<script>window.opener.postMessage({{ type: 'loginSuccess', token: '{token}' }}, '*'); window.close();</script>",
-				"text/html");
+			return refreshToken;
 		}
 
-		private string GenerateJwtToken(IdentityUser user)
+		private void AttachRefreshTokenToCookie(string token)
 		{
+			var cookieOptions = new CookieOptions
+			{
+				HttpOnly = true, // KĽÚČOVÉ: Neprístupné cez JavaScript (chráni proti XSS)
+				Secure = true, // KĽÚČOVÉ: Len cez HTTPS (chráni prenos)
+				Expires = DateTime.UtcNow.AddDays(30), // Expirácia zhodná s tokenom
+				SameSite = SameSiteMode.Strict // Chráni proti CSRF
+			};
+
+			// POZOR: Flutter Web musí bežať na rovnakej doméne (alebo subdoméne) ako tvoj backend, 
+			// inak prehliadač cookie nepripojí kvôli SameSite politike.
+			Response.Cookies.Append("refresh_token", token, cookieOptions);
+		}
+
+		private string GenerateJwtToken(IdentityUser user, TimeSpan lifespan)
+		{
+			var expirationTime = DateTime.Now.Add(lifespan);
+
 			var claims = new List<Claim>
 			{
 				new Claim(JwtRegisteredClaimNames.Sub, user.Id),
-				new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()), // JWT ID
+				new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
 				new Claim(ClaimTypes.NameIdentifier, user.Id),
 				new Claim(ClaimTypes.Email, user.Email)
 			};
@@ -142,7 +217,7 @@ namespace CheckIn.Api.App.Controllers
 				issuer: _configuration["Jwt:Issuer"],
 				audience: _configuration["Jwt:Audience"],
 				claims: claims,
-				expires: DateTime.Now.AddDays(7),
+				expires: expirationTime,
 				signingCredentials: creds
 			);
 

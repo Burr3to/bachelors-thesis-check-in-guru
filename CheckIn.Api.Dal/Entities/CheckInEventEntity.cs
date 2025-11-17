@@ -9,11 +9,10 @@ public class CheckInEventEntity : IEntity
 	public required string Hash { get; set; }
 	public string? Notes { get; set; }
 	public DateTime CreatedAt { get; set; }
+	public DateTime DeadLine { get; set; }
 
-	// Cudzí kľúč
 	public Guid OwnerId { get; set; }
 
-	// Navigačné vlastnosti pre EF Core
 	public UserEntity Owner { get; set; } = default!;
 	public ICollection<CheckInResponseEntity> Responses { get; set; } = new List<CheckInResponseEntity>();
 }

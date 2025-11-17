@@ -1,7 +1,9 @@
 using AutoMapper;
 using CheckIn.Api.Bl.Facades.Interfaces;
+using CheckIn.Api.Common.Models.Create;
 using CheckIn.Api.Common.Models.Details;
 using CheckIn.Api.Common.Models.Lists;
+using CheckIn.Api.Common.Models.Update;
 using CheckIn.Api.Dal;
 using CheckIn.Api.Dal.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -9,13 +11,15 @@ using Microsoft.EntityFrameworkCore;
 namespace CheckIn.Api.Bl.Facades;
 
 public class CheckInResponseFacade(CheckInDbContext dbContext, IMapper mapper)
-	: FacadeBase<CheckInResponseEntity, CheckInResponseListModel, CheckInResponseDetailModel>
+	: FacadeBase<CheckInResponseEntity, CheckInResponseListModel, CheckInResponseDetailModel, CheckInResponseCreateModel,
+			CheckInResponseUpdateModel>
 		(dbContext, mapper), ICheckInResponseFacade
 {
-	public async Task<CheckInResponseDetailModel?> SaveResponseByHashAsync(string eventHash, CheckInResponseDetailModel responseModel)
+	public async Task<CheckInResponseDetailModel?> SaveResponseByHashAsync(string eventHash,
+		CheckInResponseDetailModel responseModel)
 	{
 		// Krok 1: Nájsť CheckInEvent na základe Hashu (Musíme zabezpečiť, že udalosť existuje)
-		var checkInEvent = await dbContext.CheckInEvent
+		var checkInEvent = await dbContext.CheckInEvents
 			.FirstOrDefaultAsync(e => e.Hash == eventHash);
 
 		if (checkInEvent == null)
@@ -32,7 +36,7 @@ public class CheckInResponseFacade(CheckInDbContext dbContext, IMapper mapper)
 		newResponseEntity.CheckInId = checkInEvent.Id;
 
 		// Krok 4: Uložiť do databázy
-		dbContext.CheckInResponse.Add(newResponseEntity);
+		dbContext.CheckInResponses.Add(newResponseEntity);
 		await dbContext.SaveChangesAsync();
 
 		// Krok 5: Vrátiť namapovaný výsledok

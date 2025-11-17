@@ -2,7 +2,7 @@ using System.Linq.Expressions;
 
 namespace CheckIn.Api.Bl.Facades.Interfaces;
 
-public interface IFacade<TEntity, TListModel, TDetailModel>
+public interface IFacade<TEntity, TListModel, TDetailModel, TCreateModel, TUpdateModel> 
 {
 	public Task<IQueryable<TListModel>> GetAsync(
 		Expression<Func<TEntity, bool>>? filter = null,
@@ -10,8 +10,9 @@ public interface IFacade<TEntity, TListModel, TDetailModel>
 		int pageNumber = 1,
 		int pageSize = 10);
 
-	public Task<TDetailModel?> GetByIdAsync(Guid id);
-	public Task<TDetailModel> SaveAsync(TDetailModel model);
+	public Task<TDetailModel?> GetByIdAsync(Guid id); 
+	public Task<TDetailModel> SaveCreateModelAsync(TCreateModel model);
+    public Task<TDetailModel> SaveUpdateModelAsync(TUpdateModel model);
 	public Task<bool> DeleteAsync(Guid entityId);
 	public Task<int> GetCountAsync(Expression<Func<TEntity, bool>>? filter = null);
 }
