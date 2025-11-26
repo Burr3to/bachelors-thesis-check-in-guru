@@ -1,0 +1,31 @@
+import 'package:dio/dio.dart';
+// import 'package:flutter_riverpod/flutter_riverpod.dart'; // Ak budeš chcieť provider
+
+class DioClient {
+  // Singleton alebo len getter, záleží ako to chceš používať.
+  // Pre Riverpod je lepšie to mať ako Provider.
+
+  static Dio createDio() {
+    final dio = Dio(
+      BaseOptions(
+        baseUrl: 'https://localhost:7084',
+        connectTimeout: const Duration(seconds: 10),
+        receiveTimeout: const Duration(seconds: 10),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ),
+    );
+
+    // Pridáme Interceptor na logovanie (aby si videl v konzole čo sa deje)
+    dio.interceptors.add(LogInterceptor(
+      requestBody: true,
+      responseBody: true,
+    ));
+
+    // TODO: Tu neskôr pridáme AuthInterceptor na vkladanie JWT tokenu
+
+    return dio;
+  }
+}
