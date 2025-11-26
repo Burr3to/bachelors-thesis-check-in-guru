@@ -10,5 +10,5 @@ public class UserEntity : IEntity
 	public required string Email { get; set; }
 	public required string Name { get; set; }
 
-	public ICollection<CheckInEventEntity> CreatedCheckIns { get; set; } = new List<CheckInEventEntity>();
+	public ICollection<TaskEntity> CreatedCheckIns { get; set; } = new List<TaskEntity>();
 }

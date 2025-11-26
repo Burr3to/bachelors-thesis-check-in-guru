@@ -2,7 +2,7 @@ using CheckIn.Api.Dal.Entities.InterfacesOrAbstracts;
 
 namespace CheckIn.Api.Dal.Entities;
 
-public class CheckInEventEntity : IEntity
+public class TaskEntity : IEntity
 {
 	public Guid Id { get; set; }
 	public required string Title { get; set; }
@@ -14,5 +14,5 @@ public class CheckInEventEntity : IEntity
 	public Guid OwnerId { get; set; }
 
 	public UserEntity Owner { get; set; } = default!;
-	public ICollection<CheckInResponseEntity> Responses { get; set; } = new List<CheckInResponseEntity>();
+	public ICollection<TaskResponseEntity> Responses { get; set; } = new List<TaskResponseEntity>();
 }

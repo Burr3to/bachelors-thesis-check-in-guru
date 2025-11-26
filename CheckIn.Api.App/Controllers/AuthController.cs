@@ -18,30 +18,16 @@ namespace CheckIn.Api.App.Controllers
 {
 	[Route("api/[controller]")]
 	[ApiController]
-	public class AuthController : ControllerBase
+	public class AuthController(
+		SignInManager<IdentityUser> signInManager,
+		UserManager<IdentityUser> userManager,
+		CheckInDbContext dbContext,
+		IUserFacade userFacade,
+		IConfiguration configuration,
+		FirebaseAuth firebaseAuth)
+		: ControllerBase
 	{
-		private readonly SignInManager<IdentityUser> _signInManager;
-		private readonly UserManager<IdentityUser> _userManager;
-		private readonly CheckInDbContext _dbContext;
-		private readonly IUserFacade _userFacade;
-		private readonly IConfiguration _configuration;
-		private readonly FirebaseAuth _firebaseAuth;
-
-		public AuthController(
-			SignInManager<IdentityUser> signInManager,
-			UserManager<IdentityUser> userManager,
-			CheckInDbContext dbContext,
-			IUserFacade userFacade,
-			IConfiguration configuration,
-			FirebaseAuth firebaseAuth)
-		{
-			_signInManager = signInManager;
-			_userManager = userManager;
-			_dbContext = dbContext;
-			_userFacade = userFacade;
-			_configuration = configuration;
-			_firebaseAuth = firebaseAuth;
-		}
+		private readonly SignInManager<IdentityUser> _signInManager = signInManager;
 
 		/// <summary>
 		/// Prijme Firebase ID Token od Flutter klienta, overí ho a vydá vlastný JWT.
@@ -59,7 +45,7 @@ namespace CheckIn.Api.App.Controllers
 			try
 			{
 				// Kľúčová linka: Overenie tokenu, využíva injektovaný _firebaseAuth
-				decodedToken = await _firebaseAuth.VerifyIdTokenAsync(request.IdToken);
+				decodedToken = await firebaseAuth.VerifyIdTokenAsync(request.IdToken);
 			}
 			catch (FirebaseAuthException e)
 			{
@@ -84,13 +70,13 @@ namespace CheckIn.Api.App.Controllers
 			}
 
 			// --- Spracovanie lokálnej Identity (ASP.NET Identity / PostgreSQL) ---
-			IdentityUser user = await _userManager.FindByEmailAsync(email);
+			IdentityUser user = await userManager.FindByEmailAsync(email);
 
 			if (user == null)
 			{
 				// Používateľ neexistuje, vytvoríme ho
 				user = new IdentityUser { UserName = email, Email = email, EmailConfirmed = true };
-				var createResult = await _userManager.CreateAsync(user);
+				var createResult = await userManager.CreateAsync(user);
 
 				if (!createResult.Succeeded)
 				{
@@ -99,7 +85,7 @@ namespace CheckIn.Api.App.Controllers
 				}
 			}
 
-			await _userFacade.SaveAsync(Guid.Parse(user.Id), firebaseUid, user.Email, name);
+			await userFacade.SaveAsync(Guid.Parse(user.Id), firebaseUid, user.Email, name);
 
 			// 1. Vygeneruj NOVÝ Access Token (teraz s krátkou expiráciou, napr. 15 minút)
 			var accessToken = GenerateJwtToken(user, TimeSpan.FromMinutes(15));
@@ -132,7 +118,7 @@ namespace CheckIn.Api.App.Controllers
 			}
 
 			// 2. Nájdeme ho v databáze
-			var tokenRecord = await _dbContext.RefreshTokens
+			var tokenRecord = await dbContext.RefreshTokens
 				.Include(t => t.User)
 				.SingleOrDefaultAsync(t => t.Token == refreshToken);
 
@@ -167,8 +153,8 @@ namespace CheckIn.Api.App.Controllers
 			var expiryDate = DateTime.UtcNow.Add(lifespan);
 
 			// Odstránenie starých tokenov (best practice)
-			var existingTokens = _dbContext.RefreshTokens.Where(t => t.UserId == userId);
-			_dbContext.RefreshTokens.RemoveRange(existingTokens);
+			var existingTokens = dbContext.RefreshTokens.Where(t => t.UserId == userId);
+			dbContext.RefreshTokens.RemoveRange(existingTokens);
 
 			var refreshToken = new RefreshToken
 			{
@@ -177,8 +163,8 @@ namespace CheckIn.Api.App.Controllers
 				UserId = userId
 			};
 
-			await _dbContext.RefreshTokens.AddAsync(refreshToken);
-			await _dbContext.SaveChangesAsync();
+			await dbContext.RefreshTokens.AddAsync(refreshToken);
+			await dbContext.SaveChangesAsync();
 
 			return refreshToken;
 		}
@@ -210,12 +196,12 @@ namespace CheckIn.Api.App.Controllers
 				new Claim(ClaimTypes.Email, user.Email)
 			};
 
-			var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
+			var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Key"]));
 			var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
 			var token = new JwtSecurityToken(
-				issuer: _configuration["Jwt:Issuer"],
-				audience: _configuration["Jwt:Audience"],
+				issuer: configuration["Jwt:Issuer"],
+				audience: configuration["Jwt:Audience"],
 				claims: claims,
 				expires: expirationTime,
 				signingCredentials: creds

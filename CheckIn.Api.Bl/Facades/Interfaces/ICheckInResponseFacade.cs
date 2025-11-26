@@ -6,9 +6,9 @@ using CheckIn.Api.Dal.Entities;
 
 namespace CheckIn.Api.Bl.Facades.Interfaces;
 
-public interface ICheckInResponseFacade : IFacade<CheckInResponseEntity, CheckInResponseListModel,
-	CheckInResponseDetailModel, CheckInResponseCreateModel, CheckInResponseUpdateModel>
+public interface ICheckInResponseFacade : IFacade<TaskResponseEntity, TaskResponseListModel,
+	TaskResponseDetailModel, TaskResponseCreateModel, TaskResponseUpdateModel>
 {
-	Task<CheckInResponseDetailModel?> SaveResponseByHashAsync(string eventHash,
-		CheckInResponseDetailModel responseModel);
+	Task<TaskResponseDetailModel?> SaveResponseByHashAsync(string eventHash,
+		TaskResponseDetailModel responseModel);
 }

@@ -1,7 +1,11 @@
+using System.Reflection;
 using System.Text;
 using CheckIn.Api.Bl.Installers;
 using CheckIn.Api.Dal.Installers;
 using CheckIn.Api.Bl.Mappers;
+using CheckIn.Api.Bl.Services;
+using CheckIn.Api.Bl.Services.Interfaces;
+using CheckIn.Api.Common.Models.Auth;
 using CheckIn.Api.Dal;
 using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Identity;
@@ -9,6 +13,7 @@ using Microsoft.IdentityModel.Tokens;
 using FirebaseAdmin;
 using FirebaseAdmin.Auth;
 using Google.Apis.Auth.OAuth2;
+using Newtonsoft.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,30 +21,31 @@ var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationExcep
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "https://localhost:7084";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "https://localhost:7084";
 
-var firebaseConfigSection = builder.Configuration.GetSection("FirebaseAdmin");
-if (!firebaseConfigSection.Exists())
-{
-    throw new InvalidOperationException("FirebaseAdmin configuration section is missing. Check User Secrets.");
-}
+var firebaseConfigJson = builder.Configuration["FirebaseAdmin:ServiceAccountJson"];
 
-// Prevod konfigurácie na JSON reťazec
-var firebaseConfigJson = System.Text.Json.JsonSerializer.Serialize(firebaseConfigSection.Get<object>());
+if (string.IsNullOrEmpty(firebaseConfigJson))
+{
+	// Ak sa to nenašlo, hádžeme výnimku.
+	throw new InvalidOperationException(
+		"Firebase service account key (FirebaseAdmin:ServiceAccountJson) not found in configuration. Check secrets.json or environment variables.");
+}
 
 // Inicializácia Firebase Admin SDK
 FirebaseApp.Create(new AppOptions()
 {
-    Credential = GoogleCredential.FromJson(firebaseConfigJson)
+	// GoogleCredential.FromJson spracuje JSON string, ktorý si vytiahol
+	Credential = GoogleCredential.FromJson(firebaseConfigJson)
 });
 
-// Zaregistruj Singleton pre jednoduché injektovanie v kontroléroch
-builder.Services.AddSingleton(FirebaseAuth.DefaultInstance); 
+// Zaregistruj Singleton
+builder.Services.AddSingleton(FirebaseAuth.DefaultInstance);
 
 
 builder.Services.AddAuthentication(options =>
 	{
 		// Nastavujeme JWT ako predvolenú schému pre autentifikáciu a Challenge
-		options.DefaultAuthenticateScheme = "Bearer"; 
-		options.DefaultChallengeScheme = "Bearer"; 
+		options.DefaultAuthenticateScheme = "Bearer";
+		options.DefaultChallengeScheme = "Bearer";
 	})
 	// Odstránená Google OAuth schéma, pretože prechádzame na Firebase klientskú autentifikáciu.
 	.AddJwtBearer("Bearer", jwtOptions =>
@@ -63,7 +69,7 @@ builder.Services.AddIdentity<IdentityUser, IdentityRole>(options => { options.Si
 
 builder.Services.AddAutoMapper(
 	cfg => cfg.LicenseKey = builder.Configuration.GetSection("Licenses")["Automapper"],
-	typeof(CheckInEventMapperProfile));
+	typeof(TaskMapperProfile));
 
 builder.Services.AddSwaggerGen(options =>
 {
@@ -117,8 +123,11 @@ ApiDalInstaller.Install(builder.Services, connectionString);
 
 builder.Services.AddSwaggerGen();
 builder.Services.AddControllers()
-    .AddNewtonsoftJson();
+	.AddNewtonsoftJson();
 builder.Services.AddOpenApi();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IUserContext, UserContext>();
+
 
 var app = builder.Build();
 
@@ -137,7 +146,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors();
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();

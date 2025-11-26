@@ -1,5 +1,6 @@
 using AutoMapper;
 using CheckIn.Api.Bl.Facades.Interfaces;
+using CheckIn.Api.Bl.Services.Interfaces;
 using CheckIn.Api.Common.Models.Create;
 using CheckIn.Api.Common.Models.Details;
 using CheckIn.Api.Common.Models.Lists;
@@ -9,15 +10,15 @@ using CheckIn.Api.Dal.Entities;
 
 namespace CheckIn.Api.Bl.Facades;
 
-public class CheckInEventFacade(CheckInDbContext dbContext, IMapper mapper)
-	: FacadeBase<CheckInEventEntity, CheckInEventListModel, CheckInEventDetailModel, CheckInEventCreateModel,
-			CheckInEventUpdateModel>
-		(dbContext, mapper), ICheckInEventFacade
+public class CheckInEventFacade(CheckInDbContext dbContext, IMapper mapper, IUserContext userContext)
+	: FacadeBase<TaskEntity, TaskListModel, TaskDetailModel, TaskCreateModel,
+			TaskUpdateModel>
+		(dbContext, mapper, userContext), ICheckInEventFacade
 {
-	public async Task<CheckInEventDetailModel> SaveCreateModelAsync(CheckInEventCreateModel model, Guid ownerId)
+	public async Task<TaskDetailModel> SaveCreateModelAsync(TaskCreateModel model, Guid ownerId)
 	{
 		// 1. Mapovanie: TCreateModel -> TEntity
-		var entity = mapper.Map<CheckInEventEntity>(model);
+		var entity = mapper.Map<TaskEntity>(model);
 
 		// 2. Priradenie SYSTÉMOVÝCH a NEVSTUPNÝCH HODNÔT (ktoré klient neposiela)
 		entity.Id = Guid.NewGuid();
@@ -30,7 +31,7 @@ public class CheckInEventFacade(CheckInDbContext dbContext, IMapper mapper)
 		await dbContext.SaveChangesAsync();
 
 		// 4. Mapovanie späť: TEntity -> TDetailModel (pre návrat s ID, Hash, CreatedAt)
-		var detailModel = mapper.Map<CheckInEventDetailModel>(entity);
+		var detailModel = mapper.Map<TaskDetailModel>(entity);
 		return detailModel;
 	}
 }

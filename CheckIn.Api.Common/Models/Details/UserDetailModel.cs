@@ -2,7 +2,7 @@ using CheckIn.Api.Common.Models.Lists;
 
 namespace CheckIn.Api.Common.Models.Details;
 
-public class UserDetailModel : UserListModel
+public record UserDetailModel : UserListModel
 {
-	public ICollection<CheckInEventDetailModel> CreatedCheckIns { get; set; } = new List<CheckInEventDetailModel>();
+	public ICollection<TaskDetailModel> CreatedCheckIns { get; init; } = new List<TaskDetailModel>();
 }

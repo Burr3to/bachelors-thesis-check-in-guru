@@ -7,13 +7,17 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\CheckIn.Api.Common\CheckIn.Api.Common.csproj" />
-      <ProjectReference Include="..\CheckIn.Api.Dal\CheckIn.Api.Dal.csproj" />
+        <FrameworkReference Include="Microsoft.AspNetCore.App"/>
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="AutoMapper" Version="15.0.1" />
-      <PackageReference Include="Scrutor" Version="6.1.0" />
+        <ProjectReference Include="..\CheckIn.Api.Common\CheckIn.Api.Common.csproj"/>
+        <ProjectReference Include="..\CheckIn.Api.Dal\CheckIn.Api.Dal.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="AutoMapper" Version="15.0.1"/>
+        <PackageReference Include="Scrutor" Version="6.1.0"/>
     </ItemGroup>
 
 </Project>

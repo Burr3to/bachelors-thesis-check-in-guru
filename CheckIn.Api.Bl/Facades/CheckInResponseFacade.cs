@@ -1,5 +1,6 @@
 using AutoMapper;
 using CheckIn.Api.Bl.Facades.Interfaces;
+using CheckIn.Api.Bl.Services.Interfaces;
 using CheckIn.Api.Common.Models.Create;
 using CheckIn.Api.Common.Models.Details;
 using CheckIn.Api.Common.Models.Lists;
@@ -10,15 +11,16 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CheckIn.Api.Bl.Facades;
 
-public class CheckInResponseFacade(CheckInDbContext dbContext, IMapper mapper)
-	: FacadeBase<CheckInResponseEntity, CheckInResponseListModel, CheckInResponseDetailModel, CheckInResponseCreateModel,
-			CheckInResponseUpdateModel>
-		(dbContext, mapper), ICheckInResponseFacade
+public class CheckInResponseFacade(CheckInDbContext dbContext, IMapper mapper, IUserContext userContext)
+	: FacadeBase<TaskResponseEntity, TaskResponseListModel,
+			TaskResponseDetailModel, TaskResponseCreateModel,
+			TaskResponseUpdateModel>
+		(dbContext, mapper, userContext), ICheckInResponseFacade
 {
-	public async Task<CheckInResponseDetailModel?> SaveResponseByHashAsync(string eventHash,
-		CheckInResponseDetailModel responseModel)
+	public async Task<TaskResponseDetailModel?> SaveResponseByHashAsync(string eventHash,
+		TaskResponseDetailModel responseModel)
 	{
-		// Krok 1: Nájsť CheckInEvent na základe Hashu (Musíme zabezpečiť, že udalosť existuje)
+		// Krok 1: Nájsť Task na základe Hashu (Musíme zabezpečiť, že udalosť existuje)
 		var checkInEvent = await dbContext.CheckInEvents
 			.FirstOrDefaultAsync(e => e.Hash == eventHash);
 
@@ -30,7 +32,7 @@ public class CheckInResponseFacade(CheckInDbContext dbContext, IMapper mapper)
 
 		// Krok 2: Namapovať DTO na Entitu
 		// Vytvoríme novú entitu z DTO.
-		var newResponseEntity = mapper.Map<CheckInResponseEntity>(responseModel);
+		var newResponseEntity = mapper.Map<TaskResponseEntity>(responseModel);
 
 		// Krok 3: Nastaviť Cudzí kľúč (CheckInId) na základe nájdeného ID udalosti
 		newResponseEntity.CheckInId = checkInEvent.Id;
@@ -40,6 +42,6 @@ public class CheckInResponseFacade(CheckInDbContext dbContext, IMapper mapper)
 		await dbContext.SaveChangesAsync();
 
 		// Krok 5: Vrátiť namapovaný výsledok
-		return mapper.Map<CheckInResponseDetailModel>(newResponseEntity);
+		return mapper.Map<TaskResponseDetailModel>(newResponseEntity);
 	}
 }

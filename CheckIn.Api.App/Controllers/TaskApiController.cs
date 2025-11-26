@@ -17,9 +17,9 @@ namespace CheckIn.Api.App.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-public class CheckInEventApiController(ICheckInEventFacade facade)
-	: ApiControllerBase<CheckInEventEntity, CheckInEventListModel, CheckInEventDetailModel, CheckInEventCreateModel,
-			CheckInEventUpdateModel, ListQuery>
+public class TaskApiController(ICheckInEventFacade facade)
+	: ApiControllerBase<TaskEntity, TaskListModel, TaskDetailModel, TaskCreateModel,
+			TaskUpdateModel, ListQuery>
 		(facade)
 {
 	// Pomocná metóda na získanie OwnerId z kontextu používateľa
@@ -32,13 +32,13 @@ public class CheckInEventApiController(ICheckInEventFacade facade)
 	}
 
 	// IMPLEMENTÁCIA ABSTRAKTNÝCH METÓD
-	protected override Expression<Func<CheckInEventEntity, bool>> CreateFilter(ListQuery query)
+	protected override Expression<Func<TaskEntity, bool>> CreateFilter(ListQuery query)
 	{
 		// 1. Získanie ID prihláseného používateľa
 		var currentOwnerId = GetCurrentOwnerId();
 
 		// 2. Základný a povinný filter (Row Level Security)
-		Expression<Func<CheckInEventEntity, bool>> filter = l => l.OwnerId == currentOwnerId;
+		Expression<Func<TaskEntity, bool>> filter = l => l.OwnerId == currentOwnerId;
 
 		// 3. Voliteľný filter: Ak klient poslal parameter NameContains
 		if (!string.IsNullOrEmpty(query.NameContains))
@@ -61,14 +61,14 @@ public class CheckInEventApiController(ICheckInEventFacade facade)
 		return filter;
 	}
 
-	protected override Func<IQueryable<CheckInEventEntity>, IOrderedQueryable<CheckInEventEntity>> CreateOrderBy(
+	protected override Func<IQueryable<TaskEntity>, IOrderedQueryable<TaskEntity>> CreateOrderBy(
 		ListQuery query)
 	{
-		Func<IQueryable<CheckInEventEntity>, IOrderedQueryable<CheckInEventEntity>> orderBy = l =>
+		Func<IQueryable<TaskEntity>, IOrderedQueryable<TaskEntity>> orderBy = l =>
 			l.OrderByDescending(s => s.CreatedAt);
 
 		// 2. Podmienené triedenie (prepisuje defaultné)
-		if (query.SortBy == nameof(CheckInEventEntity.Title))
+		if (query.SortBy == nameof(TaskEntity.Title))
 		{
 			orderBy = query.SortDesc
 				? l => l.OrderByDescending(s => s.Title)
@@ -79,7 +79,7 @@ public class CheckInEventApiController(ICheckInEventFacade facade)
 	}
 
 	[HttpPost]
-	public override async Task<ActionResult<CheckInEventDetailModel>> Post([FromBody] CheckInEventCreateModel model)
+	public override async Task<ActionResult<TaskDetailModel>> Post([FromBody] TaskCreateModel model)
 	{
 		var ownerId = GetCurrentOwnerId();
 
@@ -89,23 +89,23 @@ public class CheckInEventApiController(ICheckInEventFacade facade)
 	}
 
 	[HttpGet("{id}")]
-	[ProducesResponseType(typeof(CheckInEventDetailModel), StatusCodes.Status200OK)]
+	[ProducesResponseType(typeof(TaskDetailModel), StatusCodes.Status200OK)]
 	[ProducesResponseType(StatusCodes.Status401Unauthorized)]
 	[ProducesResponseType(StatusCodes.Status404NotFound)]
-	public override async Task<ActionResult<CheckInEventDetailModel>> GetById(Guid id)
+	public override async Task<ActionResult<TaskDetailModel>> GetById(Guid id)
 	{
 		var currentOwnerId = GetCurrentOwnerId();
 		var eventDetail = await facade.GetByIdAsync(id);
 
 		if (eventDetail == null)
 		{
-			return NotFound("CheckInEvent not found.");
+			return NotFound("Task not found.");
 		}
 
 		// Ak event nepatrí prihlásenému používateľovi
 		if (eventDetail.OwnerId != currentOwnerId)
 		{
-			return NotFound("CheckInEvent not found..");
+			return NotFound("Task not found..");
 		}
 
 		return Ok(eventDetail);

@@ -2,10 +2,10 @@ using CheckIn.Api.Common.Models.Interfaces;
 
 namespace CheckIn.Api.Common.Models.Lists;
 
-public class UserListModel : IEntityModel
+public record UserListModel : IEntityModel
 {
-	public Guid Id { get; set; }
-	public required string GoogleId { get; set; }
-	public required string Email { get; set; }
-	public required string Name { get; set; }
+	public Guid Id { get; init; }
+	public required string GoogleId { get; init; }
+	public required string Email { get; init; }
+	public required string Name { get; init; }
 }

@@ -15,24 +15,24 @@ namespace CheckIn.Api.App.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-// 1. Pridaný štvrtý generický parameter: CheckInResponseListQuery
-public class CheckInResponseApiController(ICheckInResponseFacade responseFacade)
-	: ApiControllerBase<CheckInResponseEntity, CheckInResponseListModel, CheckInResponseDetailModel,
-		CheckInResponseCreateModel, CheckInResponseUpdateModel, CheckInResponseListQuery>(responseFacade)
+// 1. Pridaný štvrtý generický parameter: TaskResponseListQuery
+public class TaskResponseApiController(ICheckInResponseFacade responseFacade)
+	: ApiControllerBase<TaskResponseEntity, TaskResponseListModel, TaskResponseDetailModel,
+		TaskResponseCreateModel, TaskResponseUpdateModel, TaskResponseListQuery>(responseFacade)
 {
 	private readonly ICheckInResponseFacade _responseFacade = responseFacade;
 
-	protected override Expression<Func<CheckInResponseEntity, bool>> CreateFilter(CheckInResponseListQuery query)
+	protected override Expression<Func<TaskResponseEntity, bool>> CreateFilter(TaskResponseListQuery query)
 	{
 		// V testovacom režime začíname s TRUE filtrom. 
 		// Ak by bol Controller pod [Authorize], pridali by sme filter pre OwnerId tu!
-		Expression<Func<CheckInResponseEntity, bool>> filter = l => true;
+		Expression<Func<TaskResponseEntity, bool>> filter = l => true;
 
 		// Filter podľa ID eventu (najčastejšie použitie pre tento zoznam)
 		if (query.CheckInEventId.HasValue && query.CheckInEventId.Value != Guid.Empty)
 		{
 			// Filtrujeme, aby sme videli len odpovede patriace k danému eventu
-			filter = filter.And(l => l.CheckInEvent.Id == query.CheckInEventId.Value);
+			filter = filter.And(l => l.Task.Id == query.CheckInEventId.Value);
 		}
 
 		// Ak ste v ListQuery nechali filtre NameContains, Status atď., môžete ich tu pridať
@@ -46,11 +46,11 @@ public class CheckInResponseApiController(ICheckInResponseFacade responseFacade)
 	}
 
 	// Triedenie: Teraz prijíma Query Object
-	protected override Func<IQueryable<CheckInResponseEntity>, IOrderedQueryable<CheckInResponseEntity>> CreateOrderBy(
-		CheckInResponseListQuery query)
+	protected override Func<IQueryable<TaskResponseEntity>, IOrderedQueryable<TaskResponseEntity>> CreateOrderBy(
+		TaskResponseListQuery query)
 	{
 		// Základné triedenie odpovedí podľa času odoslania (SubmittedAt)
-		Func<IQueryable<CheckInResponseEntity>, IOrderedQueryable<CheckInResponseEntity>> orderBy = l =>
+		Func<IQueryable<TaskResponseEntity>, IOrderedQueryable<TaskResponseEntity>> orderBy = l =>
 			l.OrderByDescending(s => s.SubmittedAt);
 
 		// Ak klient poslal požiadavku na iné triedenie (použijeme query.SortBy)
@@ -65,6 +65,4 @@ public class CheckInResponseApiController(ICheckInResponseFacade responseFacade)
 
 		return orderBy;
 	}
-
-
 }

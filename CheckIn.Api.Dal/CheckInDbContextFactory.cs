@@ -30,20 +30,6 @@ public class CheckInDbContextFactory : IDesignTimeDbContextFactory<CheckInDbCont
 				"Connection string 'DefaultConnection' not found.");
 		}
 
-		if (!connectionString.Contains("mysecretpassword"))
-		{
-			// Ak nechcete vypisovať heslo na obrazovku (hoci je to lokálny dev), 
-			// môžete si len overiť, že User je správny.
-			throw new InvalidOperationException($"Nacitany Connection String: {connectionString}");
-		}
-
-		// Kritická kontrola, či bol Connection String nájdený:
-		if (string.IsNullOrEmpty(connectionString))
-		{
-			throw new InvalidOperationException(
-				"Connection string 'DefaultConnection' not found. Ensure appsettings.Development.json is correctly placed and loaded.");
-		}
-		
 		var optionsBuilder = new DbContextOptionsBuilder<CheckInDbContext>();
 		optionsBuilder.UseNpgsql(connectionString);
 
