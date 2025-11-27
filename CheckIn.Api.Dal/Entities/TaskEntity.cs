@@ -10,9 +10,10 @@ public class TaskEntity : IEntity
 	public string? Notes { get; set; }
 	public DateTime CreatedAt { get; set; }
 	public DateTime DeadLine { get; set; }
+	public TaskStatus Status { get; set; }
 
-	public Guid OwnerId { get; set; }
+	public Guid CreadtedById { get; set; }
 
-	public UserEntity Owner { get; set; } = default!;
+	public UserEntity CreatedBy { get; set; } = default!;
 	public ICollection<TaskResponseEntity> Responses { get; set; } = new List<TaskResponseEntity>();
 }

@@ -7,20 +7,27 @@ using CheckIn.Api.Common.Models.Interfaces;
 using CheckIn.Api.Dal;
 using CheckIn.Api.Dal.Entities.InterfacesOrAbstracts;
 using Microsoft.EntityFrameworkCore;
+using CheckIn.Api.Common.Models.Interfaces;
+using CheckIn.Api.Common.Results;
+
 
 namespace CheckIn.Api.Bl.Facades;
 
 public abstract class FacadeBase
-	<TEntity, TListModel, TDetailModel, TCreateModel, TUpdateModel>(
+	<TEntity, TListModel, TDetailModel, TCreateModel, TUpdateModel, TQueryModel>(
 		CheckInDbContext dbContext,
 		IMapper mapper,
 		IUserContext userContext)
-	: IFacade<TEntity, TListModel, TDetailModel, TCreateModel, TUpdateModel>
+	: IFacade<TEntity, TListModel, TDetailModel, TCreateModel, TUpdateModel, TQueryModel>
 	where TEntity : class, IEntity
 	where TDetailModel : class, IEntityModel
 	where TUpdateModel : class, IEntityModel
 	where TCreateModel : class
+	where TQueryModel : IPageableQuery
 {
+	protected abstract Expression<Func<TEntity, bool>> CreateFilter(TQueryModel query);
+	protected abstract Func<IQueryable<TEntity>, IOrderedQueryable<TEntity>> CreateOrderBy(TQueryModel query);
+
 	protected readonly IUserContext UserContext = userContext;
 
 	protected Guid CurrentUserId
@@ -35,7 +42,14 @@ public abstract class FacadeBase
 		}
 	}
 
-	protected Guid? OptionalUserId => UserContext.GetUserId();
+
+	public async Task<IQueryable<TListModel>> GetListAsync(TQueryModel query)
+	{
+		var filter = CreateFilter(query);
+		var orderBy = CreateOrderBy(query);
+
+		return await GetAsync(filter, orderBy, query.PageNumber, query.PageSize);
+	}
 
 	public async Task<IQueryable<TListModel>> GetAsync(
 		Expression<Func<TEntity, bool>>? filter = null,
@@ -62,53 +76,65 @@ public abstract class FacadeBase
 		return queryResult;
 	}
 
-	public async Task<TDetailModel?> GetByIdAsync(Guid id)
+	public async Task<Result<TDetailModel>> GetByIdAsync(Guid id)
 	{
-		return await dbContext.Set<TEntity>()
+		var model = await dbContext.Set<TEntity>()
 			.Where(e => e.Id == id)
 			.ProjectTo<TDetailModel>(mapper.ConfigurationProvider)
 			.FirstOrDefaultAsync();
+
+		if (model == null)
+			return Result<TDetailModel>.NotFound($"Entity with ID {id} wasnt found.");
+
+		return Result<TDetailModel>.Success(model);
 	}
 
-	public async Task<int> GetCountAsync(Expression<Func<TEntity, bool>>? filter = null)
+	public async Task<Result<int>> GetCountAsync(Expression<Func<TEntity, bool>>? filter = null)
 	{
-		IQueryable<TEntity> query = dbContext.Set<TEntity>();
-		if (filter != null)
-			query = query.Where(filter);
-		return await query.CountAsync();
+		try
+		{
+			IQueryable<TEntity> query = dbContext.Set<TEntity>();
+			if (filter != null)
+				query = query.Where(filter);
+
+			var count = await query.CountAsync();
+			return Result<int>.Success(count);
+		}
+		catch (Exception ex)
+		{
+			return Result<int>.Failure(ErrorType.InternalError, $"Error counting entities: {ex.Message}");
+		}
 	}
 
 
-	public async Task<TDetailModel> SaveCreateModelAsync(TCreateModel model)
+	public async Task<Result<TDetailModel>> SaveCreateModelAsync(TCreateModel model)
 	{
 		var entity = mapper.Map<TEntity>(model);
 
 		if (entity.Id == Guid.Empty)
-		{
 			entity.Id = Guid.NewGuid();
-		}
 
 		await dbContext.Set<TEntity>().AddAsync(entity);
 		await dbContext.SaveChangesAsync();
 
-		var detailModel = await GetByIdAsync(entity.Id);
+		var detailModelResult = await GetByIdAsync(entity.Id);
 
-		if (detailModel == null)
-			throw new InvalidOperationException($"Failed to retrieve entity with ID {entity.Id} " +
-			                                    $"immediately after creation.");
+		if (!detailModelResult.IsSuccess)
+			return Result<TDetailModel>.Failure(ErrorType.InternalError,
+				"Successfully created entity, but failed to retrieve details.");
 
-		return detailModel;
+		return detailModelResult;
 	}
 
 
-	public async Task<TDetailModel> SaveUpdateModelAsync(TUpdateModel model)
+	public async Task<Result<TDetailModel>> SaveUpdateModelAsync(TUpdateModel model)
 	{
 		var id = model.Id;
 
 		var entityToUpdate = await dbContext.Set<TEntity>().FindAsync(id);
 
 		if (entityToUpdate == null)
-			throw new KeyNotFoundException($"Entity with ID {id} not found for update.");
+			return Result<TDetailModel>.NotFound($"Entity with ID {id} not found for update.");
 
 		mapper.Map(model, entityToUpdate);
 
@@ -116,35 +142,43 @@ public abstract class FacadeBase
 
 		var detailModel = await GetByIdAsync(entityToUpdate.Id);
 
-		if (detailModel == null)
-			throw new InvalidOperationException(
-				$"Failed to retrieve entity with ID {entityToUpdate.Id} immediately after update.");
+		if (detailModel.IsSuccess)
+			return Result<TDetailModel>.Success(detailModel.Value!);
 
-		return detailModel;
+		return Result<TDetailModel>.Failure(ErrorType.InternalError, "Failed to retrieve detail after saving.");
 	}
 
 
-	public async Task<bool> DeleteAsync(Guid entityId)
+	public async Task<Result<bool>> DeleteAsync(Guid entityId)
 	{
-		TEntity? entityToDelete = dbContext.Set<TEntity>().Local.FirstOrDefault(e => e.Id == entityId);
+		TEntity entityToDelete = Activator.CreateInstance<TEntity>();
+		entityToDelete.Id = entityId;
 
-		if (entityToDelete == null)
-		{
-			entityToDelete = Activator.CreateInstance<TEntity>();
-			entityToDelete.Id = entityId;
-			dbContext.Set<TEntity>().Attach(entityToDelete);
-		}
-
+		// 2. Pripojíme ju ku kontextu a označíme ako odstránenú
+		// (Aj keď entita neexistovala, toto ju pripraví na mazací dotaz)
+		dbContext.Set<TEntity>().Attach(entityToDelete);
 		dbContext.Set<TEntity>().Remove(entityToDelete);
 
 		try
 		{
 			var affectedRows = await dbContext.SaveChangesAsync();
-			return affectedRows > 0;
+
+			if (affectedRows > 0)
+			{
+				return Result.Success();
+			}
+			else
+			{
+				return Result.NotFound($"Entita s ID {entityId} nebola nájdená na mazanie.");
+			}
 		}
-		catch (DbUpdateConcurrencyException)
+		catch (DbUpdateConcurrencyException ex)
 		{
-			return false;
+			return Result.Failure(ErrorType.Conflict, $"Konflikt pri mazaní: {ex.Message}");
+		}
+		catch (Exception ex)
+		{
+			return Result.Failure(ErrorType.InternalError, $"Neočakávaná chyba: {ex.Message}");
 		}
 	}
 }

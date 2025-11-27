@@ -12,7 +12,7 @@ public static class ApiBlInstaller
 
 		serviceCollection.Scan(selector =>
 			selector.FromAssemblyOf<UserFacade>()
-				.AddClasses(classes => classes.AssignableTo(typeof(IFacade<,,,,>)))
+				.AddClasses(classes => classes.AssignableTo(typeof(IFacade<,,,,,>)))
 				.AsSelfWithInterfaces()
 				.WithScopedLifetime());
 	}

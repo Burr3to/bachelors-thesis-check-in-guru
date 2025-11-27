@@ -2,5 +2,6 @@ namespace CheckIn.Api.Common.Models.Query;
 
 public record TaskResponseListQuery : ListQuery
 {
-	public Guid? CheckInEventId { get; init; }
+	public Guid? TaskId { get; init; }
+	public string? CommentContains { get; init; }
 }

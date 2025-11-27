@@ -1,88 +1,118 @@
 using System.Linq.Expressions;
 using CheckIn.Api.Bl.Facades.Interfaces;
-using CheckIn.Api.Dal.Entities;
+using CheckIn.Api.Common.Models.Create;
+using CheckIn.Api.Common.Models.Details;
 using CheckIn.Api.Common.Models.Interfaces;
-using CheckIn.Api.Common.Models.Query;
+using CheckIn.Api.Common.Models.Update;
+using CheckIn.Api.Common.Results;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 
 namespace CheckIn.Api.App.Controllers;
 
 public abstract class ApiControllerBase<TEntity, TListModel, TDetailModel, TCreateModel, TUpdateModel, TQueryModel>(
-	IFacade<TEntity, TListModel, TDetailModel, TCreateModel, TUpdateModel> facade)
+	IFacade<TEntity, TListModel, TDetailModel, TCreateModel, TUpdateModel, TQueryModel> facade)
 	: ControllerBase
-	where TDetailModel : IEntityModel
+	where TDetailModel : class, IEntityModel
 	where TCreateModel : class
 	where TUpdateModel : IEntityModel
 	where TQueryModel : IPageableQuery, new()
 {
-	// Abstraktné metódy, ktoré MUSÍ implementovať každá konkrétna Controller trieda
-	protected abstract Expression<Func<TEntity, bool>> CreateFilter(TQueryModel query);
-	protected abstract Func<IQueryable<TEntity>, IOrderedQueryable<TEntity>> CreateOrderBy(TQueryModel query);
+	// Uložíme fasádu ako chránenú pre prípad, že konkrétny kontrolér potrebuje špecifické volania
+	protected readonly IFacade<TEntity, TListModel, TDetailModel, TCreateModel, TUpdateModel, TQueryModel> Facade = facade;
 
-	// GET: api/ControllerName
-	// Implementuje Paging a Filtering pre zoznam
+
 	[HttpGet]
-	public virtual async Task<ActionResult<IEnumerable<TListModel>>> GetList(
-		[FromQuery] TQueryModel query)
+	public virtual async Task<ActionResult<IEnumerable<TListModel>>> GetList([FromQuery] TQueryModel query)
 	{
-		var filter = CreateFilter(query);
-		var orderBy = CreateOrderBy(query);
+		var resultQueryable = await Facade.GetListAsync(query);
 
-		var result = await facade.GetAsync(
-			filter,
-			orderBy,
-			query.PageNumber,
-			query.PageSize);
-
-		return Ok(result.ToList());
+		return Ok(resultQueryable.ToList());
 	}
 
-	// GET: api/ControllerName/5
+
 	[HttpGet("{id}")]
-	public virtual async Task<ActionResult<TDetailModel>> GetById(Guid id)
+	public async Task<ActionResult<TaskDetailModel>> GetById(Guid id)
 	{
-		var entity = await facade.GetByIdAsync(id);
-		if (entity == null)
+		var result = await Facade.GetByIdAsync(id);
+
+		if (result.IsSuccess)
 		{
-			return NotFound();
+			return Ok(result.Value);
 		}
 
-		return Ok(entity);
+		return result.ErrorType switch
+		{
+			ErrorType.NotFound => NotFound(result.ErrorMessage), // 404
+			ErrorType.Forbidden => Forbid(),
+			_ => StatusCode(StatusCodes.Status500InternalServerError, result.ErrorMessage)
+		};
 	}
 
-	// PUT: api/ControllerName/5
+
 	[HttpPut("{id}")]
-	public virtual async Task<IActionResult> Put(Guid id, [FromBody] TUpdateModel model)
+	public async Task<IActionResult> Put(Guid id, [FromBody] TUpdateModel model)
 	{
 		if (id != model.Id)
 		{
-			return BadRequest("ID mismatch.");
+			return BadRequest("ID mismatch: Route ID must match Model ID.");
 		}
 
-		await facade.SaveUpdateModelAsync(model);
+		var result = await Facade.SaveUpdateModelAsync(model);
 
-		return NoContent(); // Vrátenie 204 No Content (Úspešne, ale bez tela)
+		if (result.IsSuccess)
+			return NoContent();
+
+		return result.ErrorType switch
+		{
+			ErrorType.NotFound => NotFound(result.ErrorMessage), // 404
+			ErrorType.Forbidden => Forbid(), // 403
+			ErrorType.Validation => BadRequest(result.ErrorMessage),
+			ErrorType.Conflict => Conflict(result.ErrorMessage),
+			_ => StatusCode(StatusCodes.Status500InternalServerError,
+				new { Error = "Internal error during update.", Details = result.ErrorMessage })
+		};
 	}
 
-	// POST: api/ControllerName (Vytvorenie)
+
 	[HttpPost]
-	public virtual async Task<ActionResult<TDetailModel>> Post([FromBody] TCreateModel model)
+	public async Task<ActionResult<TaskDetailModel>> Post([FromBody] TCreateModel model)
 	{
-		var result = await facade.SaveCreateModelAsync(model);
+		var result = await Facade.SaveCreateModelAsync(model);
 
-		return CreatedAtAction(nameof(GetById), new { id = result.Id }, result); // Vrátenie 201 Created
+		if (result.IsSuccess)
+		{
+			return CreatedAtAction(nameof(GetById), new { id = result.Value!.Id }, result.Value);
+		}
+
+		return result.ErrorType switch
+		{
+			ErrorType.Validation => BadRequest(result.ErrorMessage),
+			ErrorType.Unauthorized => Unauthorized(result.ErrorMessage),
+			ErrorType.Conflict => Conflict(result.ErrorMessage), // 409
+			_ => StatusCode(StatusCodes.Status500InternalServerError, result.ErrorMessage)
+		};
 	}
 
-	// DELETE: api/ControllerName/5
+
 	[HttpDelete("{id}")]
-	public virtual async Task<IActionResult> Delete(Guid id)
+	public async Task<IActionResult> Delete(Guid id)
 	{
-		var result = await facade.DeleteAsync(id);
-		if (result)
+		var result = await Facade.DeleteAsync(id);
+
+		if (result.IsSuccess)
 		{
 			return NoContent();
 		}
 
-		return NotFound();
+		// Spracovanie chyby
+		return result.ErrorType switch
+		{
+			ErrorType.NotFound => NotFound(result.ErrorMessage), // 404
+			ErrorType.Forbidden => Forbid(), // 403
+			ErrorType.Conflict => Conflict(result.ErrorMessage), // 409
+			_ => StatusCode(StatusCodes.Status500InternalServerError,
+				new { Error = "Internal error during deletion.", Details = result.ErrorMessage })
+		};
 	}
 }

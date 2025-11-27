@@ -9,5 +9,6 @@ public record TaskListModel : IEntityModel
 	public required string Hash { get; init; }
 	public DateTime CreatedAt { get; init; }
 	public DateTime DeadLine { get; init; }
+	public TaskStatus Status { get; init; }
 	public Guid OwnerId { get; init; }
 }

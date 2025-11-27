@@ -10,9 +10,7 @@ public class TaskResponseEntity : IEntity
 	[MaxLength(255)] public required string Comment { get; set; }
 	public DateTime SubmittedAt { get; set; }
 
-	// Cudzí kľúč
-	public Guid CheckInId { get; set; }
+	public Guid TaskId { get; set; }
 
-	// Navigačná vlastnosť pre EF Core
 	public TaskEntity Task { get; set; } = default!;
 }

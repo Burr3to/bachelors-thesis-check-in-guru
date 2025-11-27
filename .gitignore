@@ -10,7 +10,6 @@
 
 /CheckIn.Api.Dal/bin
 /CheckIn.Api.Dal/obj
-/CheckIn.Api.Dal/Migrations
 
 /CheckIn.Api.Common/bin
 /CheckIn.Api.Common/obj

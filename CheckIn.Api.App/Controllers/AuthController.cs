@@ -2,11 +2,9 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using CheckIn.Api.Bl.Facades.Interfaces;
-using CheckIn.Api.Common.Models.Details;
 using CheckIn.Api.Common.Models.Auth;
 using CheckIn.Api.Dal;
 using CheckIn.Api.Dal.Entities;
-using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -27,8 +25,6 @@ namespace CheckIn.Api.App.Controllers
 		FirebaseAuth firebaseAuth)
 		: ControllerBase
 	{
-		private readonly SignInManager<IdentityUser> _signInManager = signInManager;
-
 		/// <summary>
 		/// Prijme Firebase ID Token od Flutter klienta, overí ho a vydá vlastný JWT.
 		/// </summary>

@@ -14,6 +14,5 @@ public record ListQuery : IPageableQuery
 
 	// Filtre 
 	public string? NameContains { get; init; }
-	public string? Status { get; init; }
 	public DateTime? CreatedAfter { get; init; }
 }
