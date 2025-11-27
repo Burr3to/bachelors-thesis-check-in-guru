@@ -17,7 +17,7 @@ namespace CheckIn.Api.App.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-public class TaskApiController(ICheckInEventFacade facade)
+public class TaskApiController(ITaskFacade facade)
 	: ApiControllerBase<TaskEntity, TaskListModel, TaskDetailModel, TaskCreateModel,
 			TaskUpdateModel, ListQuery>
 		(facade)

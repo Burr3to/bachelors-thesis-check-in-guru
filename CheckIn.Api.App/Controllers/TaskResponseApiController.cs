@@ -1,5 +1,4 @@
 using System.Linq.Expressions;
-using System.Security.Claims;
 using CheckIn.Api.Bl.Facades.Interfaces;
 using CheckIn.Api.Common.Models.Create;
 using CheckIn.Api.Dal.Entities;
@@ -8,7 +7,6 @@ using CheckIn.Api.Common.Utils.Expressions;
 using CheckIn.Api.Common.Models.Details;
 using CheckIn.Api.Common.Models.Lists;
 using CheckIn.Api.Common.Models.Update;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CheckIn.Api.App.Controllers;
@@ -16,12 +14,10 @@ namespace CheckIn.Api.App.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 // 1. Pridaný štvrtý generický parameter: TaskResponseListQuery
-public class TaskResponseApiController(ICheckInResponseFacade responseFacade)
+public class TaskResponseApiController(ITaskResponseFacade responseFacade)
 	: ApiControllerBase<TaskResponseEntity, TaskResponseListModel, TaskResponseDetailModel,
 		TaskResponseCreateModel, TaskResponseUpdateModel, TaskResponseListQuery>(responseFacade)
 {
-	private readonly ICheckInResponseFacade _responseFacade = responseFacade;
-
 	protected override Expression<Func<TaskResponseEntity, bool>> CreateFilter(TaskResponseListQuery query)
 	{
 		// V testovacom režime začíname s TRUE filtrom. 

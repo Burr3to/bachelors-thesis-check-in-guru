@@ -6,7 +6,7 @@ using CheckIn.Api.Dal.Entities;
 
 namespace CheckIn.Api.Bl.Facades.Interfaces;
 
-public interface ICheckInResponseFacade : IFacade<TaskResponseEntity, TaskResponseListModel,
+public interface ITaskResponseFacade : IFacade<TaskResponseEntity, TaskResponseListModel,
 	TaskResponseDetailModel, TaskResponseCreateModel, TaskResponseUpdateModel>
 {
 	Task<TaskResponseDetailModel?> SaveResponseByHashAsync(string eventHash,

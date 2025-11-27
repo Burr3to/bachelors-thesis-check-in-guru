@@ -10,10 +10,10 @@ using CheckIn.Api.Dal.Entities;
 
 namespace CheckIn.Api.Bl.Facades;
 
-public class CheckInEventFacade(CheckInDbContext dbContext, IMapper mapper, IUserContext userContext)
+public class TaskFacade(CheckInDbContext dbContext, IMapper mapper, IUserContext userContext)
 	: FacadeBase<TaskEntity, TaskListModel, TaskDetailModel, TaskCreateModel,
 			TaskUpdateModel>
-		(dbContext, mapper, userContext), ICheckInEventFacade
+		(dbContext, mapper, userContext), ITaskFacade
 {
 	public async Task<TaskDetailModel> SaveCreateModelAsync(TaskCreateModel model, Guid ownerId)
 	{

@@ -6,7 +6,7 @@ using CheckIn.Api.Dal.Entities;
 
 namespace CheckIn.Api.Bl.Facades.Interfaces;
 
-public interface ICheckInEventFacade : IFacade<TaskEntity, TaskListModel, TaskDetailModel,
+public interface ITaskFacade : IFacade<TaskEntity, TaskListModel, TaskDetailModel,
 	TaskCreateModel, TaskUpdateModel>
 {
 	Task<TaskDetailModel> SaveCreateModelAsync(TaskCreateModel model, Guid ownerId);

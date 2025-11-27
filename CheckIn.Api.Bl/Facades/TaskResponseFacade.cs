@@ -11,11 +11,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CheckIn.Api.Bl.Facades;
 
-public class CheckInResponseFacade(CheckInDbContext dbContext, IMapper mapper, IUserContext userContext)
+public class TaskResponseFacade(CheckInDbContext dbContext, IMapper mapper, IUserContext userContext)
 	: FacadeBase<TaskResponseEntity, TaskResponseListModel,
-			TaskResponseDetailModel, TaskResponseCreateModel,
-			TaskResponseUpdateModel>
-		(dbContext, mapper, userContext), ICheckInResponseFacade
+		TaskResponseDetailModel, TaskResponseCreateModel,
+		TaskResponseUpdateModel>(dbContext, mapper, userContext), ITaskResponseFacade
 {
 	public async Task<TaskResponseDetailModel?> SaveResponseByHashAsync(string eventHash,
 		TaskResponseDetailModel responseModel)
