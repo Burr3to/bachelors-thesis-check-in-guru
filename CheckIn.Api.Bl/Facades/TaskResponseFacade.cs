@@ -62,7 +62,7 @@ public class TaskResponseFacade(CheckInDbContext dbContext, IMapper mapper, IUse
 		TaskResponseDetailModel responseModel)
 	{
 		// Krok 1: Nájsť Task na základe Hashu (Musíme zabezpečiť, že udalosť existuje)
-		var checkInEvent = await dbContext.CheckInEvents
+		var checkInEvent = await dbContext.Tasks
 			.FirstOrDefaultAsync(e => e.Hash == eventHash);
 
 		if (checkInEvent == null)
@@ -79,7 +79,7 @@ public class TaskResponseFacade(CheckInDbContext dbContext, IMapper mapper, IUse
 		newResponseEntity.TaskId = checkInEvent.Id;
 
 		// Krok 4: Uložiť do databázy
-		dbContext.CheckInResponses.Add(newResponseEntity);
+		dbContext.TaskResponses.Add(newResponseEntity);
 		await dbContext.SaveChangesAsync();
 
 		// Krok 5: Vrátiť namapovaný výsledok

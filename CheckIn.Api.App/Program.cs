@@ -13,6 +13,7 @@ using Microsoft.IdentityModel.Tokens;
 using FirebaseAdmin;
 using FirebaseAdmin.Auth;
 using Google.Apis.Auth.OAuth2;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Newtonsoft.Json;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -46,6 +47,8 @@ builder.Services.AddAuthentication(options =>
 		// Nastavujeme JWT ako predvolenú schému pre autentifikáciu a Challenge
 		options.DefaultAuthenticateScheme = "Bearer";
 		options.DefaultChallengeScheme = "Bearer";
+		options.DefaultForbidScheme = "Bearer";
+		options.DefaultScheme = "Bearer";
 	})
 	// Odstránená Google OAuth schéma, pretože prechádzame na Firebase klientskú autentifikáciu.
 	.AddJwtBearer("Bearer", jwtOptions =>
@@ -61,7 +64,39 @@ builder.Services.AddAuthentication(options =>
 			ValidAudience = jwtAudience,
 			IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
 		};
+		jwtOptions.Events = new JwtBearerEvents
+		{
+			OnChallenge = context =>
+			{
+				// Vypneme predvolené správanie (presmerovanie)
+				context.HandleResponse();
+
+				// Vrátime 401 Unauthorized a JSON telo
+				context.Response.StatusCode = 401;
+				context.Response.ContentType = "application/json";
+
+				var result = System.Text.Json.JsonSerializer.Serialize(new
+				{
+					error = "Unauthorized",
+					message = "Autorizácia zlyhala. Token je neplatný alebo chýba."
+				});
+
+				return context.Response.WriteAsync(result);
+			},
+			OnForbidden = context =>
+			{
+				// Spracovanie 403 Forbidden
+				context.Response.StatusCode = 403;
+				context.Response.ContentType = "application/json";
+				return context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(new
+				{
+					error = "Forbidden",
+					message = "Nemáte dostatočné oprávnenia pre tento prístup."
+				}));
+			}
+		};
 	});
+
 
 builder.Services.AddIdentity<IdentityUser, IdentityRole>(options => { options.SignIn.RequireConfirmedAccount = false; })
 	.AddEntityFrameworkStores<CheckInDbContext>()

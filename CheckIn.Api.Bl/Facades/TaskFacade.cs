@@ -7,9 +7,13 @@ using CheckIn.Api.Common.Models.Details;
 using CheckIn.Api.Common.Models.Lists;
 using CheckIn.Api.Common.Models.Query;
 using CheckIn.Api.Common.Models.Update;
+using CheckIn.Api.Common.Results;
 using CheckIn.Api.Common.Utils.Expressions;
 using CheckIn.Api.Dal;
 using CheckIn.Api.Dal.Entities;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using TaskStatus = CheckIn.Api.Common.Enums.TaskStatus;
 
 namespace CheckIn.Api.Bl.Facades;
 
@@ -38,6 +42,9 @@ public class TaskFacade(CheckInDbContext dbContext, IMapper mapper, IUserContext
 		if (query.CreatedAfter.HasValue)
 			filter = filter.And(entity => entity.CreatedAt >= query.CreatedAfter.Value);
 
+		Guid currentUserId = CurrentUserId;
+		filter = filter.And(entity => entity.CreatedById == currentUserId);
+
 		return filter;
 	}
 
@@ -65,5 +72,14 @@ public class TaskFacade(CheckInDbContext dbContext, IMapper mapper, IUserContext
 
 			_ => q => q.OrderBy(e => e.Id)
 		};
+	}
+
+	protected override void AddContextualData(TaskEntity entity, TaskCreateModel? createModel, TaskUpdateModel? updateModel)
+	{
+		if (createModel != null)
+		{
+			entity.CreatedById = CurrentUserId;
+			entity.Status = TaskStatus.Todo;
+		}
 	}
 }

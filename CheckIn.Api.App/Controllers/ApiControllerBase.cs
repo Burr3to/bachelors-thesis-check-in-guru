@@ -18,21 +18,25 @@ public abstract class ApiControllerBase<TEntity, TListModel, TDetailModel, TCrea
 	where TUpdateModel : IEntityModel
 	where TQueryModel : IPageableQuery, new()
 {
-	// Uložíme fasádu ako chránenú pre prípad, že konkrétny kontrolér potrebuje špecifické volania
 	protected readonly IFacade<TEntity, TListModel, TDetailModel, TCreateModel, TUpdateModel, TQueryModel> Facade = facade;
 
 
 	[HttpGet]
-	public virtual async Task<ActionResult<IEnumerable<TListModel>>> GetList([FromQuery] TQueryModel query)
+	public virtual async Task<ActionResult<QueryResult<TListModel>>> GetList([FromQuery] TQueryModel query)
 	{
-		var resultQueryable = await Facade.GetListAsync(query);
+		var result = await Facade.GetListAsync(query);
 
-		return Ok(resultQueryable.ToList());
+		if (result.IsSuccess)
+		{
+			return Ok(result.Value);
+		}
+
+		return HandleResultFailure(result);
 	}
 
 
 	[HttpGet("{id}")]
-	public async Task<ActionResult<TaskDetailModel>> GetById(Guid id)
+	public virtual async Task<ActionResult<TDetailModel>> GetById(Guid id)
 	{
 		var result = await Facade.GetByIdAsync(id);
 
@@ -41,17 +45,12 @@ public abstract class ApiControllerBase<TEntity, TListModel, TDetailModel, TCrea
 			return Ok(result.Value);
 		}
 
-		return result.ErrorType switch
-		{
-			ErrorType.NotFound => NotFound(result.ErrorMessage), // 404
-			ErrorType.Forbidden => Forbid(),
-			_ => StatusCode(StatusCodes.Status500InternalServerError, result.ErrorMessage)
-		};
+		return HandleResultFailure(result);
 	}
 
 
 	[HttpPut("{id}")]
-	public async Task<IActionResult> Put(Guid id, [FromBody] TUpdateModel model)
+	public virtual async Task<IActionResult> Put(Guid id, [FromBody] TUpdateModel model)
 	{
 		if (id != model.Id)
 		{
@@ -63,40 +62,27 @@ public abstract class ApiControllerBase<TEntity, TListModel, TDetailModel, TCrea
 		if (result.IsSuccess)
 			return NoContent();
 
-		return result.ErrorType switch
-		{
-			ErrorType.NotFound => NotFound(result.ErrorMessage), // 404
-			ErrorType.Forbidden => Forbid(), // 403
-			ErrorType.Validation => BadRequest(result.ErrorMessage),
-			ErrorType.Conflict => Conflict(result.ErrorMessage),
-			_ => StatusCode(StatusCodes.Status500InternalServerError,
-				new { Error = "Internal error during update.", Details = result.ErrorMessage })
-		};
+		return HandleResultFailure(result);
 	}
 
 
 	[HttpPost]
-	public async Task<ActionResult<TaskDetailModel>> Post([FromBody] TCreateModel model)
+	public virtual async Task<ActionResult<TDetailModel>> Post([FromBody] TCreateModel model)
 	{
 		var result = await Facade.SaveCreateModelAsync(model);
 
 		if (result.IsSuccess)
 		{
+			// Post by mal vrátiť 201 Created a URL na novú entitu
 			return CreatedAtAction(nameof(GetById), new { id = result.Value!.Id }, result.Value);
 		}
 
-		return result.ErrorType switch
-		{
-			ErrorType.Validation => BadRequest(result.ErrorMessage),
-			ErrorType.Unauthorized => Unauthorized(result.ErrorMessage),
-			ErrorType.Conflict => Conflict(result.ErrorMessage), // 409
-			_ => StatusCode(StatusCodes.Status500InternalServerError, result.ErrorMessage)
-		};
+		return HandleResultFailure(result);
 	}
 
 
 	[HttpDelete("{id}")]
-	public async Task<IActionResult> Delete(Guid id)
+	public virtual async Task<IActionResult> Delete(Guid id)
 	{
 		var result = await Facade.DeleteAsync(id);
 
@@ -105,14 +91,26 @@ public abstract class ApiControllerBase<TEntity, TListModel, TDetailModel, TCrea
 			return NoContent();
 		}
 
-		// Spracovanie chyby
+		return HandleResultFailure(result);
+	}
+
+
+	protected ActionResult HandleResultFailure<T>(Result<T> result)
+	{
+		if (result.IsSuccess)
+		{
+			throw new InvalidOperationException("Cannot handle failure on a successful result.");
+		}
+
 		return result.ErrorType switch
 		{
 			ErrorType.NotFound => NotFound(result.ErrorMessage), // 404
 			ErrorType.Forbidden => Forbid(), // 403
+			ErrorType.Unauthorized => Unauthorized(result.ErrorMessage), // 401
+			ErrorType.Validation => BadRequest(result.ErrorMessage), // 400
 			ErrorType.Conflict => Conflict(result.ErrorMessage), // 409
 			_ => StatusCode(StatusCodes.Status500InternalServerError,
-				new { Error = "Internal error during deletion.", Details = result.ErrorMessage })
+				new { Error = "Internal Server Error", Details = result.ErrorMessage })
 		};
 	}
 }

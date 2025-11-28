@@ -18,7 +18,10 @@ public class TaskMapperProfile : Profile
 		CreateMap<TaskEntity, TaskListModel>();
 		CreateMap<TaskListModel, TaskEntity>();
 
-		CreateMap<TaskCreateModel, TaskEntity>();
+		CreateMap<TaskCreateModel, TaskEntity>()
+			.ForMember(dest => dest.Hash, opt => opt.MapFrom(src => Guid.NewGuid().ToString("N")))
+			.ForMember(dest => dest.Id, opt => opt.MapFrom(src => Guid.NewGuid()))
+			.ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
 		CreateMap<TaskUpdateModel, TaskEntity>();
 	}
 }

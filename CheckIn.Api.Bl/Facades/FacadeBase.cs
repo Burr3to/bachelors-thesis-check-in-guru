@@ -25,8 +25,16 @@ public abstract class FacadeBase
 	where TCreateModel : class
 	where TQueryModel : IPageableQuery
 {
-	protected abstract Expression<Func<TEntity, bool>> CreateFilter(TQueryModel query);
+	protected virtual Expression<Func<TEntity, bool>> CreateFilter(TQueryModel query)
+	{
+		return entity => true;
+	}
+
 	protected abstract Func<IQueryable<TEntity>, IOrderedQueryable<TEntity>> CreateOrderBy(TQueryModel query);
+
+	protected virtual void AddContextualData(TEntity entity, TCreateModel? createModel, TUpdateModel? updateModel)
+	{
+	}
 
 	protected readonly IUserContext UserContext = userContext;
 
@@ -43,37 +51,47 @@ public abstract class FacadeBase
 	}
 
 
-	public async Task<IQueryable<TListModel>> GetListAsync(TQueryModel query)
+	public async Task<Result<QueryResult<TListModel>>> GetListAsync(TQueryModel query)
 	{
-		var filter = CreateFilter(query);
-		var orderBy = CreateOrderBy(query);
+		IQueryable<TEntity> queryable = dbContext.Set<TEntity>();
 
-		return await GetAsync(filter, orderBy, query.PageNumber, query.PageSize);
-	}
+		try
+		{
+			var filter = CreateFilter(query);
+			queryable = queryable.Where(filter);
 
-	public async Task<IQueryable<TListModel>> GetAsync(
-		Expression<Func<TEntity, bool>>? filter = null,
-		Func<IQueryable<TEntity>, IOrderedQueryable<TEntity>>? orderBy = null,
-		int pageNumber = 1,
-		int pageSize = 10)
-	{
-		IQueryable<TEntity> query = dbContext.Set<TEntity>();
+			// 1. Získanie celkového počtu (pred pagináciou)
+			var totalCount = await queryable.CountAsync();
 
-		if (filter != null)
-			query = query.Where(filter);
+			// 2. Aplikácia triedenia
+			var orderBy = CreateOrderBy(query);
+			queryable = orderBy(queryable);
 
-		if (orderBy != null)
-			query = orderBy(query);
-		else
-			query = query.OrderBy(l => l.Id);
+			// 3. Aplikácia paginácie
+			queryable = queryable
+				.Skip((query.PageNumber - 1) * query.PageSize)
+				.Take(query.PageSize);
 
-		query = query
-			.Skip((pageNumber - 1) * pageSize)
-			.Take(pageSize);
+			// 4. Projekcia a exekúcia query
+			var listModels = await mapper
+				.ProjectTo<TListModel>(queryable, mapper.ConfigurationProvider)
+				.ToListAsync();
 
-		IQueryable<TListModel> queryResult = mapper.ProjectTo<TListModel>(query, mapper.ConfigurationProvider);
+			var result = new QueryResult<TListModel>
+			{
+				Items = listModels,
+				TotalCount = totalCount,
+				PageNumber = query.PageNumber,
+				PageSize = query.PageSize
+			};
 
-		return queryResult;
+			return Result<QueryResult<TListModel>>.Success(result);
+		}
+		catch (Exception ex)
+		{
+			// Zachytenie databázových alebo iných interných chýb pri listovaní
+			return Result<QueryResult<TListModel>>.Failure(ErrorType.InternalError, $"Error during list retrieval: {ex.Message}");
+		}
 	}
 
 	public async Task<Result<TDetailModel>> GetByIdAsync(Guid id)
@@ -106,10 +124,11 @@ public abstract class FacadeBase
 		}
 	}
 
-
 	public async Task<Result<TDetailModel>> SaveCreateModelAsync(TCreateModel model)
 	{
 		var entity = mapper.Map<TEntity>(model);
+
+		AddContextualData(entity, model, default);
 
 		if (entity.Id == Guid.Empty)
 			entity.Id = Guid.NewGuid();

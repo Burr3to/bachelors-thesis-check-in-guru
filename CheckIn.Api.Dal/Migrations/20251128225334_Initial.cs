@@ -193,7 +193,7 @@ namespace CheckIn.Api.Dal.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "CheckInEvents",
+                name: "Tasks",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -203,14 +203,13 @@ namespace CheckIn.Api.Dal.Migrations
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     DeadLine = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     Status = table.Column<int>(type: "integer", nullable: false),
-                    CreadtedById = table.Column<Guid>(type: "uuid", nullable: false),
                     CreatedById = table.Column<Guid>(type: "uuid", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_CheckInEvents", x => x.Id);
+                    table.PrimaryKey("PK_Tasks", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_CheckInEvents_Users_CreatedById",
+                        name: "FK_Tasks_Users_CreatedById",
                         column: x => x.CreatedById,
                         principalTable: "Users",
                         principalColumn: "Id",
@@ -218,7 +217,7 @@ namespace CheckIn.Api.Dal.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "CheckInResponses",
+                name: "TaskResponses",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -229,11 +228,11 @@ namespace CheckIn.Api.Dal.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_CheckInResponses", x => x.Id);
+                    table.PrimaryKey("PK_TaskResponses", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_CheckInResponses_CheckInEvents_TaskId",
+                        name: "FK_TaskResponses_Tasks_TaskId",
                         column: x => x.TaskId,
-                        principalTable: "CheckInEvents",
+                        principalTable: "Tasks",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -276,19 +275,19 @@ namespace CheckIn.Api.Dal.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_CheckInEvents_CreatedById",
-                table: "CheckInEvents",
-                column: "CreatedById");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_CheckInResponses_TaskId",
-                table: "CheckInResponses",
-                column: "TaskId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_RefreshTokens_UserId",
                 table: "RefreshTokens",
                 column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TaskResponses_TaskId",
+                table: "TaskResponses",
+                column: "TaskId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Tasks_CreatedById",
+                table: "Tasks",
+                column: "CreatedById");
         }
 
         /// <inheritdoc />
@@ -310,19 +309,19 @@ namespace CheckIn.Api.Dal.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
-                name: "CheckInResponses");
+                name: "RefreshTokens");
 
             migrationBuilder.DropTable(
-                name: "RefreshTokens");
+                name: "TaskResponses");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoles");
 
             migrationBuilder.DropTable(
-                name: "CheckInEvents");
+                name: "AspNetUsers");
 
             migrationBuilder.DropTable(
-                name: "AspNetUsers");
+                name: "Tasks");
 
             migrationBuilder.DropTable(
                 name: "Users");

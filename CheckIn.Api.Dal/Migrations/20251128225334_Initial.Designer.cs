@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CheckIn.Api.Dal.Migrations
 {
     [DbContext(typeof(CheckInDbContext))]
-    [Migration("20251127210131_Initial")]
+    [Migration("20251128225334_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -57,9 +57,6 @@ namespace CheckIn.Api.Dal.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("CreadtedById")
-                        .HasColumnType("uuid");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -87,7 +84,7 @@ namespace CheckIn.Api.Dal.Migrations
 
                     b.HasIndex("CreatedById");
 
-                    b.ToTable("CheckInEvents");
+                    b.ToTable("Tasks");
                 });
 
             modelBuilder.Entity("CheckIn.Api.Dal.Entities.TaskResponseEntity", b =>
@@ -116,7 +113,7 @@ namespace CheckIn.Api.Dal.Migrations
 
                     b.HasIndex("TaskId");
 
-                    b.ToTable("CheckInResponses");
+                    b.ToTable("TaskResponses");
                 });
 
             modelBuilder.Entity("CheckIn.Api.Dal.Entities.UserEntity", b =>

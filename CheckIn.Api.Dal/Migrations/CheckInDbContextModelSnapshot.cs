@@ -54,9 +54,6 @@ namespace CheckIn.Api.Dal.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("CreadtedById")
-                        .HasColumnType("uuid");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -84,7 +81,7 @@ namespace CheckIn.Api.Dal.Migrations
 
                     b.HasIndex("CreatedById");
 
-                    b.ToTable("CheckInEvents");
+                    b.ToTable("Tasks");
                 });
 
             modelBuilder.Entity("CheckIn.Api.Dal.Entities.TaskResponseEntity", b =>
@@ -113,7 +110,7 @@ namespace CheckIn.Api.Dal.Migrations
 
                     b.HasIndex("TaskId");
 
-                    b.ToTable("CheckInResponses");
+                    b.ToTable("TaskResponses");
                 });
 
             modelBuilder.Entity("CheckIn.Api.Dal.Entities.UserEntity", b =>
