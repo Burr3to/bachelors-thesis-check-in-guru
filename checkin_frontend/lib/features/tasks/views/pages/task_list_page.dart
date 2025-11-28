@@ -1,9 +1,10 @@
-// lib/features/tasks/views/pages/task_list_page.dart
 import 'package:checkin_frontend/features/tasks/data/models/task_create_model.dart';
+import 'package:checkin_frontend/features/tasks/data/models/task_list_model.dart';
 import 'package:checkin_frontend/features/tasks/data/task_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:checkin_frontend/features/auth/views/providers/auth_provider.dart';
+import 'package:intl/intl.dart';
 
 class TaskListPage extends ConsumerStatefulWidget {
   const TaskListPage({super.key});
@@ -13,45 +14,86 @@ class TaskListPage extends ConsumerStatefulWidget {
 }
 
 class _TaskListPageState extends ConsumerState<TaskListPage> {
-  final SearchController _searchController = SearchController();
+  // Ponecháme len dátové polia
+  List<TaskListModel> _tasks = [];
+  bool _isLoading = true;
 
-  // 2. Všetky dáta (Databáza)
-  final List<String> _allTasks = [
-    "Dokončiť Flutter tutoriál",
-    "Ísť na obed",
-    "Kúpiť mlieko",
-    "Zavolať mame",
-    "Umyť auto",
-  ];
-
-  List<String> _filteredTasks = [];
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+  DateTime? _selectedDeadline;
 
   @override
   void initState() {
     super.initState();
-
-    _filteredTasks = _allTasks;
-
-    _searchController.addListener(_handleSearch);
+    // Načítanie dát pri štarte
+    _loadData();
   }
 
-  @override
-  void _handleSearch() {
-    setState(() {
-      final query = _searchController.text;
-      if (query.isEmpty) {
-        _filteredTasks = _allTasks;
-      } else {
-        _filteredTasks = _allTasks.where((task) {
-          return task.contains(query);
-        }).toList();
-      }
-    });
+  // Metóda pre volanie GET /api/Task
+  Future<void> _loadData() async {
+    try {
+      if (!mounted) return;
+      setState(() => _isLoading = true);
+
+      final result = await ref.read(taskApiServiceProvider).getTasks();
+
+      if (!mounted) return;
+      setState(() {
+        _tasks = result.items.toList();
+        _isLoading = false;
+      });
+    } catch (e) {
+      print("Chyba pri načítaní úloh: $e");
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _createTask() async {
+    if (_titleController.text.isEmpty) {
+      print("Title is required!");
+      return;
+    }
+
+    try {
+      final TaskCreateModel newTaskModel = TaskCreateModel(
+        title: _titleController.text,
+        deadLine: _selectedDeadline!.toUtc(),
+        notes: _descriptionController.text.isNotEmpty ? _descriptionController.text : null,
+      );
+      final result = await ref.read(taskApiServiceProvider).createTask(newTaskModel);
+
+      _titleController.clear();
+      _descriptionController.clear();
+      setState(() {
+        _selectedDeadline = null;
+      });
+
+      await _loadData();
+      print("Task created successfully!");
+    } catch (e) {
+      print("Error for createTask");
+    }
+  }
+
+  Future<DateTime?> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
+    );
+    if (picked != null && picked != _selectedDeadline) {
+      setState(() {
+        _selectedDeadline = picked;
+      });
+    }
+    return picked;
   }
 
   @override
   void dispose() {
-    _searchController.dispose();
+    _titleController.dispose();
+    _descriptionController.dispose();
     super.dispose();
   }
 
@@ -61,83 +103,117 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     final meno = user?.name ?? 'hosť';
 
     return Scaffold(
-      body: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Vitejte $meno", style: Theme.of(context).textTheme.headlineMedium),
-
-            const SizedBox(width: 20, height: 35),
-
-            SearchBar(
-              controller: _searchController,
-              hintText: "Search task",
-              leading: const Icon(Icons.search),
-              trailing: [
-                IconButton.outlined(
-                  onPressed: () {
-                    _searchController.clear();
-                  },
-                  icon: const Icon(Icons.clear),
-                ),
-              ],
-            ),
-
-            const SizedBox(width: 20, height: 35),
-
-            Expanded(
-              child: _filteredTasks.isEmpty
-                  ? const Center(child: Text("niec sa nenaslo"))
-                  : GridView.builder(
-                      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                        maxCrossAxisExtent: 350,
-                        crossAxisSpacing: 10,
-                        mainAxisSpacing: 10,
-                        childAspectRatio: 3 / 1,
-                      ),
-                      padding: EdgeInsets.all(16),
-                      physics: ClampingScrollPhysics(),
-                      itemCount: _filteredTasks.length,
-                      itemBuilder: (context, index) {
-                        return Card(
-                          child: ListTile(
-                            title: Text(_allTasks[index]),
-                            leading: Icon(Icons.check_circle_outline_rounded),
-                          ),
-                        );
-                      },
-                    ),
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          FloatingActionButton(
-            heroTag: "btnAdd",
-            onPressed: () async {
-              final newTask = TaskCreateModel(title: "prvy TASk", deadLine: DateTime.timestamp());
-              await ref.read(taskApiServiceProvider).createTask(newTask);
-            },
-            child: Icon(Icons.add),
+          Text("Vitajte $meno", style: Theme.of(context).textTheme.headlineMedium),
+
+          const SizedBox(height: 35),
+
+          Column(
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _titleController,
+                      obscureText: false,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText: "Title",
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(width: 5),
+
+                  Expanded(
+                    child: TextField(
+                      controller: _descriptionController,
+                      obscureText: false,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText: "Description",
+                      ),
+                    ),
+                  ),
+
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => _selectDate(context),
+                      child: InputDecorator(
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(),
+                          labelText: "Deadline",
+                        ),
+                        child: Text(
+                          _selectedDeadline == null
+                              ? "Choose date"
+                              : DateFormat('dd.MM.yyyy').format(_selectedDeadline!),
+                          style: TextStyle(
+                            color: _selectedDeadline == null ? Colors.grey : Colors.black,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              ElevatedButton(onPressed: _createTask, child: const Text("Add Task")),
+            ],
           ),
 
-          const SizedBox(width: 25),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _tasks.isEmpty
+                ? const Center(child: Text("Žiadne úlohy"))
+                : GridView.builder(
+                    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                      maxCrossAxisExtent: 350,
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 10,
+                      childAspectRatio: 3 / 1,
+                    ),
+                    itemCount: _tasks.length,
+                    itemBuilder: (context, index) {
+                      final task = _tasks[index];
 
-          FloatingActionButton(
-            heroTag: "btnDelete",
-            mini: true,
-            onPressed: () {
-              setState(() {
-                _allTasks.removeLast();
-                _handleSearch();
-              });
-            },
-            child: Icon(Icons.delete),
+                      final deadLine = DateFormat(
+                        'dd.MM.yyyy HH:mm',
+                      ).format(task.deadLine.toLocal());
+
+                      final dateString = DateFormat(
+                        'dd.MM.yyyy HH:mm',
+                      ).format(task.createdAt.toLocal());
+
+                      return Card(
+                        elevation: 4,
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(task.title),
+                              const SizedBox(height: 8),
+                              Text(dateString),
+                              Text(deadLine),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        heroTag: "btnRefresh",
+        onPressed: _loadData, // Ponecháme len refresh
+        child: const Icon(Icons.refresh),
       ),
     );
   }

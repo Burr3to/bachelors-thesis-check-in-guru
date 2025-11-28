@@ -5,7 +5,7 @@ part 'task_create_model.freezed.dart';
 part 'task_create_model.g.dart';
 
 @freezed
-abstract class TaskCreateModel with _$TaskCreateModel {
+sealed class TaskCreateModel with _$TaskCreateModel {
   const factory TaskCreateModel({
     required String title,
     String? notes,
