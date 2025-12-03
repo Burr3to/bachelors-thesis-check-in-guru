@@ -5,6 +5,7 @@ import 'package:checkin_frontend/features/auth/views/providers/auth_provider.dar
 import 'package:checkin_frontend/features/auth/views/pages/login_page.dart';
 import 'package:checkin_frontend/core/shared_widgets/main_layout.dart';
 
+import '../../features/task_overview/views/pages/task_overview_page.dart';
 import '../../features/tasks/views/pages/task_list_page.dart';
 
 class HomePage extends StatelessWidget {
@@ -23,35 +24,41 @@ final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/home',
-
-    // ZMENA 2: Logika redirectu na základe stavu (authState môže byť null)
     redirect: (context, state) {
-      // Ak authState nie je null, sme prihlásení
+      // ... tvoja existujúca redirect logika ...
       final isLoggedIn = authState != null;
       final isLoggingIn = state.uri.path == '/login';
-
-      // 1. Ak sme prihlásení a snažíme sa ísť na login -> pošli na home
-      if (isLoggedIn && isLoggingIn) {
-        return '/home';
-      }
-
-      // 2. Ak NIE sme prihlásení a snažíme sa ísť niekam inam ako na login -> pošli na login
-      if (!isLoggedIn && !isLoggingIn) {
-        return '/login';
-      }
-
-      // Inak nerob nič (dovoľ navigáciu)
+      if (isLoggedIn && isLoggingIn) return '/home';
+      if (!isLoggedIn && !isLoggingIn) return '/login';
       return null;
     },
 
     routes: [
       GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
+
       ShellRoute(
         builder: (context, state, child) {
           return MainLayout(child: child);
         },
         routes: [
-          GoRoute(path: '/home', builder: (context, state) => const TaskListPage()),
+          // RODIČOVSKÁ CESTA (/home)
+          GoRoute(
+            path: '/home',
+            builder: (context, state) => const TaskListPage(),
+
+            // --- TU SÚ VNORENÉ CESTY (DETI) ---
+            routes: [
+              GoRoute(
+                // Pozor: Žiadna lomka na začiatku!
+                // Výsledná cesta bude: /home/task/:taskId
+                path: 'task/:taskId',
+                builder: (context, state) {
+                  final id = state.pathParameters['taskId'];
+                  return TaskOverviewPage(taskId: id!);
+                },
+              ),
+            ],
+          ),
         ],
       ),
     ],

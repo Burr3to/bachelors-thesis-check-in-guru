@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:checkin_frontend/features/auth/views/providers/auth_provider.dart';
 import 'package:intl/intl.dart';
+import 'package:checkin_frontend/features/tasks/views/widgets/task_card.dart';
 
 class TaskListPage extends ConsumerStatefulWidget {
   const TaskListPage({super.key});
@@ -58,7 +59,9 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
       final TaskCreateModel newTaskModel = TaskCreateModel(
         title: _titleController.text,
         deadLine: _selectedDeadline!.toUtc(),
-        notes: _descriptionController.text.isNotEmpty ? _descriptionController.text : null,
+        notes: _descriptionController.text.isNotEmpty
+            ? _descriptionController.text
+            : null,
       );
       final result = await ref.read(taskApiServiceProvider).createTask(newTaskModel);
 
@@ -172,39 +175,16 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                 ? const Center(child: Text("Žiadne úlohy"))
                 : GridView.builder(
                     gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 350,
+                      maxCrossAxisExtent: 360,
                       crossAxisSpacing: 10,
                       mainAxisSpacing: 10,
-                      childAspectRatio: 3 / 1,
+                      childAspectRatio: 2.5 / 1,
                     ),
                     itemCount: _tasks.length,
                     itemBuilder: (context, index) {
                       final task = _tasks[index];
 
-                      final deadLine = DateFormat(
-                        'dd.MM.yyyy HH:mm',
-                      ).format(task.deadLine.toLocal());
-
-                      final dateString = DateFormat(
-                        'dd.MM.yyyy HH:mm',
-                      ).format(task.createdAt.toLocal());
-
-                      return Card(
-                        elevation: 4,
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(task.title),
-                              const SizedBox(height: 8),
-                              Text(dateString),
-                              Text(deadLine),
-                            ],
-                          ),
-                        ),
-                      );
+                      return TaskCard(task: task);
                     },
                   ),
           ),

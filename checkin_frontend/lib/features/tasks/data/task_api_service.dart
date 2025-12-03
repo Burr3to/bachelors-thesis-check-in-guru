@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:retrofit/retrofit.dart';
+import '../../task_overview/data/models/task_detail_model.dart';
 import 'models/query/query_result.dart';
 import 'models/task_create_model.dart';
 import 'models/task_list_model.dart';
@@ -24,4 +25,7 @@ abstract class TaskApiService {
     // @Query("nameContains") String? nameContains,
     // @Query("sortBy") String? sortBy,
   });
+
+  @GET('/api/Task/{id}')
+  Future<TaskDetailModel> getTask(@Path("id") String id);
 }
