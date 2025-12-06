@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using AutoMapper;
 using CheckIn.Api.Bl.Facades.Interfaces;
 using CheckIn.Api.Bl.Services.Interfaces;
+using CheckIn.Api.Common.Enums;
 using CheckIn.Api.Common.Models.Create;
 using CheckIn.Api.Common.Models.Details;
 using CheckIn.Api.Common.Models.Lists;
@@ -76,10 +77,62 @@ public class TaskFacade(CheckInDbContext dbContext, IMapper mapper, IUserContext
 
 	protected override void AddContextualData(TaskEntity entity, TaskCreateModel? createModel, TaskUpdateModel? updateModel)
 	{
-		if (createModel != null)
+		if (createModel is not null)
 		{
 			entity.CreatedById = CurrentUserId;
 			entity.Status = TaskStatus.Todo;
+
+			// var assignedUsers = taskCreateModel.AssignedUserIds;
+
+			foreach (var subtaskTemplate in entity.Subtasks)
+			{
+				if (entity.SubtaskMode == SubtaskMode.Shared)
+				{
+					// Typ 1: Vytvoríme 1 zdieľanú inštanciu
+					subtaskTemplate.Instances.Add(new SubtaskInstanceEntity
+					{
+						// TemplateSubtaskId bude nastavené automaticky EF Core, 
+						// lebo používame navigačnú property subtaskTemplate.Instances.Add()
+						AssignedToUserId = null,
+						IsCompleted = false,
+					});
+				}
+				else if (entity.SubtaskMode == SubtaskMode.Individual)
+				{
+					// Typ 2: Vytvoríme N inštancií pre každého pozvaného
+					/*
+					foreach (var userId in assignedUsers)
+					{
+						subtaskTemplate.Instances.Add(new SubtaskInstanceEntity
+						{
+							AssignedToUserId = userId,
+							IsCompleted = false
+						});
+					}
+					*/
+				}
+			}
 		}
+	}
+
+	public override async Task<Result<TaskDetailModel>> SaveCreateModelAsync(TaskCreateModel model)
+	{
+		var task = mapper.Map<TaskEntity>(model);
+
+		AddContextualData(task, model, default);
+
+		try
+		{
+			await dbContext.Tasks.AddAsync(task);
+			await dbContext.SaveChangesAsync();
+		}
+		catch (Exception ex)
+		{
+			return Result<TaskDetailModel>.Failure(ErrorType.InternalError, $"Failed to save task: {{ex.Message}}");
+		}
+
+		var createdTask = await GetByIdAsync(task.Id);
+
+		return createdTask;
 	}
 }

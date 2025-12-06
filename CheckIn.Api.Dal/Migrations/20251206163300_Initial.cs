@@ -203,7 +203,10 @@ namespace CheckIn.Api.Dal.Migrations
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     DeadLine = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     Status = table.Column<int>(type: "integer", nullable: false),
-                    CreatedById = table.Column<Guid>(type: "uuid", nullable: false)
+                    SubtaskMode = table.Column<int>(type: "integer", nullable: false),
+                    RequiresAuthenticationToComplete = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedById = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserEntityId = table.Column<Guid>(type: "uuid", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -213,28 +216,68 @@ namespace CheckIn.Api.Dal.Migrations
                         column: x => x.CreatedById,
                         principalTable: "Users",
                         principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Tasks_Users_UserEntityId",
+                        column: x => x.UserEntityId,
+                        principalTable: "Users",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Subtasks",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Title = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    Description = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    ParentTaskId = table.Column<Guid>(type: "uuid", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Subtasks", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Subtasks_Tasks_ParentTaskId",
+                        column: x => x.ParentTaskId,
+                        principalTable: "Tasks",
+                        principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
-                name: "TaskResponses",
+                name: "SubtaskInstances",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    RespondentName = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
-                    Comment = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
-                    SubmittedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    TaskId = table.Column<Guid>(type: "uuid", nullable: false)
+                    RespondentName = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    Comment = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    TemplateSubtaskId = table.Column<Guid>(type: "uuid", nullable: false),
+                    AssignedToUserId = table.Column<Guid>(type: "uuid", nullable: true),
+                    IsCompleted = table.Column<bool>(type: "boolean", nullable: false),
+                    CompletedByUserId = table.Column<Guid>(type: "uuid", nullable: true),
+                    CompletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_TaskResponses", x => x.Id);
+                    table.PrimaryKey("PK_SubtaskInstances", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_TaskResponses_Tasks_TaskId",
-                        column: x => x.TaskId,
-                        principalTable: "Tasks",
+                        name: "FK_SubtaskInstances_Subtasks_TemplateSubtaskId",
+                        column: x => x.TemplateSubtaskId,
+                        principalTable: "Subtasks",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_SubtaskInstances_Users_AssignedToUserId",
+                        column: x => x.AssignedToUserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_SubtaskInstances_Users_CompletedByUserId",
+                        column: x => x.CompletedByUserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateIndex(
@@ -280,14 +323,34 @@ namespace CheckIn.Api.Dal.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TaskResponses_TaskId",
-                table: "TaskResponses",
-                column: "TaskId");
+                name: "IX_SubtaskInstances_AssignedToUserId",
+                table: "SubtaskInstances",
+                column: "AssignedToUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SubtaskInstances_CompletedByUserId",
+                table: "SubtaskInstances",
+                column: "CompletedByUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SubtaskInstances_TemplateSubtaskId",
+                table: "SubtaskInstances",
+                column: "TemplateSubtaskId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Subtasks_ParentTaskId",
+                table: "Subtasks",
+                column: "ParentTaskId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Tasks_CreatedById",
                 table: "Tasks",
                 column: "CreatedById");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Tasks_UserEntityId",
+                table: "Tasks",
+                column: "UserEntityId");
         }
 
         /// <inheritdoc />
@@ -312,13 +375,16 @@ namespace CheckIn.Api.Dal.Migrations
                 name: "RefreshTokens");
 
             migrationBuilder.DropTable(
-                name: "TaskResponses");
+                name: "SubtaskInstances");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoles");
 
             migrationBuilder.DropTable(
                 name: "AspNetUsers");
+
+            migrationBuilder.DropTable(
+                name: "Subtasks");
 
             migrationBuilder.DropTable(
                 name: "Tasks");

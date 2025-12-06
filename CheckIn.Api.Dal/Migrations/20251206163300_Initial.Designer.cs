@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CheckIn.Api.Dal.Migrations
 {
     [DbContext(typeof(CheckInDbContext))]
-    [Migration("20251128225334_Initial")]
+    [Migration("20251206163300_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -51,6 +51,71 @@ namespace CheckIn.Api.Dal.Migrations
                     b.ToTable("RefreshTokens");
                 });
 
+            modelBuilder.Entity("CheckIn.Api.Dal.Entities.SubtaskInstanceEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("AssignedToUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CompletedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsCompleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("RespondentName")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<Guid>("TemplateSubtaskId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignedToUserId");
+
+                    b.HasIndex("CompletedByUserId");
+
+                    b.HasIndex("TemplateSubtaskId");
+
+                    b.ToTable("SubtaskInstances");
+                });
+
+            modelBuilder.Entity("CheckIn.Api.Dal.Entities.SubtaskTemplateEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<Guid>("ParentTaskId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ParentTaskId");
+
+                    b.ToTable("Subtasks");
+                });
+
             modelBuilder.Entity("CheckIn.Api.Dal.Entities.TaskEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -73,47 +138,29 @@ namespace CheckIn.Api.Dal.Migrations
                     b.Property<string>("Notes")
                         .HasColumnType("text");
 
+                    b.Property<bool>("RequiresAuthenticationToComplete")
+                        .HasColumnType("boolean");
+
                     b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SubtaskMode")
                         .HasColumnType("integer");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<Guid?>("UserEntityId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedById");
 
+                    b.HasIndex("UserEntityId");
+
                     b.ToTable("Tasks");
-                });
-
-            modelBuilder.Entity("CheckIn.Api.Dal.Entities.TaskResponseEntity", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Comment")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<string>("RespondentName")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<DateTime>("SubmittedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("TaskId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TaskId");
-
-                    b.ToTable("TaskResponses");
                 });
 
             modelBuilder.Entity("CheckIn.Api.Dal.Entities.UserEntity", b =>
@@ -346,26 +393,51 @@ namespace CheckIn.Api.Dal.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("CheckIn.Api.Dal.Entities.SubtaskInstanceEntity", b =>
+                {
+                    b.HasOne("CheckIn.Api.Dal.Entities.UserEntity", null)
+                        .WithMany()
+                        .HasForeignKey("AssignedToUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CheckIn.Api.Dal.Entities.UserEntity", null)
+                        .WithMany()
+                        .HasForeignKey("CompletedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CheckIn.Api.Dal.Entities.SubtaskTemplateEntity", "TemplateSubtask")
+                        .WithMany("Instances")
+                        .HasForeignKey("TemplateSubtaskId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("TemplateSubtask");
+                });
+
+            modelBuilder.Entity("CheckIn.Api.Dal.Entities.SubtaskTemplateEntity", b =>
+                {
+                    b.HasOne("CheckIn.Api.Dal.Entities.TaskEntity", "ParentTask")
+                        .WithMany("Subtasks")
+                        .HasForeignKey("ParentTaskId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ParentTask");
+                });
+
             modelBuilder.Entity("CheckIn.Api.Dal.Entities.TaskEntity", b =>
                 {
                     b.HasOne("CheckIn.Api.Dal.Entities.UserEntity", "CreatedBy")
-                        .WithMany("CreatedCheckIns")
+                        .WithMany()
                         .HasForeignKey("CreatedById")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("CheckIn.Api.Dal.Entities.UserEntity", null)
+                        .WithMany("CreatedCheckIns")
+                        .HasForeignKey("UserEntityId");
 
                     b.Navigation("CreatedBy");
-                });
-
-            modelBuilder.Entity("CheckIn.Api.Dal.Entities.TaskResponseEntity", b =>
-                {
-                    b.HasOne("CheckIn.Api.Dal.Entities.TaskEntity", "Task")
-                        .WithMany("Responses")
-                        .HasForeignKey("TaskId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Task");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -419,9 +491,14 @@ namespace CheckIn.Api.Dal.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("CheckIn.Api.Dal.Entities.SubtaskTemplateEntity", b =>
+                {
+                    b.Navigation("Instances");
+                });
+
             modelBuilder.Entity("CheckIn.Api.Dal.Entities.TaskEntity", b =>
                 {
-                    b.Navigation("Responses");
+                    b.Navigation("Subtasks");
                 });
 
             modelBuilder.Entity("CheckIn.Api.Dal.Entities.UserEntity", b =>

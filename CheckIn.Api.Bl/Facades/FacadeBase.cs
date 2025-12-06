@@ -38,11 +38,14 @@ public abstract class FacadeBase
 
 	protected readonly IUserContext UserContext = userContext;
 
+
+	protected Guid? OptionalUserId => UserContext.GetUserId();
+
 	protected Guid CurrentUserId
 	{
 		get
 		{
-			var userId = UserContext.GetUserId();
+			var userId = OptionalUserId;
 			if (userId == null)
 				throw new UnauthorizedAccessException("User is not authenticated or user ID is missing for required operation.");
 
@@ -124,7 +127,7 @@ public abstract class FacadeBase
 		}
 	}
 
-	public async Task<Result<TDetailModel>> SaveCreateModelAsync(TCreateModel model)
+	public virtual async Task<Result<TDetailModel>> SaveCreateModelAsync(TCreateModel model)
 	{
 		var entity = mapper.Map<TEntity>(model);
 
@@ -146,7 +149,7 @@ public abstract class FacadeBase
 	}
 
 
-	public async Task<Result<TDetailModel>> SaveUpdateModelAsync(TUpdateModel model)
+	public virtual async Task<Result<TDetailModel>> SaveUpdateModelAsync(TUpdateModel model)
 	{
 		var id = model.Id;
 

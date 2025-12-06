@@ -7,10 +7,7 @@ import '../providers/task_detail_provider.dart';
 class TaskOverviewPage extends ConsumerWidget {
   final String taskId;
 
-  const TaskOverviewPage({
-    super.key,
-    required this.taskId
-  });
+  const TaskOverviewPage({super.key, required this.taskId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -19,9 +16,7 @@ class TaskOverviewPage extends ConsumerWidget {
     final asyncTask = ref.watch(taskDetailProvider(taskId));
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Detail úlohy"),
-      ),
+      appBar: AppBar(title: const Text("Detail úlohy")),
       // 2. .when() rieši 3 stavy: Data, Error, Loading
       body: asyncTask.when(
         // A. Načítavanie
@@ -36,91 +31,104 @@ class TaskOverviewPage extends ConsumerWidget {
               Text(error.toString(), style: const TextStyle(color: Colors.red)),
               const SizedBox(height: 10),
               ElevatedButton(
-                  onPressed: () {
-                    // Refresh (invalidate) prinúti providera stiahnuť dáta znova
-                    ref.invalidate(taskDetailProvider(taskId));
-                  },
-                  child: const Text("Skúsiť znova")
-              )
+                onPressed: () {
+                  // Refresh (invalidate) prinúti providera stiahnuť dáta znova
+                  ref.invalidate(taskDetailProvider(taskId));
+                },
+                child: const Text("Skúsiť znova"),
+              ),
             ],
           ),
         ),
 
         // C. Dáta sú tu! (task je typu TaskDetailModel)
         data: (task) {
-          final createdDate = DateFormat('dd.MM.yyyy HH:mm').format(task.createdAt.toLocal());
-          final deadlineDate = DateFormat('dd.MM.yyyy HH:mm').format(task.deadLine.toLocal());
+          final createdDate = DateFormat(
+            'dd.MM.yyyy HH:mm',
+          ).format(task.createdAt.toLocal());
+          final deadlineDate = DateFormat(
+            'dd.MM.yyyy HH:mm',
+          ).format(task.deadLine.toLocal());
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Nadpis
-                Text(
-                  task.title,
-                  style: Theme.of(context).textTheme.headlineMedium,
-                ),
-                const SizedBox(height: 8),
-
-                // Hash (napr. kód úlohy)
+                //Horny sedy container
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                      borderRadius: BorderRadius.circular(4)
+                    color: Color.fromRGBO(236, 236, 240, 1),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Text("#${task.hash}", style: const TextStyle(fontFamily: 'monospace')),
+                  padding: EdgeInsets.only(left: 20, right: 20, top: 10, bottom: 10),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Created On",
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(createdDate),
+                        ],
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("Deadline", style: TextStyle(fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 6),
+                          Text(deadlineDate),
+                        ],
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Last Modified",
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 6),
+
+                          Text("TODO"),
+                        ],
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Identity Verification",
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 6),
+
+                          Text("TODO"),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
+
+                const SizedBox(height: 32),
+
+                Text(task.title, style: Theme.of(context).textTheme.headlineMedium),
 
                 const SizedBox(height: 24),
 
-                // Karta s informáciami
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      children: [
-                        _buildInfoRow(Icons.calendar_today, "Vytvorené", createdDate),
-                        const Divider(),
-                        _buildInfoRow(Icons.timer, "Deadline", deadlineDate, isRed: true),
-                        const Divider(),
-                        _buildInfoRow(Icons.person, "Vytvoril", "ID: ${task.createdById}"), // Tu by sme chceli meno, ale zatiaľ máme ID
-                      ],
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
-                // Poznámky (ak sú)
                 if (task.notes != null && task.notes!.isNotEmpty) ...[
-                  Text("Poznámky:", style: Theme.of(context).textTheme.titleLarge),
-                  const SizedBox(height: 8),
                   Text(task.notes!),
                   const SizedBox(height: 24),
                 ],
 
+                const SizedBox(height: 24),
               ],
             ),
           );
         },
-      ),
-    );
-  }
-
-  // Pomocná metóda pre riadky v tabuľke
-  Widget _buildInfoRow(IconData icon, String label, String value, {bool isRed = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.grey),
-          const SizedBox(width: 12),
-          Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
-          const Spacer(),
-          Text(value, style: TextStyle(color: isRed ? Colors.red : null)),
-        ],
       ),
     );
   }
