@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../../../core/models/subtask_instance/subtask_instance_list_model.dart';
+import '../../../../core/models/subtask_template/subtask_template_list_model.dart';
 import '../providers/task_detail_provider.dart';
 // Importuj model task_detail_model.dart ak treba
 
@@ -11,13 +13,11 @@ class TaskOverviewPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // 1. Sledujeme providera s konkrétnym ID
-    // Riverpod automaticky vie: "Aha, chceš task 123? Pozriem sa či ho mám, ak nie, stiahnem ho."
     final asyncTask = ref.watch(taskDetailProvider(taskId));
+    final asyncSubtasks = ref.watch(taskSubtasksProvider(taskId));
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Detail úlohy")),
-      // 2. .when() rieši 3 stavy: Data, Error, Loading
+      appBar: AppBar(title: const Text("Task Detail")),
       body: asyncTask.when(
         // A. Načítavanie
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -114,22 +114,117 @@ class TaskOverviewPage extends ConsumerWidget {
                 ),
 
                 const SizedBox(height: 32),
-
                 Text(task.title, style: Theme.of(context).textTheme.headlineMedium),
 
                 const SizedBox(height: 24),
-
                 if (task.notes != null && task.notes!.isNotEmpty) ...[
                   Text(task.notes!),
                   const SizedBox(height: 24),
                 ],
 
                 const SizedBox(height: 24),
+                const Text(
+                  "Subtasks Progress",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+                const SizedBox(height: 10),
+                asyncSubtasks.when(
+                  loading: () => const LinearProgressIndicator(),
+                  error: (e, s) => const Text("Failed to load subtasks"),
+                  data: (subtasks) {
+                    if (subtasks.isEmpty) return const Text("No subtasks.");
+
+                    return Column(
+                      children: subtasks.map((subtask) {
+                        return Card(
+                          child: ListTile(
+                            leading: Icon(
+                              subtask.isCompleted
+                                  ? Icons.check_circle
+                                  : Icons.radio_button_unchecked,
+                              color: subtask.isCompleted ? Colors.green : Colors.grey,
+                            ),
+                            title: Text(subtask.title),
+                            subtitle: subtask.description != null
+                                ? Text(subtask.description!)
+                                : null,
+                            trailing: subtask.isCompleted
+                                ? Text(
+                                    DateFormat(
+                                      'dd.MM HH:mm',
+                                    ).format(subtask.completedAt!.toLocal()),
+                                  )
+                                : null, // Alebo tlačidlo na splnenie
+                          ),
+                        );
+                      }).toList(),
+                    );
+                  },
+                ),
               ],
             ),
           );
         },
       ),
+    );
+  }
+
+  Widget _buildSubtaskList(
+    List<SubtaskTemplateListModel> templates,
+    List<SubtaskInstanceListModel> instances,
+  ) {
+    if (templates.isEmpty) return const Text("No subtasks defined.");
+
+    return Column(
+      children: templates.map((template) {
+        // Nájdi všetky inštancie, ktoré patria k tejto šablóne
+        final relatedInstances = instances
+            .where((i) => i.templateSubtaskId == template.id)
+            .toList();
+
+        // Zisti, či je to splnené (napr. ak existuje aspoň jedna completed inštancia)
+        final isCompleted = relatedInstances.any((i) => i.isCompleted);
+
+        return Card(
+          margin: const EdgeInsets.only(bottom: 8),
+          child: ExpansionTile(
+            leading: Icon(
+              isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
+              color: isCompleted ? Colors.green : Colors.grey,
+            ),
+            title: Text(
+              template.title,
+              style: TextStyle(
+                decoration: isCompleted ? TextDecoration.lineThrough : null,
+              ),
+            ),
+            subtitle: template.description != null ? Text(template.description!) : null,
+            children: [
+              // Tu vypíšeme, kto to splnil (z inštancií)
+              if (relatedInstances.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Text("Zatiaľ nikto nereagoval."),
+                )
+              else
+                ...relatedInstances.map(
+                  (inst) => ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.person, size: 16),
+                    title: Text(
+                      inst.assignedToUserId ?? "Shared User",
+                    ), // Tu by si potreboval meno
+                    trailing: inst.isCompleted
+                        ? Text(
+                            DateFormat('dd.MM HH:mm').format(inst.completedAt!.toLocal()),
+                          )
+                        : const Text("Pending", style: TextStyle(color: Colors.orange)),
+                  ),
+                ),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 }

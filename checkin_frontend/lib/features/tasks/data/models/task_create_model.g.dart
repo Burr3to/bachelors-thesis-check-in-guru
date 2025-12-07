@@ -11,11 +11,29 @@ _TaskCreateModel _$TaskCreateModelFromJson(Map<String, dynamic> json) =>
       title: json['title'] as String,
       notes: json['notes'] as String?,
       deadLine: DateTime.parse(json['deadLine'] as String),
+      subtaskMode: $enumDecode(_$SubtaskModeEnumMap, json['subtaskMode']),
+      requiresAuthenticationToComplete:
+          json['requiresAuthenticationToComplete'] as bool? ?? true,
+      subtasks:
+          (json['subtasks'] as List<dynamic>?)
+              ?.map(
+                (e) => SubtaskTemplateCreateModel.fromJson(
+                  e as Map<String, dynamic>,
+                ),
+              )
+              .toList() ??
+          const [],
     );
 
-Map<String, dynamic> _$TaskCreateModelToJson(_TaskCreateModel instance) =>
-    <String, dynamic>{
-      'title': instance.title,
-      'notes': instance.notes,
-      'deadLine': instance.deadLine.toIso8601String(),
-    };
+Map<String, dynamic> _$TaskCreateModelToJson(
+  _TaskCreateModel instance,
+) => <String, dynamic>{
+  'title': instance.title,
+  'notes': instance.notes,
+  'deadLine': instance.deadLine.toIso8601String(),
+  'subtaskMode': _$SubtaskModeEnumMap[instance.subtaskMode]!,
+  'requiresAuthenticationToComplete': instance.requiresAuthenticationToComplete,
+  'subtasks': instance.subtasks,
+};
+
+const _$SubtaskModeEnumMap = {SubtaskMode.shared: 1, SubtaskMode.individual: 2};

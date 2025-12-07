@@ -30,7 +30,7 @@ class MyApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'CheckIn App',
       debugShowCheckedModeBanner: false,
-      routerConfig: ref.watch(routerProvider), // routerProvider ešte vytvoríme
+      routerConfig: ref.watch(routerProvider),
     );
   }
 }

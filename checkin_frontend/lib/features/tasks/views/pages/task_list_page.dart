@@ -1,11 +1,16 @@
+import 'package:checkin_frontend/core/models/enums/task_enums.dart';
+import 'package:checkin_frontend/core/models/subtask_template/subtask_template_create_model.dart';
 import 'package:checkin_frontend/features/tasks/data/models/task_create_model.dart';
 import 'package:checkin_frontend/features/tasks/data/models/task_list_model.dart';
 import 'package:checkin_frontend/features/tasks/data/task_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:checkin_frontend/features/auth/views/providers/auth_provider.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:checkin_frontend/features/tasks/views/widgets/task_card.dart';
+
+import '../../../../core/shared_widgets/primary_button.dart';
 
 class TaskListPage extends ConsumerStatefulWidget {
   const TaskListPage({super.key});
@@ -18,10 +23,6 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
   // Ponecháme len dátové polia
   List<TaskListModel> _tasks = [];
   bool _isLoading = true;
-
-  final TextEditingController _titleController = TextEditingController();
-  final TextEditingController _descriptionController = TextEditingController();
-  DateTime? _selectedDeadline;
 
   @override
   void initState() {
@@ -49,54 +50,9 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     }
   }
 
-  Future<void> _createTask() async {
-    if (_titleController.text.isEmpty) {
-      print("Title is required!");
-      return;
-    }
-
-    try {
-      final TaskCreateModel newTaskModel = TaskCreateModel(
-        title: _titleController.text,
-        deadLine: _selectedDeadline!.toUtc(),
-        notes: _descriptionController.text.isNotEmpty
-            ? _descriptionController.text
-            : null,
-      );
-      final result = await ref.read(taskApiServiceProvider).createTask(newTaskModel);
-
-      _titleController.clear();
-      _descriptionController.clear();
-      setState(() {
-        _selectedDeadline = null;
-      });
-
-      await _loadData();
-      print("Task created successfully!");
-    } catch (e) {
-      print("Error for createTask");
-    }
-  }
-
-  Future<DateTime?> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2101),
-    );
-    if (picked != null && picked != _selectedDeadline) {
-      setState(() {
-        _selectedDeadline = picked;
-      });
-    }
-    return picked;
-  }
 
   @override
   void dispose() {
-    _titleController.dispose();
-    _descriptionController.dispose();
     super.dispose();
   }
 
@@ -113,61 +69,17 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
 
           const SizedBox(height: 35),
 
-          Column(
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _titleController,
-                      obscureText: false,
-                      decoration: InputDecoration(
-                        border: OutlineInputBorder(),
-                        labelText: "Title",
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(width: 5),
-
-                  Expanded(
-                    child: TextField(
-                      controller: _descriptionController,
-                      obscureText: false,
-                      decoration: InputDecoration(
-                        border: OutlineInputBorder(),
-                        labelText: "Description",
-                      ),
-                    ),
-                  ),
-
-                  Expanded(
-                    child: InkWell(
-                      onTap: () => _selectDate(context),
-                      child: InputDecorator(
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(),
-                          labelText: "Deadline",
-                        ),
-                        child: Text(
-                          _selectedDeadline == null
-                              ? "Choose date"
-                              : DateFormat('dd.MM.yyyy').format(_selectedDeadline!),
-                          style: TextStyle(
-                            color: _selectedDeadline == null ? Colors.grey : Colors.black,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              ElevatedButton(onPressed: _createTask, child: const Text("Add Task")),
-            ],
+          PrimaryButton(
+            text: "Create Task",
+            icon: Icons.add, // Voliteľné: Ak chceš aj ikonku
+            onPressed: () {
+              context.go('/home/create');
+            },
           ),
 
+          const SizedBox(height: 35),
+
+          //To widget
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())

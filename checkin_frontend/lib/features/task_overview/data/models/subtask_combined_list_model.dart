@@ -1,0 +1,21 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+part 'subtask_combined_list_model.freezed.dart';
+part 'subtask_combined_list_model.g.dart';
+
+@freezed
+sealed class SubtaskCombinedListModel with _$SubtaskCombinedListModel {
+  const factory SubtaskCombinedListModel({
+    required String id,               // ID Inštancie
+    @Default(false) bool isCompleted,
+    String? assignedToUserId,
+    String? completedByUserId,
+    DateTime? completedAt,
+    required String title,            // Názov zo šablóny
+    String? description,              // Popis zo šablóny
+    required String templateSubtaskId,
+  }) = _SubtaskCombinedListModel;
+
+  factory SubtaskCombinedListModel.fromJson(Map<String, dynamic> json) =>
+      _$SubtaskCombinedListModelFromJson(json);
+}

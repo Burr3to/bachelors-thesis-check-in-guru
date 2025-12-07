@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:retrofit/retrofit.dart';
+import '../../../core/models/task/task_public_detail_model.dart';
+import '../../task_overview/data/models/subtask_combined_list_model.dart';
 import '../../task_overview/data/models/task_detail_model.dart';
 import 'models/query/query_result.dart';
 import 'models/task_create_model.dart';
@@ -28,4 +30,10 @@ abstract class TaskApiService {
 
   @GET('/api/Task/{id}')
   Future<TaskDetailModel> getTask(@Path("id") String id);
+
+  @GET('/api/Task/{taskId}/subtasks')
+  Future<List<SubtaskCombinedListModel>> getTaskSubtasks(@Path("taskId") String taskId);
+
+  @GET('/api/Task/public/{hash}')
+  Future<TaskPublicDetailModel> getPublicSubtasks(@Path("hash") String hash);
 }

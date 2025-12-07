@@ -5,7 +5,9 @@ import 'package:checkin_frontend/features/auth/views/providers/auth_provider.dar
 import 'package:checkin_frontend/features/auth/views/pages/login_page.dart';
 import 'package:checkin_frontend/core/shared_widgets/main_layout.dart';
 
+import '../../features/task_create/views/pages/task_create_page.dart';
 import '../../features/task_overview/views/pages/task_overview_page.dart';
+import '../../features/task_respond/views/pages/task_respond_page.dart';
 import '../../features/tasks/views/pages/task_list_page.dart';
 
 class HomePage extends StatelessWidget {
@@ -25,16 +27,41 @@ final routerProvider = Provider<GoRouter>((ref) {
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/home',
     redirect: (context, state) {
-      // ... tvoja existujúca redirect logika ...
       final isLoggedIn = authState != null;
-      final isLoggingIn = state.uri.path == '/login';
+
+      // Zistíme, kam user ide
+      final path = state.uri.path;
+      final isLoggingIn = path == '/login';
+
+      // NOVÉ: Zistíme, či ide na verejný checkin link
+      final isPublicLink = path.startsWith('/checkin');
+
+      // 1. Ak je prihlásený a ide na login -> presmeruj na home
       if (isLoggedIn && isLoggingIn) return '/home';
-      if (!isLoggedIn && !isLoggingIn) return '/login';
+
+      // 2. Ak NIE JE prihlásený
+      if (!isLoggedIn) {
+        // Povolíme mu ísť na Login ALEBO na Verejný link
+        if (isLoggingIn || isPublicLink) {
+          return null; // Dovoľ mu pokračovať tam, kam ide
+        }
+
+        // Inak ho pošli na login (napr. ak sa snaží ísť na /home bez prihlásenia)
+        return '/login';
+      }
+
       return null;
     },
 
     routes: [
       GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
+      GoRoute(
+        path: '/checkin/:hash',
+        builder: (context, state) {
+          final hash = state.pathParameters['hash'];
+          return TaskRespondPage(taskHash: hash!); // Pošleme Hash, nie ID
+        },
+      ),
 
       ShellRoute(
         builder: (context, state, child) {
@@ -55,6 +82,12 @@ final routerProvider = Provider<GoRouter>((ref) {
                 builder: (context, state) {
                   final id = state.pathParameters['taskId'];
                   return TaskOverviewPage(taskId: id!);
+                },
+              ),
+              GoRoute(
+                path: 'create', // Žiadna lomka! Výsledok: /home/create
+                builder: (context, state) {
+                  return const TaskCreatePage(); // Tvoja nová stránka
                 },
               ),
             ],

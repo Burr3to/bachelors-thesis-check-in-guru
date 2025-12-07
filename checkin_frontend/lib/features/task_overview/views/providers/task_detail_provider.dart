@@ -4,6 +4,7 @@ import 'package:checkin_frontend/features/tasks/data/task_api_service.dart';
 // 1. IMPORTUJ SPRÁVNY PROVIDER Z CORE
 import 'package:checkin_frontend/core/api/api_providers.dart';
 
+import '../../data/models/subtask_combined_list_model.dart';
 import '../../data/models/task_detail_model.dart';
 // (alebo kde presne máš ten súbor s 'final dioProvider = ...')
 
@@ -18,4 +19,9 @@ final taskApiServiceProvider = Provider<TaskApiService>((ref) {
 final taskDetailProvider = FutureProvider.autoDispose.family<TaskDetailModel, String>((ref, taskId) async {
   final apiService = ref.watch(taskApiServiceProvider);
   return apiService.getTask(taskId);
+});
+
+final taskSubtasksProvider = FutureProvider.autoDispose.family<List<SubtaskCombinedListModel>, String>((ref, taskId) async {
+  final apiService = ref.watch(taskApiServiceProvider);
+  return apiService.getTaskSubtasks(taskId);
 });

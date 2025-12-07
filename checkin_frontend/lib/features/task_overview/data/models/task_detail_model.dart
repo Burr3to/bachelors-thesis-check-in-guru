@@ -1,4 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import '../../../../core/models/enums/task_enums.dart';
+import '../../../../core/models/subtask_template/subtask_template_list_model.dart';
 
 part 'task_detail_model.freezed.dart';
 part 'task_detail_model.g.dart';
@@ -9,18 +11,16 @@ sealed class TaskDetailModel with _$TaskDetailModel {
     // --- Polia z List Modelu ---
     required String id,
     required String title,
+    String? notes,
     required String hash,
     required DateTime createdAt,
     required DateTime deadLine,
     required String createdById,
-    // (A nezabudni na Status, ktorý ti v Dart List modeli chýbal!)
-    // required TaskStatus status,
+    required TaskStatus status,
+    required SubtaskMode subtaskMode,
+    @Default(true) bool requiresAuthenticationToComplete,
 
-    // --- Nové polia pre Detail ---
-    String? notes, // Nullable, lebo v C# máš string?
-
-    // Defaultne prázdny zoznam, ak príde null alebo nič
-    // @Default([]) List<TaskResponseListModel> responses,
+    @Default([]) List<SubtaskTemplateListModel> subtasks,
   }) = _TaskDetailModel;
 
   factory TaskDetailModel.fromJson(Map<String, dynamic> json) => _$TaskDetailModelFromJson(json);
