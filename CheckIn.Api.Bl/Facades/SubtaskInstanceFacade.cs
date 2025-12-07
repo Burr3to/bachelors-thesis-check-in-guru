@@ -1,7 +1,10 @@
 using System.Linq.Expressions;
 using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using CheckIn.Api.Bl.Facades.Interfaces;
 using CheckIn.Api.Bl.Services.Interfaces;
+using CheckIn.Api.Common.Enums;
+using CheckIn.Api.Common.Models.Action;
 using CheckIn.Api.Common.Models.Create;
 using CheckIn.Api.Common.Models.Details;
 using CheckIn.Api.Common.Models.Lists;
@@ -34,6 +37,7 @@ public class SubtaskInstanceFacade(CheckInDbContext dbContext, IMapper mapper, I
 	{
 		return q => q.OrderBy(e => e.Id);
 	}
+
 
 	public async Task<Result<bool>> CompleteAsync(Guid instanceId)
 	{
@@ -88,5 +92,69 @@ public class SubtaskInstanceFacade(CheckInDbContext dbContext, IMapper mapper, I
 		{
 			return Result.Failure(ErrorType.InternalError, $"Failed to complete subtask: {ex.Message}");
 		}
+	}
+
+	public async Task<Result<int>> BulkCompleteAsync(BulkSubtaskCompleteModel model)
+	{
+		var currentUserId = OptionalUserId;
+
+		// Ak je zoznam prázdny, vrátime BadRequest (alebo 0)
+		if (model.InstanceIds == null || !model.InstanceIds.Any())
+		{
+			return Result<int>.ValidationFailure("List of Subtask Instance IDs cannot be empty.");
+		}
+
+		// 1. Načítanie všetkých inštancií, ktoré majú byť zmenené
+		var instancesToComplete = await dbContext.Set<SubtaskInstanceEntity>()
+			.Include(i => i.TemplateSubtask) // Potrebujeme Task pre RequiresAuthentication
+			.ThenInclude(st => st.ParentTask)
+			.Where(i => model.InstanceIds.Contains(i.Id))
+			.ToListAsync();
+
+		if (instancesToComplete.Count != model.InstanceIds.Count)
+		{
+			// Kontrola integrity, ak niektoré ID neexistujú, ale to je voliteľné
+		}
+
+		int completedCount = 0;
+
+		// 2. Iterácia a overovanie každého Subtasku
+		foreach (var instance in instancesToComplete)
+		{
+			if (instance.IsCompleted) continue;
+
+			var task = instance.TemplateSubtask?.ParentTask;
+			if (task == null) continue; // Chyba integrity, ignorujeme
+
+			// Kontrola autentifikácie a autorizácie (rovnaká logika ako predtým)
+			if (task.RequiresAuthenticationToComplete && currentUserId == null)
+			{
+				// V hromadnom režime by sme nemali vrátiť 401 hneď, ale logovať to,
+				// alebo vrátiť chybu, ktorá zruší celú transakciu.
+				return Result<int>.Forbidden("Authentication is required for at least one task in the batch.");
+			}
+
+			// Individuálna autorizácia (ak AssignedToUserId != currentUserId)
+			if (instance.AssignedToUserId.HasValue && instance.AssignedToUserId.Value != currentUserId)
+			{
+				// V hromadnom režime by sme mali ignorovať neoprávnené a pokračovať,
+				// ale pre integritu radšej zrušíme celú transakciu.
+				return Result<int>.Forbidden($"Cannot complete instance {instance.Id}: unauthorized access.");
+			}
+
+			// 3. Aktualizácia stavu
+			instance.IsCompleted = true;
+			instance.CompletedByUserId = currentUserId;
+			instance.CompletedAt = DateTime.UtcNow;
+			instance.RespondentName = model.RespondentName;
+			//instance.Comment = model.CommonComment;
+
+			completedCount++;
+		}
+
+		// 4. Uloženie VŠETKÝCH zmien v jednej transakcii
+		await dbContext.SaveChangesAsync();
+
+		return Result<int>.Success(completedCount);
 	}
 }

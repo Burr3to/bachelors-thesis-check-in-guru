@@ -39,6 +39,19 @@ public class SubtaskInstanceMapperProfile : Profile
 		CreateMap<SubtaskInstanceUpdateModel, SubtaskInstanceEntity>()
 			.ForMember(dest => dest.TemplateSubtaskId, opt => opt.Ignore()); // Nemalo by sa meniť, na akú šablónu odkazuje
 
+		CreateMap<SubtaskInstanceEntity, SubtaskCombinedListModel>()
+			// Priame mapovanie vlastností InstanceEntity na DTO
+			.ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
+			.ForMember(dest => dest.IsCompleted, opt => opt.MapFrom(src => src.IsCompleted))
+
+			// Mapovanie vlastností zo ŠABLÓNY (cez navigačnú property)
+			.ForMember(dest => dest.Title,
+				opt => opt.MapFrom(src => src.TemplateSubtask!.Title)) // Názov šablóny
+			.ForMember(dest => dest.Description,
+				opt => opt.MapFrom(src => src.TemplateSubtask!.Description))
+			.ForMember(dest => dest.TemplateSubtaskId,
+				opt => opt.MapFrom(src => src.TemplateSubtaskId));
+
 		// POZNÁMKA: V metóde CompleteAsync v SubtaskInstanceFacade by ste nikdy
 		// nemali mapovať z Update modelu. Stav by sa mal meniť priamo v BL logike
 		// (nastavenie CompletedAt, CompletedByUserId a IsCompleted = true)

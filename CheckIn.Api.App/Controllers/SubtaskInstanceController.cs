@@ -1,4 +1,5 @@
 using CheckIn.Api.Bl.Facades.Interfaces;
+using CheckIn.Api.Common.Models.Action;
 using CheckIn.Api.Common.Models.Create;
 using CheckIn.Api.Common.Models.Details;
 using CheckIn.Api.Common.Models.Lists;
@@ -31,5 +32,21 @@ public class SubtaskInstanceController(ISubtaskInstanceFacade facade)
 		return HandleResultFailure(result);
 	}
 
-	// Ostatné CRUD metódy (GetList, GetById, Put, Delete) sú zdedené
+	[HttpPost("bulk-complete")] // Nový hromadný endpoint
+	[AllowAnonymous]
+	public async Task<ActionResult<int>> BulkComplete([FromBody] BulkSubtaskCompleteModel model)
+	{
+		if (!ModelState.IsValid)
+		{
+			return BadRequest(ModelState);
+		}
+
+		var result = await ((ISubtaskInstanceFacade)Facade).BulkCompleteAsync(model);
+
+		if (result.IsSuccess)
+			return Ok(new { CompletedCount = result.Value });
+
+		// Vráti 401, 403, 500 atď.
+		return HandleResultFailure(result);
+	}
 }

@@ -24,7 +24,20 @@ public class TaskMapperProfile : Profile
 			.ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
 			.ForMember(dest => dest.SubtaskMode, opt => opt.MapFrom(src => src.SubtaskMode))
 			.ForMember(dest => dest.Subtasks, opt => opt.MapFrom(src => src.Subtasks));
-		;
+
+		CreateMap<TaskEntity, TaskPublicDetailModel>()
+			// Priame mapovanie polí:
+			.ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Title))
+			.ForMember(dest => dest.Notes, opt => opt.MapFrom(src => src.Notes))
+			.ForMember(dest => dest.DeadLine, opt => opt.MapFrom(src => src.DeadLine))
+			.ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status))
+			.ForMember(dest => dest.SubtaskMode, opt => opt.MapFrom(src => src.SubtaskMode))
+			.ForMember(dest => dest.RequiresAuthenticationToComplete,
+				opt => opt.MapFrom(src => src.RequiresAuthenticationToComplete))
+
+			// POZOR: Subtasks v public modeli musia byť naplnené ručne vo Fasáde
+			// Alebo to mapovanie ignorujeme, ak to robíme manuálne.
+			.ForMember(dest => dest.Subtasks, opt => opt.Ignore());
 
 		CreateMap<TaskUpdateModel, TaskEntity>();
 	}

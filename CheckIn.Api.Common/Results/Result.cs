@@ -1,3 +1,5 @@
+using CheckIn.Api.Common.Models.Lists;
+
 namespace CheckIn.Api.Common.Results;
 
 public record Result<T>

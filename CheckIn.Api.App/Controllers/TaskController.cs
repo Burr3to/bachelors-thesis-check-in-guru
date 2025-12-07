@@ -43,4 +43,33 @@ public class TaskController(ITaskFacade taskFacade)
 
 		return HandleResultFailure(result);
 	}
+
+	[HttpGet("{taskId}/subtasks")]
+	public async Task<ActionResult<List<SubtaskCombinedListModel>>> GetSubtasksByTask([FromRoute] Guid taskId)
+	{
+		// Využitie Facade, ktorá je definovaná v Base Controleri
+		var result = await taskFacade.GetSubTasksForTask(taskId);
+
+		if (result.IsSuccess)
+			return Ok(result.Value);
+
+		return HandleResultFailure(result);
+	}
+
+	[HttpGet("public/{hash}")]
+	[AllowAnonymous]
+	public async Task<ActionResult<TaskPublicDetailModel>> GetPublicSubtasksByHash([FromRoute] string hash)
+	{
+		// Používame taskFacade (alebo _taskFacade, ak ste si ho definovali)
+		var result = await ((ITaskFacade)Facade).GetTaskPublicDetailByHashAsync(hash);
+
+		if (result.IsSuccess)
+		{
+			// Ok(result.Value) vráti 200 OK s telom TaskPublicDetailModel
+			return Ok(result.Value);
+		}
+
+		// Spracovanie chyby (404, 401, 500...)
+		return HandleResultFailure(result);
+	}
 }

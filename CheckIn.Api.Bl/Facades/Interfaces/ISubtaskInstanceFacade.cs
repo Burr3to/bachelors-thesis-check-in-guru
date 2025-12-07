@@ -1,3 +1,4 @@
+using CheckIn.Api.Common.Models.Action;
 using CheckIn.Api.Common.Models.Create;
 using CheckIn.Api.Common.Models.Details;
 using CheckIn.Api.Common.Models.Lists;
@@ -13,4 +14,5 @@ public interface ISubtaskInstanceFacade :
 		SubtaskInstanceCreateModel, SubtaskInstanceUpdateModel, SubtaskInstanceQuery>
 {
 	Task<Result<bool>> CompleteAsync(Guid instanceId);
+	Task<Result<int>> BulkCompleteAsync(BulkSubtaskCompleteModel model);
 }
