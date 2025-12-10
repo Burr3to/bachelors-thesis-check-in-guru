@@ -20,12 +20,12 @@ class _TaskApiService implements TaskApiService {
   final ParseErrorLogger? errorLogger;
 
   @override
-  Future<void> createTask(TaskCreateModel body) async {
+  Future<TaskDetailModel> createTask(TaskCreateModel body) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     final _headers = <String, dynamic>{};
     final _data = body;
-    final _options = _setStreamType<void>(
+    final _options = _setStreamType<TaskDetailModel>(
       Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
@@ -35,7 +35,15 @@ class _TaskApiService implements TaskApiService {
           )
           .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
     );
-    await _dio.fetch<void>(_options);
+    final _result = await _dio.fetch<Map<String, dynamic>>(_options);
+    late TaskDetailModel _value;
+    try {
+      _value = TaskDetailModel.fromJson(_result.data!);
+    } on Object catch (e, s) {
+      errorLogger?.logError(e, s, _options, _result);
+      rethrow;
+    }
+    return _value;
   }
 
   @override

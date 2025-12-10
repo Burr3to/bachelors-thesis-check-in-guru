@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 // Importuj tvoje modely a widgety
@@ -8,6 +9,7 @@ import 'package:checkin_frontend/features/tasks/data/models/task_create_model.da
 import 'package:checkin_frontend/features/tasks/data/task_providers.dart';
 import 'package:checkin_frontend/core/shared_widgets/primary_button.dart';
 
+import '../../../task_overview/data/models/task_detail_model.dart';
 import '../widgets/subtask_list.dart';
 import '../widgets/task_basic_info.dart';
 import '../widgets/task_settings_section.dart';
@@ -67,9 +69,7 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
 
   Future<void> _submit() async {
     if (_titleCtrl.text.isEmpty || _selectedDeadline == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Title and Deadline are required")));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Title and Deadline are required")));
       return;
     }
 
@@ -85,16 +85,93 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
         subtasks: _tempSubtasks,
       );
 
-      await ref.read(taskApiServiceProvider).createTask(newTask);
+      // 1. Získame vytvorený task z API
+      final createdTask = await ref.read(taskApiServiceProvider).createTask(newTask);
 
       if (mounted) {
-        context.pop(); // Vráti sa na home
+        // 2. Namiesto odchodu zobrazíme Dialog s linkom
+        await _showSuccessDialog(createdTask);
       }
     } catch (e) {
       print(e);
+      if(mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _showSuccessDialog(TaskDetailModel task) async {
+    // Vygenerujeme link.
+    // V reále: base url zoberieš z nastavení, alebo použiješ window.location ak je to web
+    // Pre lokálny vývoj:
+    final String link = "http://localhost:5000/checkin/${task.hash}";
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false, // User musí kliknúť na tlačidlo, nemôže kliknúť vedľa
+      builder: (context) {
+        return AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.green),
+              SizedBox(width: 10),
+              Text("Task Created!"),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text("Your task is ready. Share this link with others:"),
+              const SizedBox(height: 16),
+
+              // Pekný box s linkom
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey[300]!)
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: SelectableText(
+                        link,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.copy),
+                      onPressed: () {
+                        // Kopírovanie do schránky
+                        Clipboard.setData(ClipboardData(text: link));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Link copied to clipboard!")),
+                        );
+                      },
+                    )
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            // Tlačidlo, ktoré nás konečne vráti na Home
+            TextButton(
+              onPressed: () {
+                context.pop(); // Zavrie dialog
+                context.pop(); // Zavrie TaskCreatePage (vráti na Home)
+                // Alebo bezpečnejšie: context.go('/home');
+              },
+              child: const Text("Done"),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override

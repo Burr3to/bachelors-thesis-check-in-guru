@@ -14,7 +14,7 @@ abstract class TaskApiService {
   factory TaskApiService(Dio dio, {String baseUrl}) = _TaskApiService;
 
   @POST('/api/Task')
-  Future<void> createTask(@Body() TaskCreateModel body);
+  Future<TaskDetailModel> createTask(@Body() TaskCreateModel body);
 
   @GET('/api/Task')
   // Nový návratový typ: QueryResult, kde T je TaskListModel
