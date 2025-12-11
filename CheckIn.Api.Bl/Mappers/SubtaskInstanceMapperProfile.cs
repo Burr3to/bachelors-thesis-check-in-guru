@@ -43,6 +43,8 @@ public class SubtaskInstanceMapperProfile : Profile
 			// Priame mapovanie vlastností InstanceEntity na DTO
 			.ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
 			.ForMember(dest => dest.IsCompleted, opt => opt.MapFrom(src => src.IsCompleted))
+			.ForMember(dest => dest.RespondentName, opt => opt.MapFrom(src => src.RespondentName))
+			.ForMember(dest => dest.Comment, opt => opt.MapFrom(src => src.Comment))
 
 			// Mapovanie vlastností zo ŠABLÓNY (cez navigačnú property)
 			.ForMember(dest => dest.Title,

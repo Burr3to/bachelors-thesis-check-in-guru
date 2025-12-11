@@ -14,6 +14,7 @@ using FirebaseAdmin;
 using FirebaseAdmin.Auth;
 using Google.Apis.Auth.OAuth2;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -163,6 +164,16 @@ builder.Services.AddOpenApi();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IUserContext, UserContext>();
 
+if (args.Contains("migrate"))
+{
+    var host = builder.Build();
+    
+    // Spustí migráciu a ukončí aplikáciu
+    MigrateDatabase(host); 
+    
+    // Ak prebehne len migrácia, aplikácia sa skončí
+    return; 
+}
 
 var app = builder.Build();
 
@@ -189,3 +200,23 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+// PRIDAJTE TÚTO METÓDU NA KONIEC Program.cs
+void MigrateDatabase(IHost host)
+{
+    using (var scope = host.Services.CreateScope())
+    {
+        var services = scope.ServiceProvider;
+        try
+        {
+            var dbContext = services.GetRequiredService<CheckInDbContext>();
+            dbContext.Database.Migrate();
+            Console.WriteLine("Database migration successful.");
+        }
+        catch (Exception ex)
+        {
+            var logger = services.GetRequiredService<ILogger<Program>>();
+            logger.LogError(ex, "An error occurred while migrating the database.");
+        }
+    }
+}

@@ -163,10 +163,10 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
             TextButton(
               onPressed: () {
                 context.pop(); // Zavrie dialog
-                context.pop(); // Zavrie TaskCreatePage (vráti na Home)
-                // Alebo bezpečnejšie: context.go('/home');
+                ref.invalidate(taskListProvider);
+                context.go('/home/task/${task.id}');
               },
-              child: const Text("Done"),
+              child: const Text("Go to Detail"),
             ),
           ],
         );
@@ -213,6 +213,7 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
                   text: "Create Task",
                   isLoading: _isLoading,
                   onPressed: _submit,
+
                 ),
 
                 const SizedBox(height: 32),

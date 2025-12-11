@@ -125,7 +125,7 @@ namespace CheckIn.Api.App.Controllers
 			}
 
 			// 3. Vydáme nový Access Token (15m)
-			var newAccessToken = GenerateJwtToken(tokenRecord.User, TimeSpan.FromMinutes(15));
+			var newAccessToken = GenerateJwtToken(tokenRecord.User, TimeSpan.FromMinutes(60));
 
 			// 4. Vydáme NOVÝ Refresh Token a starý zneplatníme (tzv. Rotating Refresh Tokens)
 			// Týmto zvyšujeme bezpečnosť - ak by bol token ukradnutý, platí iba raz.

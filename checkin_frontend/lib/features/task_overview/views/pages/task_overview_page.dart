@@ -149,12 +149,37 @@ class TaskOverviewPage extends ConsumerWidget {
                                 ? Text(subtask.description!)
                                 : null,
                             trailing: subtask.isCompleted
-                                ? Text(
-                                    DateFormat(
-                                      'dd.MM HH:mm',
-                                    ).format(subtask.completedAt!.toLocal()),
+                                ? Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.center, // Vycentruj zvislo
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.end, // Zarovnaj doprava
+                                    mainAxisSize:
+                                        MainAxisSize.min, // KĽÚČOVÉ: Neber všetko miesto
+                                    children: [
+                                      Text(
+                                        subtask.respondentName ??
+                                            subtask.completedByUserId ??
+                                            "Neznámy",
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
+                                          color: Colors.green,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 18),
+                                      Text(
+                                        DateFormat(
+                                          'dd.MM HH:mm',
+                                        ).format(subtask.completedAt!.toLocal()),
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                    ],
                                   )
-                                : null, // Alebo tlačidlo na splnenie
+                                : null,
                           ),
                         );
                       }).toList(),

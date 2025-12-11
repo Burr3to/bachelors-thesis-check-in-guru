@@ -20,91 +20,98 @@ class TaskListPage extends ConsumerStatefulWidget {
 }
 
 class _TaskListPageState extends ConsumerState<TaskListPage> {
-  // Ponecháme len dátové polia
-  List<TaskListModel> _tasks = [];
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    // Načítanie dát pri štarte
-    _loadData();
-  }
-
-  // Metóda pre volanie GET /api/Task
-  Future<void> _loadData() async {
-    try {
-      if (!mounted) return;
-      setState(() => _isLoading = true);
-
-      final result = await ref.read(taskApiServiceProvider).getTasks();
-
-      if (!mounted) return;
-      setState(() {
-        _tasks = result.items.toList();
-        _isLoading = false;
-      });
-    } catch (e) {
-      print("Chyba pri načítaní úloh: $e");
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-
   @override
   void dispose() {
     super.dispose();
   }
 
   @override
+  @override
   Widget build(BuildContext context) {
     final user = ref.watch(authProvider);
     final meno = user?.name ?? 'hosť';
 
+    // 1. Sledujeme providera (dáta sa sťahujú samé)
+    final asyncTasks = ref.watch(taskListProvider);
+
     return Scaffold(
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text("Vitajte $meno", style: Theme.of(context).textTheme.headlineMedium),
+      body: Padding(
+        // Pridal som Padding, nech to nie je nalepené na krajoch
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Vitajte $meno", style: Theme.of(context).textTheme.headlineMedium),
 
-          const SizedBox(height: 35),
+            const SizedBox(height: 35),
 
-          PrimaryButton(
-            text: "Create Task",
-            icon: Icons.add, // Voliteľné: Ak chceš aj ikonku
-            onPressed: () {
-              context.go('/home/create');
-            },
-          ),
+            PrimaryButton(
+              text: "Create Task",
+              icon: Icons.add,
+              onPressed: () {
+                context.go('/home/create');
+              },
+            ),
 
-          const SizedBox(height: 35),
+            const SizedBox(height: 35),
 
-          //To widget
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _tasks.isEmpty
-                ? const Center(child: Text("Žiadne úlohy"))
-                : GridView.builder(
+            // 2. TOTO JE TÁ ZMENA:
+            Expanded(
+              // .when() sa postará o Loading, Error aj Data
+              child: asyncTasks.when(
+                // A) Načítavanie
+                loading: () => const Center(child: CircularProgressIndicator()),
+
+                // B) Chyba
+                error: (error, stack) => Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text("Chyba: $error", style: const TextStyle(color: Colors.red)),
+                      const SizedBox(height: 8),
+                      ElevatedButton(
+                        onPressed: () => ref.invalidate(taskListProvider), // Skúsiť znova
+                        child: const Text("Refresh"),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // C) Dáta sú tu!
+                data: (queryResult) {
+                  final tasks = queryResult.items; // Vytiahneme zoznam z QueryResultu
+
+                  if (tasks.isEmpty) {
+                    return const Center(child: Text("Žiadne úlohy"));
+                  }
+
+                  return GridView.builder(
                     gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                       maxCrossAxisExtent: 360,
                       crossAxisSpacing: 10,
                       mainAxisSpacing: 10,
                       childAspectRatio: 2.5 / 1,
                     ),
-                    itemCount: _tasks.length,
+                    itemCount: tasks.length,
                     itemBuilder: (context, index) {
-                      final task = _tasks[index];
-
+                      final task = tasks[index];
                       return TaskCard(task: task);
                     },
-                  ),
-          ),
-        ],
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
+
+      // Floating Action Button na refresh (voliteľné, lebo pull-to-refresh je lepší, ale zatiaľ OK)
       floatingActionButton: FloatingActionButton(
         heroTag: "btnRefresh",
-        onPressed: _loadData, // Ponecháme len refresh
+        onPressed: () {
+          // Takto sa robí refresh s Riverpodom:
+          ref.invalidate(taskListProvider);
+        },
         child: const Icon(Icons.refresh),
       ),
     );

@@ -37,7 +37,7 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text("Úspešne uložené! Môžeš pokračovať."),
+          content: Text("Sucessfully Saved"),
           duration: Duration(seconds: 2),
         ));
 
@@ -66,7 +66,7 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
       appBar: AppBar(title: const Text("Check-In")),
       body: asyncData.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, s) => Center(child: Text("Chyba načítania: $e")),
+        error: (e, s) => Center(child: Text("Loading Error: $e")),
 
         data: (publicTask) {
           final deadlineStr = DateFormat('dd.MM.yyyy HH:mm').format(publicTask.deadLine.toLocal());
@@ -121,7 +121,7 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
                     const SizedBox(height: 32),
 
                     // --- ZOZNAM ÚLOH ---
-                    const Text("Zoznam úloh:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                    const Text("Tasks:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                     const SizedBox(height: 8),
 
                     Card(
@@ -152,7 +152,7 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
                                           const Icon(Icons.person, size: 14, color: Colors.green),
                                           const SizedBox(width: 4),
                                           Text(
-                                            "Splnil: ${subtask.completedByUserId ?? 'Neznámy'}",
+                                            "Completed by: ${subtask.respondentName ?? 'Unknown'}",
                                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.green),
                                           ),
                                           const SizedBox(width: 8),
@@ -202,8 +202,8 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
                       TextField(
                         controller: _nameCtrl,
                         decoration: const InputDecoration(
-                          labelText: "Tvoje Meno / Podpis",
-                          hintText: "Sem napíš svoje meno",
+                          labelText: "Your name / signature",
+                          hintText: "Sign yourself here",
                           border: OutlineInputBorder(),
                           prefixIcon: Icon(Icons.person),
                         ),
@@ -233,14 +233,13 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
                               ? const CircularProgressIndicator(color: Colors.white)
                               : Text(
                             _selectedIds.isEmpty
-                                ? "VYBER ÚLOHY NA SPLNENIE"
-                                : "POTVRDIŤ SPLNENIE (${_selectedIds.length})",
+                                ? "Check tasks you have completed"
+                                : "Submit (${_selectedIds.length})",
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                         ),
                       ),
                     ] else ...[
-                      // Ak je všetko hotové
                       const Card(
                         color: Colors.greenAccent,
                         child: Padding(
@@ -250,7 +249,7 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
                             children: [
                               Icon(Icons.thumb_up, color: Colors.white),
                               SizedBox(width: 8),
-                              Text("Všetky úlohy sú splnené! 🎉", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                              Text("All Tasks are Completed!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                             ],
                           ),
                         ),
