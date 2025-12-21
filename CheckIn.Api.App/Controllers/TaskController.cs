@@ -56,6 +56,7 @@ public class TaskController(ITaskFacade taskFacade)
 		return HandleResultFailure(result);
 	}
 
+
 	[HttpGet("public/{hash}")]
 	[AllowAnonymous]
 	public async Task<ActionResult<TaskPublicDetailModel>> GetPublicSubtasksByHash([FromRoute] string hash)

@@ -106,7 +106,8 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
     // Vygenerujeme link.
     // V reále: base url zoberieš z nastavení, alebo použiješ window.location ak je to web
     // Pre lokálny vývoj:
-    final String link = "http://localhost:5000/checkin/${task.hash}";
+    final String baseUrl = Uri.base.origin;
+    final String link = "$baseUrl/checkin/${task.hash}";
 
     await showDialog(
       context: context,

@@ -114,6 +114,11 @@ public class TaskFacade(CheckInDbContext dbContext, IMapper mapper, IUserContext
 				}
 			}
 		}
+
+		if (updateModel is not null)
+		{
+			entity.LastModifiedAt = DateTime.UtcNow;
+		}
 	}
 
 	public override async Task<Result<TaskDetailModel>> SaveCreateModelAsync(TaskCreateModel model)
@@ -135,6 +140,31 @@ public class TaskFacade(CheckInDbContext dbContext, IMapper mapper, IUserContext
 		var createdTask = await GetByIdAsync(task.Id);
 
 		return createdTask;
+	}
+
+	public override async Task<Result<TaskDetailModel>> SaveUpdateModelAsync(TaskUpdateModel model)
+	{
+		var task = await dbContext.Tasks.FindAsync(model.Id);
+
+		if (task is null)
+			return Result<TaskDetailModel>.NotFound($"Task with ID {model.Id} not found for update.");
+
+		mapper.Map(model, task);
+
+		AddContextualData(task, null, model);
+
+		try
+		{
+			await dbContext.SaveChangesAsync();
+		}
+		catch (Exception e)
+		{
+			return Result<TaskDetailModel>.Failure(ErrorType.InternalError, $"Failed to update task: {{e.Message}}");
+		}
+
+		var updatedTask = await GetByIdAsync(task.Id);
+
+		return updatedTask;
 	}
 
 	public async Task<Result<List<SubtaskCombinedListModel>>> GetSubTasksForTask(Guid taskId)

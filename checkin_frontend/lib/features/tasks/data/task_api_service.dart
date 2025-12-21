@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:retrofit/retrofit.dart';
 import '../../../core/models/task/task_public_detail_model.dart';
+import '../../../core/models/task/task_update_model.dart';
 import '../../task_overview/data/models/subtask_combined_list_model.dart';
 import '../../task_overview/data/models/task_detail_model.dart';
 import 'models/query/query_result.dart';
@@ -15,6 +16,10 @@ abstract class TaskApiService {
 
   @POST('/api/Task')
   Future<TaskDetailModel> createTask(@Body() TaskCreateModel body);
+
+  @PUT('/api/Task')
+  Future<TaskDetailModel> updateTask(@Body() TaskUpdateModel body);
+
 
   @GET('/api/Task')
   // Nový návratový typ: QueryResult, kde T je TaskListModel
@@ -36,4 +41,7 @@ abstract class TaskApiService {
 
   @GET('/api/Task/public/{hash}')
   Future<TaskPublicDetailModel> getPublicSubtasks(@Path("hash") String hash);
+
+  @DELETE('/api/Task/{id}')
+  Future<void> deleteTask(@Path("id") String taskId);
 }

@@ -1,14 +1,20 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 // import 'package:flutter_riverpod/flutter_riverpod.dart'; // Ak budeš chcieť provider
 
 class DioClient {
   // Singleton alebo len getter, záleží ako to chceš používať.
   // Pre Riverpod je lepšie to mať ako Provider.
 
+
   static Dio createDio() {
+    final String apiUrl = kReleaseMode
+        ? 'https://checkin.fit.vutbr.cz' // Produkčná URL (zmeníš podľa servera)
+        : 'https://localhost:7084';         // Lokálna URL pre vývoj
+
     final dio = Dio(
       BaseOptions(
-        baseUrl: 'https://localhost:7084',
+        baseUrl: apiUrl,
         connectTimeout: const Duration(seconds: 10),
         receiveTimeout: const Duration(seconds: 10),
         headers: {
