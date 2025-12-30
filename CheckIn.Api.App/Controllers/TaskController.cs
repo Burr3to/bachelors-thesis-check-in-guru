@@ -1,4 +1,5 @@
 using CheckIn.Api.Bl.Facades.Interfaces;
+using CheckIn.Api.Common.Enums;
 using CheckIn.Api.Common.Models.Create;
 using CheckIn.Api.Common.Models.Details;
 using CheckIn.Api.Common.Models.Lists;
@@ -65,10 +66,11 @@ public class TaskController(ITaskFacade taskFacade)
 		var result = await ((ITaskFacade)Facade).GetTaskPublicDetailByHashAsync(hash);
 
 		if (result.IsSuccess)
-		{
-			// Ok(result.Value) vráti 200 OK s telom TaskPublicDetailModel
 			return Ok(result.Value);
-		}
+
+		if (result.ErrorType == ErrorType.Unauthorized)
+			return Ok(new TaskDetailModel
+				{ RequiresAuthenticationToComplete = true, Title = "", Hash = "", SubtaskMode = SubtaskMode.Shared });
 
 		// Spracovanie chyby (404, 401, 500...)
 		return HandleResultFailure(result);

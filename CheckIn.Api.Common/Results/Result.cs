@@ -39,6 +39,9 @@ public record Result<T>
 
 	public static Result<T> ValidationFailure(string errorMessage)
 		=> new(ErrorType.Validation, errorMessage);
+
+	public static Result<T> Unauthorized(string errorMessage = "Authentication is required for this action.")
+		=> new(ErrorType.Unauthorized, errorMessage);
 }
 
 public class Result

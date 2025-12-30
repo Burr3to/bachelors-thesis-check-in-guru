@@ -111,11 +111,6 @@ public class SubtaskInstanceFacade(CheckInDbContext dbContext, IMapper mapper, I
 			.Where(i => model.InstanceIds.Contains(i.Id))
 			.ToListAsync();
 
-		if (instancesToComplete.Count != model.InstanceIds.Count)
-		{
-			// Kontrola integrity, ak niektoré ID neexistujú, ale to je voliteľné
-		}
-
 		int completedCount = 0;
 
 		// 2. Iterácia a overovanie každého Subtasku
@@ -131,7 +126,7 @@ public class SubtaskInstanceFacade(CheckInDbContext dbContext, IMapper mapper, I
 			{
 				// V hromadnom režime by sme nemali vrátiť 401 hneď, ale logovať to,
 				// alebo vrátiť chybu, ktorá zruší celú transakciu.
-				return Result<int>.Forbidden("Authentication is required for at least one task in the batch.");
+				return Result<int>.Unauthorized("Authentication is required for at least one task in the batch.");
 			}
 
 			// Individuálna autorizácia (ak AssignedToUserId != currentUserId)
@@ -139,7 +134,7 @@ public class SubtaskInstanceFacade(CheckInDbContext dbContext, IMapper mapper, I
 			{
 				// V hromadnom režime by sme mali ignorovať neoprávnené a pokračovať,
 				// ale pre integritu radšej zrušíme celú transakciu.
-				return Result<int>.Forbidden($"Cannot complete instance {instance.Id}: unauthorized access.");
+				return Result<int>.Unauthorized($"Cannot complete instance {instance.Id}: unauthorized access.");
 			}
 
 			// 3. Aktualizácia stavu

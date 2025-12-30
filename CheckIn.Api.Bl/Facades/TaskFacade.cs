@@ -238,6 +238,12 @@ public class TaskFacade(CheckInDbContext dbContext, IMapper mapper, IUserContext
 			return Result<TaskPublicDetailModel>.NotFound($"Task with hash '{hash}' was not found.");
 		}
 
+		if (task.RequiresAuthenticationToComplete && currentUserId == null)
+		{
+			return Result<TaskPublicDetailModel>.Failure(ErrorType.Unauthorized,
+				"Authentication is required to view the details of this task.");
+		}
+
 		IEnumerable<SubtaskInstanceEntity> instancesToShow;
 
 		// 2. Filtrácia inštancií
