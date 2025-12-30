@@ -17,12 +17,12 @@ class PrimaryButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: double.infinity, // Roztiahni na šírku
+      width: 150,
       height: 50,
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.blue[700], // Tvoja téma
+          backgroundColor: Color.fromRGBO(0, 0, 255, 0.8), // Tvoja téma
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),

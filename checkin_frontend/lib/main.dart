@@ -17,7 +17,6 @@ void main() async {
   usePathUrlStrategy();
 
   runApp(
-    // Aplikácia musí byť zabalená do ProviderScope pre Riverpod
     const ProviderScope(
       child: MyApp(),
     ),

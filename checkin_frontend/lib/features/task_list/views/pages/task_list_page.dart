@@ -1,16 +1,14 @@
 import 'package:checkin_frontend/core/models/enums/task_enums.dart';
 import 'package:checkin_frontend/core/models/subtask_template/subtask_template_create_model.dart';
-import 'package:checkin_frontend/features/tasks/data/models/task_create_model.dart';
-import 'package:checkin_frontend/features/tasks/data/models/task_list_model.dart';
-import 'package:checkin_frontend/features/tasks/data/task_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:checkin_frontend/features/auth/views/providers/auth_provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:checkin_frontend/features/tasks/views/widgets/task_card.dart';
 
 import '../../../../core/shared_widgets/primary_button.dart';
+import '../../data/task_providers.dart';
+import '../widgets/task_card.dart';
 
 class TaskListPage extends ConsumerStatefulWidget {
   const TaskListPage({super.key});
@@ -35,16 +33,13 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     final asyncTasks = ref.watch(taskListProvider);
 
     return Scaffold(
+      backgroundColor: Colors.white,
       body: Padding(
         // Pridal som Padding, nech to nie je nalepené na krajoch
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Vitajte $meno", style: Theme.of(context).textTheme.headlineMedium),
-
-            const SizedBox(height: 35),
-
             PrimaryButton(
               text: "Create Task",
               icon: Icons.add,
@@ -87,10 +82,10 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
 
                   return GridView.builder(
                     gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 360,
+                      maxCrossAxisExtent: 900,
                       crossAxisSpacing: 10,
                       mainAxisSpacing: 10,
-                      childAspectRatio: 2.5 / 1,
+                      childAspectRatio: 4 / 1,
                     ),
                     itemCount: tasks.length,
                     itemBuilder: (context, index) {

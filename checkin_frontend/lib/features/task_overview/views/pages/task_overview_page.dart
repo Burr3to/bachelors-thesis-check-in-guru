@@ -1,12 +1,13 @@
 import 'package:checkin_frontend/core/api/api_providers.dart';
-import 'package:checkin_frontend/features/tasks/data/task_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/models/subtask_instance/subtask_instance_list_model.dart';
 import '../../../../core/models/subtask_template/subtask_template_list_model.dart';
-import 'package:flutter/services.dart'; // <--- TOTO JE KĽÚČOVÉ
+import 'package:flutter/services.dart';
+
+import '../../../task_list/data/task_providers.dart'; // <--- TOTO JE KĽÚČOVÉ
 // Importuj model task_detail_model.dart ak treba
 
 class TaskOverviewPage extends ConsumerWidget {
@@ -39,8 +40,8 @@ class TaskOverviewPage extends ConsumerWidget {
     final asyncSubtasks = ref.watch(taskSubtasksProvider(taskId));
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Task Detail")),
-      backgroundColor: Color.fromRGBO(220, 220, 220, 0.8),
+      appBar: AppBar(title: const Text("Go back"), backgroundColor: Colors.white),
+      backgroundColor: Color.fromRGBO(255, 255, 255, 1),
       body: asyncTask.when(
         // A. Načítavanie
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -155,7 +156,7 @@ class TaskOverviewPage extends ConsumerWidget {
                                 const SizedBox(height: 6),
                                 task.requiresAuthenticationToComplete
                                     ? Text(
-                                        "Enable",
+                                        "Enabled",
                                         style: TextStyle(color: Colors.green),
                                       )
                                     : Text(
@@ -168,7 +169,7 @@ class TaskOverviewPage extends ConsumerWidget {
                         ),
                       ),
 
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 16),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
@@ -199,7 +200,7 @@ class TaskOverviewPage extends ConsumerWidget {
                         ],
                       ),
 
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 24),
                       Text(task.title, style: Theme.of(context).textTheme.headlineMedium),
 
                       const SizedBox(height: 24),
@@ -211,13 +212,19 @@ class TaskOverviewPage extends ConsumerWidget {
 
                       Container(
                         decoration: BoxDecoration(),
-                        padding: EdgeInsets.all(12),
+                        padding: EdgeInsets.only(bottom: 8, top: 8),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.start,
                           children: [
                             Align(
                               alignment: Alignment.centerLeft,
-                              child: Text("Task Checklist"),
+                              child: Text(
+                                "Task Checklist",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
+                              ),
                             ),
                             const SizedBox(height: 8),
 
@@ -232,7 +239,12 @@ class TaskOverviewPage extends ConsumerWidget {
                                     return Card(
                                       child: ListTile(
                                         title: Text(subtasks.title),
-                                        subtitle: Text(subtasks.description ?? ""),
+                                        subtitle: Text(
+                                          subtasks.description ?? "",
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w100,
+                                          ),
+                                        ),
                                         contentPadding: EdgeInsets.only(left: 18),
                                       ),
                                     );

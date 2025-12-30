@@ -5,19 +5,18 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 // 1. Pridáme provider pre Storage, ak ho ešte nemáš globálne dostupný
 final storageProvider = Provider((ref) => const FlutterSecureStorage());
-
 final dioProvider = Provider<Dio>((ref) {
   // 1. Vytvoríme čistú inštanciu Dio (ako doteraz)
   final dio = DioClient.createDio();
-
   // 2. Získame prístup k úložisku
-  final storage = ref.watch(storageProvider);
+  //final storage = ref.watch(storageProvider);
 
   // 3. PRIDÁME INTERCEPTOR (Toto je tá chýbajúca časť)
   dio.interceptors.add(
     InterceptorsWrapper(
       onRequest: (options, handler) async {
         // a) Prečítame token z mobilu
+        final storage = ref.read(storageProvider);
         final token = await storage.read(key: 'jwt_token');
 
         // b) Ak token máme, pridáme ho do hlavičky
@@ -34,8 +33,9 @@ final dioProvider = Provider<Dio>((ref) {
       },
       onError: (DioException e, handler) {
         // Tu môžeme odchytiť 401 a napr. odhlásiť užívateľa, ak vypršal token
+        // Ak dostaneš 401, len to logni, nevyvolávaj tu žiadne globálne zmeny stavu
         if (e.response?.statusCode == 401) {
-          print("⚠️ 401 Unauthorized - Token je asi neplatný alebo chýba.");
+          print("DEBUG: Zachytená 401 v interceptore pre: ${e.requestOptions.path}");
         }
         return handler.next(e);
       },

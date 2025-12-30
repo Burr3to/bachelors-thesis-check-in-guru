@@ -5,10 +5,10 @@ import 'package:go_router/go_router.dart';
 // Importuj tvoje modely a widgety
 import 'package:checkin_frontend/core/models/enums/task_enums.dart';
 import 'package:checkin_frontend/core/models/subtask_template/subtask_template_create_model.dart';
-import 'package:checkin_frontend/features/tasks/data/models/task_create_model.dart';
-import 'package:checkin_frontend/features/tasks/data/task_providers.dart';
 import 'package:checkin_frontend/core/shared_widgets/primary_button.dart';
 
+import '../../../task_list/data/models/task_create_model.dart';
+import '../../../task_list/data/task_providers.dart';
 import '../../../task_overview/data/models/task_detail_model.dart';
 import '../widgets/subtask_list.dart';
 import '../widgets/task_basic_info.dart';

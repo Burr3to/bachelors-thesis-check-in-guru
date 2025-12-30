@@ -1,52 +1,65 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
+// Importy tvojich featúr
 import 'package:checkin_frontend/features/auth/views/providers/auth_provider.dart';
 import 'package:checkin_frontend/features/auth/views/pages/login_page.dart';
 import 'package:checkin_frontend/core/shared_widgets/main_layout.dart';
-
-import '../../features/task_create/views/pages/task_create_page.dart';
-import '../../features/task_overview/views/pages/task_overview_page.dart';
-import '../../features/task_respond/views/pages/task_respond_page.dart';
-import '../../features/tasks/views/pages/task_list_page.dart';
-
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
-  @override
-  Widget build(BuildContext context) => const Scaffold(body: Center(child: Text("Home")));
-}
+import 'package:checkin_frontend/features/task_create/views/pages/task_create_page.dart';
+import 'package:checkin_frontend/features/task_list/views/pages/task_list_page.dart';
+import 'package:checkin_frontend/features/task_overview/views/pages/task_overview_page.dart';
+import 'package:checkin_frontend/features/task_respond/views/pages/task_respond_page.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
 final routerProvider = Provider<GoRouter>((ref) {
-  // ZMENA 1: Sledujeme priamo STAV (UserProfile?), nie notifier.
-  // Toto spôsobí, že sa router "prebuduje" a skontroluje redirect vždy, keď sa zmení user.
-  final authState = ref.watch(authProvider);
 
-  return GoRouter(
+  // Vytvoríme inštanciu routera
+  final router = GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/home',
+
+    // Zapne logovanie zmien v konzole (veľmi užitočné pri vývoji)
+    debugLogDiagnostics: true,
+
     redirect: (context, state) {
+      // TU ČÍTAME TVOJ STAV (JWT token z Backend-u)
+      final authState = ref.read(authProvider);
       final isLoggedIn = authState != null;
 
-      // Zistíme, kam user ide
       final path = state.uri.path;
+      final queryParams = state.uri.queryParameters;
+
+      print("---------------------------------------");
+      print("ROUTER REDIRECT LOG:");
+      print("Aktuálna cesta (path): $path");
+      print("Prihlásený (Backend JWT): $isLoggedIn");
+      print("Query parametre: $queryParams");
+
+      // 1. Verejné linky checkin - ignorujeme, nech si ich rieši stránka sama
+      if (path.startsWith('/checkin')) {
+        return null;
+      }
+
       final isLoggingIn = path == '/login';
 
-      // NOVÉ: Zistíme, či ide na verejný checkin link
-      final isPublicLink = path.startsWith('/checkin');
+      // 2. Logika po prihlásení (keď už máme JWT)
+      if (isLoggedIn && isLoggingIn) {
+        final redirectTo = queryParams['redirect'];
 
-      // 1. Ak je prihlásený a ide na login -> presmeruj na home
-      if (isLoggedIn && isLoggingIn) return '/home';
-
-      // 2. Ak NIE JE prihlásený
-      if (!isLoggedIn) {
-        // Povolíme mu ísť na Login ALEBO na Verejný link
-        if (isLoggingIn || isPublicLink) {
-          return null; // Dovoľ mu pokračovať tam, kam ide
+        if (redirectTo != null && redirectTo.isNotEmpty) {
+          print("ROUTER: Užívateľ prihlásený, vraciam sa na: $redirectTo");
+          return redirectTo;
         }
 
-        // Inak ho pošli na login (napr. ak sa snaží ísť na /home bez prihlásenia)
+        print("ROUTER: Žiadny redirect, idem na /home");
+        return '/home';
+      }
+
+      // 3. Logika pre neprihláseného užívateľa
+      if (!isLoggedIn && !isLoggingIn) {
+        print("ROUTER: Neprihlásený užívateľ, smerujem na login.");
         return '/login';
       }
 
@@ -54,40 +67,44 @@ final routerProvider = Provider<GoRouter>((ref) {
     },
 
     routes: [
-      GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
+      // Stránka prihlásenia
+      GoRoute(
+          path: '/login',
+          builder: (context, state) => const LoginPage()
+      ),
+
+      // Verejná stránka pre Task (CheckIn)
       GoRoute(
         path: '/checkin/:hash',
         builder: (context, state) {
           final hash = state.pathParameters['hash'];
-          return TaskRespondPage(taskHash: hash!); // Pošleme Hash, nie ID
+          return TaskRespondPage(taskHash: hash!);
         },
       ),
 
+      // Chránené cesty zabalené v MainLayout (ShellRoute)
       ShellRoute(
         builder: (context, state, child) {
           return MainLayout(child: child);
         },
         routes: [
-          // RODIČOVSKÁ CESTA (/home)
           GoRoute(
             path: '/home',
             builder: (context, state) => const TaskListPage(),
-
-            // --- TU SÚ VNORENÉ CESTY (DETI) ---
             routes: [
+              // Cesta: /home/task/:taskId
               GoRoute(
-                // Pozor: Žiadna lomka na začiatku!
-                // Výsledná cesta bude: /home/task/:taskId
                 path: 'task/:taskId',
                 builder: (context, state) {
                   final id = state.pathParameters['taskId'];
                   return TaskOverviewPage(taskId: id!);
                 },
               ),
+              // Cesta: /home/create
               GoRoute(
-                path: 'create', // Žiadna lomka! Výsledok: /home/create
+                path: 'create',
                 builder: (context, state) {
-                  return const TaskCreatePage(); // Tvoja nová stránka
+                  return const TaskCreatePage();
                 },
               ),
             ],
@@ -96,4 +113,17 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
+
+  // --- TOTO JE TA NAJDÔLEŽITEJŠIA ČASŤ ---
+  // Sledujeme tvoj authProvider. Keď sa v ňom zmení stav
+  // (napr. úspešne prebehne overenie Firebase tokenu na tvojom Backende),
+  // povieme routeru, aby znova spustil funkciu redirect.
+  ref.listen(authProvider, (previous, next) {
+    if (previous != next) {
+      print("ROUTER: AuthProvider sa zmenil! Osviežujem redirect logiku...");
+      router.refresh();
+    }
+  });
+
+  return router;
 });

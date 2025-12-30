@@ -8,9 +8,12 @@ class MainLayout extends StatelessWidget{
 
   @override
   Widget build(BuildContext context){
-    return Scaffold(
-      appBar: const AppTopBar(),
-      body: child,
+    return Padding(
+      padding: const EdgeInsets.only(left: 22, right: 22, top: 8, bottom: 8),
+      child: Scaffold(
+        appBar: const AppTopBar(),
+        body: child,
+      ),
     );
   }
 }

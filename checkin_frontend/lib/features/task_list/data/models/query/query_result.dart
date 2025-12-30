@@ -1,4 +1,4 @@
-// features/tasks/data/models/query_result.dart
+// features/task_list/data/models/query_result.dart
 
 import 'package:json_annotation/json_annotation.dart';
 
