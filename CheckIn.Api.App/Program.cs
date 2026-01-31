@@ -143,6 +143,13 @@ ApiBlInstaller.Install(builder.Services);
 // CORS - Dôležité pre Flutter
 builder.Services.AddCors(options =>
 {
+	options.AddPolicy("ProductionPolicy", policy =>
+	{
+		policy.WithOrigins("https://bp-checkin-473517.web.app")
+			.AllowAnyHeader()
+			.AllowAnyMethod();
+	});
+
 	options.AddDefaultPolicy(o =>
 		o.AllowAnyOrigin()
 			.AllowAnyHeader()
@@ -166,13 +173,13 @@ builder.Services.AddScoped<IUserContext, UserContext>();
 
 if (args.Contains("migrate"))
 {
-    var host = builder.Build();
-    
-    // Spustí migráciu a ukončí aplikáciu
-    MigrateDatabase(host); 
-    
-    // Ak prebehne len migrácia, aplikácia sa skončí
-    return; 
+	var host = builder.Build();
+
+	// Spustí migráciu a ukončí aplikáciu
+	MigrateDatabase(host);
+
+	// Ak prebehne len migrácia, aplikácia sa skončí
+	return;
 }
 
 var app = builder.Build();
@@ -190,9 +197,19 @@ if (app.Environment.IsDevelopment())
 	app.MapOpenApi();
 }
 
-app.UseCors();
+if (app.Environment.IsDevelopment())
+{
+	app.UseCors(); // Default (všetko povolené) pre local
+}
+else
+{
+	app.UseCors("ProductionPolicy"); // produkciu
+}
 
-//app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+	app.UseHttpsRedirection();
+}
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -204,19 +221,19 @@ app.Run();
 // PRIDAJTE TÚTO METÓDU NA KONIEC Program.cs
 void MigrateDatabase(IHost host)
 {
-    using (var scope = host.Services.CreateScope())
-    {
-        var services = scope.ServiceProvider;
-        try
-        {
-            var dbContext = services.GetRequiredService<CheckInDbContext>();
-            dbContext.Database.Migrate();
-            Console.WriteLine("Database migration successful.");
-        }
-        catch (Exception ex)
-        {
-            var logger = services.GetRequiredService<ILogger<Program>>();
-            logger.LogError(ex, "An error occurred while migrating the database.");
-        }
-    }
+	using (var scope = host.Services.CreateScope())
+	{
+		var services = scope.ServiceProvider;
+		try
+		{
+			var dbContext = services.GetRequiredService<CheckInDbContext>();
+			dbContext.Database.Migrate();
+			Console.WriteLine("Database migration successful.");
+		}
+		catch (Exception ex)
+		{
+			var logger = services.GetRequiredService<ILogger<Program>>();
+			logger.LogError(ex, "An error occurred while migrating the database.");
+		}
+	}
 }
