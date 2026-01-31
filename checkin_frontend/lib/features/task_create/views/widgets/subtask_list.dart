@@ -5,15 +5,10 @@ class SubtaskList extends StatelessWidget {
   final List<SubtaskTemplateCreateModel> subtasks;
   final Function(int) onRemove;
 
-  const SubtaskList({
-    super.key,
-    required this.subtasks,
-    required this.onRemove,
-  });
+  const SubtaskList({super.key, required this.subtasks, required this.onRemove});
 
   @override
   Widget build(BuildContext context) {
-    // Ak je zoznam prázdny, nezobrazíme nič (SizedBox.shrink je efektívnejšie ako null)
     if (subtasks.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -22,12 +17,15 @@ class SubtaskList extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          "Added Subtasks:",
+          "Subtask list:",
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
         ),
         const SizedBox(height: 8),
 
         Card(
+          elevation: 0,
+          color: Colors.white,
+          surfaceTintColor: Colors.transparent,
           child: Column(
             children: subtasks.asMap().entries.map((entry) {
               final index = entry.key;
@@ -40,6 +38,10 @@ class SubtaskList extends StatelessWidget {
                     subtitle: subtask.description != null
                         ? Text(subtask.description!)
                         : null,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(color: Colors.grey[200]!),
+                    ),
                     leading: CircleAvatar(
                       backgroundColor: Colors.blue[100],
                       radius: 14,
@@ -53,10 +55,9 @@ class SubtaskList extends StatelessWidget {
                       onPressed: () => onRemove(index),
                       tooltip: "Remove",
                     ),
+                    tileColor: Colors.white,
                   ),
-                  // Pridáme čiaru medzi položky, okrem poslednej
-                  if (index != subtasks.length - 1)
-                    const Divider(height: 1, indent: 16, endIndent: 16),
+                  const SizedBox(height: 4)
                 ],
               );
             }).toList(),

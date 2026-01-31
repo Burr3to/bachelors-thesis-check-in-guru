@@ -14,7 +14,6 @@ import '../widgets/subtask_list.dart';
 import '../widgets/task_basic_info.dart';
 import '../widgets/task_settings_section.dart';
 import '../widgets/subtask_input_section.dart';
-// import '../widgets/subtask_list.dart'; (Tento si spravíš sám podľa vzoru ListView z minula)
 
 class TaskCreatePage extends ConsumerStatefulWidget {
   const TaskCreatePage({super.key});
@@ -34,7 +33,6 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
 
   final List<SubtaskTemplateCreateModel> _tempSubtasks = [];
   bool _isLoading = false;
-
 
   @override
   void dispose() {
@@ -58,6 +56,7 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
   }
 
   Future<void> _selectDate() async {
+    FocusScope.of(context).unfocus();
     final picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
@@ -69,7 +68,9 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
 
   Future<void> _submit() async {
     if (_titleCtrl.text.isEmpty || _selectedDeadline == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Title and Deadline are required")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Title and Deadline are required")));
       return;
     }
 
@@ -94,7 +95,7 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
       }
     } catch (e) {
       print(e);
-      if(mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
       }
     } finally {
@@ -103,15 +104,12 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
   }
 
   Future<void> _showSuccessDialog(TaskDetailModel task) async {
-    // Vygenerujeme link.
-    // V reále: base url zoberieš z nastavení, alebo použiješ window.location ak je to web
-    // Pre lokálny vývoj:
     final String baseUrl = Uri.base.origin;
     final String link = "$baseUrl/checkin/${task.hash}";
 
     await showDialog(
       context: context,
-      barrierDismissible: false, // User musí kliknúť na tlačidlo, nemôže kliknúť vedľa
+      barrierDismissible: false,
       builder: (context) {
         return AlertDialog(
           title: const Row(
@@ -132,9 +130,9 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey[300]!)
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
                 ),
                 child: Row(
                   children: [
@@ -153,7 +151,7 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
                           const SnackBar(content: Text("Link copied to clipboard!")),
                         );
                       },
-                    )
+                    ),
                   ],
                 ),
               ),
@@ -178,49 +176,58 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Create New Task")),
+      backgroundColor: Colors.white,
+      appBar: AppBar(title: const Text("Create New Task"), backgroundColor: Colors.white),
       body: Align(
         alignment: Alignment.topCenter, // Zarovnaj na vrch a stred
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // --- Basic Info ---
-                TaskBasicInfo(titleController: _titleCtrl, descController: _descCtrl),
-                const SizedBox(height: 24),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white, // Zmena na biele
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text("Create New Task", style: TextStyle(fontSize: 16)),
+                  const SizedBox(height: 16),
 
-                // --- Subtask Input ---
-                SubtaskInputSection(
-                  onSubtaskAdded: _addSubtask,
-                  currentMode: _subtaskMode,
-                  onModeChanged: (newSet) => setState(() => _subtaskMode = newSet.first),
-                ),
-                const SizedBox(height: 16),
+                  // --- Basic Info ---
+                  TaskBasicInfo(titleController: _titleCtrl, descController: _descCtrl),
+                  const SizedBox(height: 8),
 
-                // --- Settings ---
-                TaskSettingsSection(
-                  selectedDeadline: _selectedDeadline,
-                  requiresAuth: _requiresAuth,
-                  onDateTap: _selectDate,
-                  onAuthToggle: () => setState(() => _requiresAuth = !_requiresAuth),
-                ),
-                const SizedBox(height: 32),
+                  // --- Subtask Input ---
+                  SubtaskInputSection(onSubtaskAdded: _addSubtask),
+                  const SizedBox(height: 16),
 
-                // --- Submit Button ---
-                PrimaryButton(
-                  text: "Create Task",
-                  isLoading: _isLoading,
-                  onPressed: _submit,
+                  // --- Settings ---
+                  TaskSettingsSection(
+                    selectedDeadline: _selectedDeadline,
+                    requiresAuth: _requiresAuth,
+                    currentMode: _subtaskMode, // Mód ide sem
+                    onDateTap: _selectDate,
+                    onAuthChanged: (newVal) => setState(() => _requiresAuth = newVal),
+                    onModeChanged: (newMode) => setState(() => _subtaskMode = newMode),
+                  ),
+                  const SizedBox(height: 32),
 
-                ),
+                  // --- Submit Button ---
+                  PrimaryButton(
+                    text: "Create Task",
+                    isLoading: _isLoading,
+                    onPressed: _submit,
+                  ),
 
-                const SizedBox(height: 32),
+                  const SizedBox(height: 32),
 
-                SubtaskList(subtasks: _tempSubtasks, onRemove: _removeSubtask),
-              ],
+                  SubtaskList(subtasks: _tempSubtasks, onRemove: _removeSubtask),
+                ],
+              ),
             ),
           ),
         ),

@@ -17,12 +17,12 @@ class PrimaryButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 150,
+      width: 160,
       height: 50,
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Color.fromRGBO(0, 0, 255, 0.8), // Tvoja téma
+          backgroundColor: Colors.blueAccent,
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
@@ -36,7 +36,7 @@ class PrimaryButton extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   if (icon != null) ...[Icon(icon), const SizedBox(width: 8)],
-                  Text(text, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Text(text, style: const TextStyle(fontWeight: FontWeight.normal, fontSize: 15)),
                 ],
               ),
       ),

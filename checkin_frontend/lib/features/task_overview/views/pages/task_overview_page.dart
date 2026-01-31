@@ -87,7 +87,7 @@ class TaskOverviewPage extends ConsumerWidget {
                   decoration: BoxDecoration(
                     color: Colors.white30,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey),
+                    border: Border.all(color: Colors.grey.shade400),
                   ),
 
                   padding: const EdgeInsets.all(24),
@@ -99,7 +99,7 @@ class TaskOverviewPage extends ConsumerWidget {
 
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.grey[350],
+                          color: Colors.grey.shade200,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         padding: EdgeInsets.only(
@@ -175,15 +175,15 @@ class TaskOverviewPage extends ConsumerWidget {
                         children: [
                           ElevatedButton.icon(
                             onPressed: () => _deleteTask(context, ref),
-                            label: const Text("Delete"),
-                            icon: const Icon(Icons.delete),
+                            label: const Text("Delete", style: TextStyle(color: Colors.black),),
+                            icon: const Icon(Icons.delete, color: Colors.blueAccent,),
                           ),
 
                           const SizedBox(width: 18),
 
                           ElevatedButton.icon(
-                            icon: const Icon(Icons.copy),
-                            label: const Text("Copy link"),
+                            icon: const Icon(Icons.copy, color: Colors.blueAccent),
+                            label: const Text("Copy link", style: TextStyle(color: Colors.black),),
                             onPressed: () async {
                               await Clipboard.setData(ClipboardData(text: taskLink));
 
@@ -238,12 +238,12 @@ class TaskOverviewPage extends ConsumerWidget {
                                   children: subtasks.map((subtasks) {
                                     return Card(
                                       child: ListTile(
-                                        title: Text(subtasks.title),
+                                        title: Text(
+                                          subtasks.title,
+                                        ),
                                         subtitle: Text(
                                           subtasks.description ?? "",
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.w100,
-                                          ),
+                                          style: TextStyle(fontWeight: FontWeight.w100),
                                         ),
                                         contentPadding: EdgeInsets.only(left: 18),
                                       ),
