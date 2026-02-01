@@ -1,6 +1,7 @@
 import 'package:checkin_frontend/features/auth/data/auth_providers.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -318,18 +319,21 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
                         // ANONYMNÝ POUŽÍVATEĽ -> Musí napísať meno
                         TextField(
                           controller: _nameCtrl,
+                          maxLength: 25,
                           decoration: const InputDecoration(
                             labelText: "Your name / signature",
                             hintText: "Sign yourself here",
                             border: OutlineInputBorder(),
                             prefixIcon: Icon(Icons.person),
-                          ),
+                          ),inputFormatters: [
+                            LengthLimitingTextInputFormatter(50)
+                        ],
                           onChanged: (_) => setState(() {}),
                         ),
                       ] else ...[
                         // PRIHLÁSENÝ POUŽÍVATEĽ -> Ukážeme mu len info
                         Card(
-                          color: Colors.blue.withOpacity(0.1),
+                          color: Colors.blue.withAlpha(25),
                           child: ListTile(
                             leading: const Icon(Icons.verified_user, color: Colors.blue),
                             title: Text("Signed as: ${auth.name}"),

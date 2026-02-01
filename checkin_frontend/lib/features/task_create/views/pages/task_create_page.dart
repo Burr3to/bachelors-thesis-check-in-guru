@@ -177,17 +177,16 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(title: const Text("Create New Task"), backgroundColor: Colors.white),
       body: Align(
         alignment: Alignment.topCenter, // Zarovnaj na vrch a stred
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.only(top: 30, bottom: 16, right: 16, left: 16),
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white, // Zmena na biele
+                color: Color.fromRGBO(240, 244, 248, 1),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.grey[300]!),
               ),

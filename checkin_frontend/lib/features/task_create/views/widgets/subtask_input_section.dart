@@ -67,12 +67,12 @@ class _SubtaskInputSectionState extends State<SubtaskInputSection> {
           width: double.infinity,
           child: OutlinedButton.icon(
             onPressed: _handleAdd,
-            icon: const Icon(Icons.add, color: Colors.white),
-            label: const Text("Add to List", style: TextStyle(color: Colors.white)),
+            icon: const Icon(Icons.add, color: Colors.blueAccent),
+            label: const Text("Add to List", style: TextStyle(color: Colors.blueAccent)),
             style: OutlinedButton.styleFrom(
-              backgroundColor: Colors.blueAccent,
+              backgroundColor: Colors.white,
               minimumSize: const Size(0, 50),
-              side: const BorderSide(color: Color.fromRGBO(81, 119, 200, 0.5), width: 2),
+              side: const BorderSide(color: Colors.blueAccent, width: 2),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
           ),
