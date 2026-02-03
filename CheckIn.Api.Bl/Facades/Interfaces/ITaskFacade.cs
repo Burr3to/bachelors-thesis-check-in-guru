@@ -13,4 +13,5 @@ public interface ITaskFacade : IFacade<TaskEntity, TaskListModel, TaskDetailMode
 {
 	Task<Result<List<SubtaskCombinedListModel>>> GetSubTasksForTask(Guid taskId);
 	Task<Result<TaskPublicDetailModel>> GetTaskPublicDetailByHashAsync(string hash);
+	Task EnsureIndividualInstancesExist(TaskEntity task, Guid userId);
 }

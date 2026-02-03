@@ -258,6 +258,17 @@ public class TaskFacade(CheckInDbContext dbContext, IMapper mapper, IUserContext
 		else if (task.SubtaskMode == SubtaskMode.Individual && currentUserId.HasValue)
 		{
 			// Individuálny režim a PRIHLÁSENÝ používateľ: Filtrujeme podľa ID
+			await EnsureIndividualInstancesExist(task, currentUserId.Value);
+
+			task = await dbContext.Set<TaskEntity>()
+				.Include(t => t.Subtasks).ThenInclude(st => st.Instances).ThenInclude(i => i.TemplateSubtask)
+				.Where(t => t.Id == task.Id) // Použijeme existujúce ID Tasku
+				.FirstOrDefaultAsync();
+
+			// Ak sa Task nenašiel, vrátime chybu
+			if (task == null) return Result<TaskPublicDetailModel>.Failure(ErrorType.InternalError, "Task lost after save.");
+			// ****************
+
 			instancesToShow = task.Subtasks.SelectMany(s => s.Instances)
 				.Where(i => i.AssignedToUserId == currentUserId.Value);
 		}
@@ -278,5 +289,28 @@ public class TaskFacade(CheckInDbContext dbContext, IMapper mapper, IUserContext
 		var finalModel = publicModelBase with { Subtasks = subtasksList };
 
 		return Result<TaskPublicDetailModel>.Success(finalModel);
+	}
+
+	public async Task EnsureIndividualInstancesExist(TaskEntity task, Guid userId)
+	{
+		// 1. Zistíme, či už má užívateľ nejaké inštancie
+		bool instancesExist = task.Subtasks
+			.SelectMany(st => st.Instances)
+			.Any(i => i.AssignedToUserId == userId);
+
+		if (instancesExist)
+			return;
+
+		// 2. Ak neexistujú, vytvoríme N inštancií
+		foreach (var subtaskTemplate in task.Subtasks)
+		{
+			subtaskTemplate.Instances.Add(new SubtaskInstanceEntity
+			{
+				AssignedToUserId = userId,
+				IsCompleted = false
+			});
+		}
+
+		await dbContext.SaveChangesAsync();
 	}
 }

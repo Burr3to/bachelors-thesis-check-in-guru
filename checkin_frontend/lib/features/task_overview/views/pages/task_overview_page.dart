@@ -7,8 +7,7 @@ import '../../../../core/models/subtask_instance/subtask_instance_list_model.dar
 import '../../../../core/models/subtask_template/subtask_template_list_model.dart';
 import 'package:flutter/services.dart';
 
-import '../../../task_list/data/task_providers.dart'; // <--- TOTO JE KĽÚČOVÉ
-// Importuj model task_detail_model.dart ak treba
+import '../../../task_list/data/task_providers.dart';
 
 class TaskOverviewPage extends ConsumerWidget {
   final String taskId;
@@ -37,11 +36,14 @@ class TaskOverviewPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final asyncTask = ref.watch(taskDetailProvider(taskId));
+
     final asyncSubtasks = ref.watch(taskSubtasksProvider(taskId));
 
+
+
     return Scaffold(
-      appBar: AppBar(title: const Text("Go back"), backgroundColor: Colors.white),
-      backgroundColor: Color.fromRGBO(255, 255, 255, 1),
+      //backgroundColor: Color.fromRGBO(240, 244, 248, 1),
+      backgroundColor: Colors.white,
       body: asyncTask.when(
         // A. Načítavanie
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -78,16 +80,17 @@ class TaskOverviewPage extends ConsumerWidget {
           final String taskLink = "$baseUrl/checkin/${task.hash}";
 
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.only(top: 30, bottom: 16, right: 16, left: 16),
             child: Center(
               child: ConstrainedBox(
                 constraints: BoxConstraints(maxWidth: 1000),
 
+                // Inside Container
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Colors.white30,
+                    color: Color.fromRGBO(240, 244, 248, 1),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey),
+                    border: Border.all(color: Colors.blueAccent),
                   ),
 
                   padding: const EdgeInsets.all(24),
@@ -99,8 +102,9 @@ class TaskOverviewPage extends ConsumerWidget {
 
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.grey[350],
+                          color: Colors.white,
                           borderRadius: BorderRadius.circular(12),
+                          border: BoxBorder.all(color: Colors.blue.shade300, width: 1)
                         ),
                         padding: EdgeInsets.only(
                           left: 20,
@@ -171,19 +175,33 @@ class TaskOverviewPage extends ConsumerWidget {
 
                       const SizedBox(height: 16),
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          ElevatedButton.icon(
+                          OutlinedButton.icon(
                             onPressed: () => _deleteTask(context, ref),
-                            label: const Text("Delete"),
-                            icon: const Icon(Icons.delete),
+                            label: const Text("Delete",
+                              style: TextStyle(color: Colors.white),
+                            ),
+                            icon: const Icon(Icons.delete, color: Colors.white),
+                            style: OutlinedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              side: BorderSide(color: Colors.transparent, width: 0)
+                            ),
                           ),
 
                           const SizedBox(width: 18),
 
-                          ElevatedButton.icon(
-                            icon: const Icon(Icons.copy),
-                            label: const Text("Copy link"),
+                          OutlinedButton.icon(
+                            icon: const Icon(Icons.copy, color: Colors.blueAccent),
+                            label: const Text("Copy link",
+                              style: TextStyle(color: Colors.blueAccent),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                side: BorderSide(color: Colors.blueAccent, width: 1)
+                            ),
                             onPressed: () async {
                               await Clipboard.setData(ClipboardData(text: taskLink));
 
@@ -208,7 +226,7 @@ class TaskOverviewPage extends ConsumerWidget {
                         Text(task.notes!),
                         const SizedBox(height: 24),
                       ],
-                      const Divider(),
+                      const Divider(color: Colors.blueAccent,),
 
                       Container(
                         decoration: BoxDecoration(),
@@ -237,13 +255,12 @@ class TaskOverviewPage extends ConsumerWidget {
                                 return Column(
                                   children: subtasks.map((subtasks) {
                                     return Card(
+                                      color: Colors.white,
                                       child: ListTile(
                                         title: Text(subtasks.title),
                                         subtitle: Text(
                                           subtasks.description ?? "",
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.w100,
-                                          ),
+                                          style: TextStyle(fontWeight: FontWeight.w100),
                                         ),
                                         contentPadding: EdgeInsets.only(left: 18),
                                       ),
@@ -256,7 +273,7 @@ class TaskOverviewPage extends ConsumerWidget {
                         ),
                       ),
 
-                      const Divider(),
+                      const Divider(color: Colors.blueAccent,),
 
                       const SizedBox(height: 24),
                       const Text(
@@ -273,10 +290,11 @@ class TaskOverviewPage extends ConsumerWidget {
                           return Column(
                             children: subtasks.map((subtask) {
                               return Card(
+                                color: Colors.white,
                                 child: ListTile(
                                   leading: Icon(
                                     subtask.isCompleted
-                                        ? Icons.check_circle
+                                        ? Icons.check_circle_outline_rounded
                                         : Icons.radio_button_unchecked,
                                     color: subtask.isCompleted
                                         ? Colors.green
@@ -288,19 +306,27 @@ class TaskOverviewPage extends ConsumerWidget {
                                       : null,
                                   trailing: subtask.isCompleted
                                       ? Row(
-                                          mainAxisAlignment: MainAxisAlignment
-                                              .center, // Vycentruj zvislo
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.end, // Zarovnaj doprava
-                                          mainAxisSize: MainAxisSize
-                                              .min, // KĽÚČOVÉ: Neber všetko miesto
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          crossAxisAlignment:CrossAxisAlignment.end,
+                                          mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            Text(
-                                              subtask.respondentName ?? "Unknown",
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 14,
+                                            if (subtask.completedByUserId?.isNotEmpty == true) ...[
+                                              const Icon(Icons.verified_user_outlined,
                                                 color: Colors.green,
+                                                size: 20),
+                                              const SizedBox(width: 6,)
+                                            ],
+                                            ConstrainedBox(
+                                              constraints: const BoxConstraints(maxWidth: 150),
+                                              child: Text(
+                                                subtask.respondentName ?? "Unknown",
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 14,
+                                                  color: Colors.green,
+                                                ),
                                               ),
                                             ),
                                             const SizedBox(width: 18),
@@ -312,7 +338,7 @@ class TaskOverviewPage extends ConsumerWidget {
                                                 fontSize: 14,
                                                 color: Colors.grey,
                                               ),
-                                            ),
+                                            )
                                           ],
                                         )
                                       : null,
@@ -377,6 +403,8 @@ class TaskOverviewPage extends ConsumerWidget {
                     leading: const Icon(Icons.person, size: 16),
                     title: Text(
                       inst.assignedToUserId ?? "Shared User",
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ), // Tu by si potreboval meno
                     trailing: inst.isCompleted
                         ? Text(

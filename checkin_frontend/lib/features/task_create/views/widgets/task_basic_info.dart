@@ -16,17 +16,62 @@ class TaskBasicInfo extends StatelessWidget {
       children: [
         TextField(
           controller: titleController,
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
+            //Text
             labelText: "Title *",
-            border: OutlineInputBorder(),
+            labelStyle: TextStyle(color: Colors.black54),
+            floatingLabelStyle: TextStyle(color: Colors.blue),
+            hintText: "Enter Task Title",
+
+            //Background
+            filled: true,
+            fillColor: Color.fromRGBO(100, 130, 255, 0.1),
+
+            //Borders
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Color.fromRGBO(81, 119, 200, 0.5), width: 2),
+            ),
+
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.blueAccent, width: 2),
+            ),
           ),
         ),
+
         const SizedBox(height: 16),
+
         TextField(
           controller: descController,
-          decoration: const InputDecoration(
+          maxLines: null,
+          minLines: 2,
+          keyboardType: TextInputType.multiline,
+
+          decoration: InputDecoration(
+            //Text
             labelText: "Description",
-            border: OutlineInputBorder(),
+            labelStyle: TextStyle(color: Colors.black54),
+            floatingLabelStyle: TextStyle(color: Colors.blue),
+            hintText: "Enter Task description",
+            //Background
+            filled: true,
+            fillColor: Color.fromRGBO(100, 130, 255, 0.1),
+
+            //Borders
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Color.fromRGBO(81, 119, 200, 0.5), width: 2),
+            ),
+
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.blueAccent, width: 2),
+            ),
           ),
         ),
       ],

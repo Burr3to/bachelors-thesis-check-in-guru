@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:checkin_frontend/features/auth/views/providers/auth_provider.dart';
+import 'package:go_router/go_router.dart';
 
 class AppTopBar extends ConsumerWidget implements PreferredSizeWidget {
   const AppTopBar({super.key});
@@ -14,13 +15,26 @@ class AppTopBar extends ConsumerWidget implements PreferredSizeWidget {
 
     return AppBar(
       backgroundColor: Colors.white,
+      surfaceTintColor: Colors.white,
       automaticallyImplyLeading: false,
 
       title: Row(
         children: [
-          Icon(Icons.check_circle_outline_rounded, size: 32),
-          SizedBox(width: 10),
-          Text('CheckInGuru', style: TextStyle(color: Colors.black)),
+          InkWell(
+            onTap: () {
+              context.go('/home');
+            },
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(Icons.check_circle_outline_rounded, size: 32, color: Colors.blueAccent),
+                  SizedBox(width: 10),
+                  Text('CheckInGuru', style: TextStyle(color: Colors.black)),
+                ],
+              ),),
+          ),
 
           const Spacer(),
 

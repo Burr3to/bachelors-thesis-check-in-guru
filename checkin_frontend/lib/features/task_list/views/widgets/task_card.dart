@@ -27,7 +27,7 @@ class TaskCard extends StatelessWidget {
 
     return Card.outlined(
       borderOnForeground: true,
-      color: Colors.white,
+        color: Color.fromRGBO(240, 244, 248, 1),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
         side: const BorderSide(

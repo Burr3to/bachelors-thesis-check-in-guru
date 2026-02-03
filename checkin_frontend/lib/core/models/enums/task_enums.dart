@@ -34,3 +34,5 @@ enum SubtaskMode {
   @JsonValue(2)
   individual,
 }
+
+enum AuthMode { public, verified }
