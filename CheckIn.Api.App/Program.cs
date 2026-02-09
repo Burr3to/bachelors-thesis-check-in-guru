@@ -143,12 +143,17 @@ ApiBlInstaller.Install(builder.Services);
 // CORS - Dôležité pre Flutter
 builder.Services.AddCors(options =>
 {
-	options.AddPolicy("ProductionPolicy", policy =>
-	{
-		policy.WithOrigins("https://bp-checkin-473517.web.app")
-			.AllowAnyHeader()
-			.AllowAnyMethod();
-	});
+   options.AddPolicy("ProductionPolicy", policy =>
+    {
+        policy.WithOrigins(
+                "https://bp-checkin-473517.web.app",      // Azure/Firebase
+                "http://checkin.fit.vutbr.cz",            // Školský server (http)
+                "https://checkin.fit.vutbr.cz"            // Školský server (https)
+            )
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
 
 	options.AddDefaultPolicy(o =>
 		o.AllowAnyOrigin()
@@ -206,10 +211,10 @@ else
 	app.UseCors("ProductionPolicy"); // produkciu
 }
 
-if (!app.Environment.IsDevelopment())
+/*if (!app.Environment.IsDevelopment())
 {
 	app.UseHttpsRedirection();
-}
+} */
 
 app.UseAuthentication();
 app.UseAuthorization();

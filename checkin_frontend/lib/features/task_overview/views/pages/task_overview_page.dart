@@ -21,7 +21,7 @@ class TaskOverviewPage extends ConsumerWidget {
       ref.invalidate(taskListProvider);
 
       if (context.mounted) {
-        context.go('/home');
+        context.go('/app/tasks');
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text("Task was deleted")));
@@ -77,7 +77,7 @@ class TaskOverviewPage extends ConsumerWidget {
           ).format(task.deadLine.toLocal());
 
           final String baseUrl = Uri.base.origin;
-          final String taskLink = "$baseUrl/checkin/${task.hash}";
+          final String taskLink = "$baseUrl/checkin/p/${task.hash}";
 
           return SingleChildScrollView(
             padding: const EdgeInsets.only(top: 30, bottom: 16, right: 16, left: 16),

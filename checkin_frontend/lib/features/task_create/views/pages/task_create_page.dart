@@ -163,7 +163,7 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
               onPressed: () {
                 context.pop(); // Zavrie dialog
                 ref.invalidate(taskListProvider);
-                context.go('/home/task/${task.id}');
+                context.go('/app/tasks/details/${task.id}');
               },
               child: const Text("Go to Detail"),
             ),

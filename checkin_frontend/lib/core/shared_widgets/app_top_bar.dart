@@ -11,7 +11,7 @@ class AppTopBar extends ConsumerWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final userState = ref.watch(authProvider);
+    final userState = ref.watch(authProvider).user;
 
     return AppBar(
       backgroundColor: Colors.white,
@@ -22,7 +22,7 @@ class AppTopBar extends ConsumerWidget implements PreferredSizeWidget {
         children: [
           InkWell(
             onTap: () {
-              context.go('/home');
+              context.go('/app/tasks');
             },
             borderRadius: BorderRadius.circular(8),
             child: Padding(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),

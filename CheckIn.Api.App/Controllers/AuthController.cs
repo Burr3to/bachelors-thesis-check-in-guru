@@ -84,7 +84,7 @@ namespace CheckIn.Api.App.Controllers
 			await userFacade.SaveAsync(Guid.Parse(user.Id), firebaseUid, user.Email, name);
 
 			// 1. Vygeneruj NOVÝ Access Token (teraz s krátkou expiráciou, napr. 15 minút)
-			var accessToken = GenerateJwtToken(user, TimeSpan.FromMinutes(15));
+			var accessToken = GenerateJwtToken(user, TimeSpan.FromMinutes(480));
 
 			// 2. Vygeneruj a ulož Refresh Token (dlhá expiráciu, napr. 30 dní)
 			var refreshToken = await GenerateAndSaveRefreshToken(user.Id, TimeSpan.FromDays(30));

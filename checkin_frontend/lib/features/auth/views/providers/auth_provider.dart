@@ -10,72 +10,59 @@ import '../../data/models/auth_dtos.dart';
 // Provider pre Storage (aby sme mohli ukladať token)
 final storageProvider = Provider((ref) => const FlutterSecureStorage());
 
-final authProvider = NotifierProvider<AuthNotifier, UserProfile?>(() {
+class AuthState {
+  final UserProfile? user;
+  final bool isInitializing;
+
+  AuthState({this.user, this.isInitializing = true});
+}
+
+// ZMENA: NotifierProvider teraz spravuje <AuthNotifier, AuthState> namiesto UserProfile?
+final authProvider = NotifierProvider<AuthNotifier, AuthState>(() {
   return AuthNotifier();
 });
 
-class AuthNotifier extends Notifier<UserProfile?> {
+class AuthNotifier extends Notifier<AuthState> {
   late final AuthApiService _authApiService;
   late final FlutterSecureStorage _storage;
   StreamSubscription<User?>? _authStateSubscription;
 
   @override
-  UserProfile? build() {
+  AuthState build() {
     _authApiService = ref.read(authApiServiceProvider);
     _storage = ref.read(storageProvider);
 
-    // Počúvame Firebase zmeny
     _authStateSubscription = FirebaseAuth.instance.authStateChanges().listen(
-          (User? firebaseUser) {
+          (User? firebaseUser) async {
         if (firebaseUser != null) {
-          _authenticateWithBackend(firebaseUser);
+          await _authenticateWithBackend(firebaseUser);
         } else {
-          _logoutLocally();
+          state = AuthState(user: null, isInitializing: false);
         }
       },
-      onError: (error) {
-        print("Firebase Auth Error: $error");
-        state = null;
-      },
     );
-
-    ref.onDispose(() {
-      _authStateSubscription?.cancel();
-    });
-
-    return null;
+    return AuthState(isInitializing: true); // Štartujeme v stave loading
   }
 
-  /// Výmena Firebase Tokenu za Backend JWT
   Future<void> _authenticateWithBackend(User firebaseUser) async {
     try {
-      // 1. Získaj ID Token z Firebase
-      final String? firebaseIdToken = await firebaseUser.getIdToken();
-      if (firebaseIdToken == null) return;
+      final token = await firebaseUser.getIdToken();
+      final response = await _authApiService.verifyFirebaseToken(
+          FirebaseTokenRequest(idToken: token!));
 
-      // 2. Pošli ho na C# Backend cez Retrofit
-      // response je typu AuthResponse (token, userId, email)
-      final AuthResponse response = await _authApiService.verifyFirebaseToken(
-        FirebaseTokenRequest(idToken: firebaseIdToken),
-      );
-
-      // 3. ULOŽ JWT TOKEN (Aby fungoval Interceptor)
-      // Ukladáme 'response.token', lebo tak sa to volá v DTO z backendu
       await _storage.write(key: 'jwt_token', value: response.token);
 
-      // 4. Nastav state (UserProfile)
-      // TU BOLA CHYBA: Musíš použiť názvy parametrov z UserProfile
-      state = UserProfile(
-        userId: response.userId,          // DTO má .userId -> UserProfile chce userId
-        email: response.email,            // DTO má .email -> UserProfile chce email
-        name: firebaseUser.displayName ?? 'Unknown',
-        jwtToken: response.token,         // DTO má .token -> UserProfile chce jwtToken
+      state = AuthState(
+        isInitializing: false,
+        user: UserProfile(
+          userId: response.userId,
+          email: response.email,
+          name: firebaseUser.displayName ?? 'Unknown',
+          jwtToken: response.token,
+        ),
       );
-
     } catch (e) {
-      print("Chyba pri overovaní na backende: $e");
-      await FirebaseAuth.instance.signOut();
-      state = null;
+      state = AuthState(user: null, isInitializing: false);
     }
   }
 
@@ -90,14 +77,9 @@ class AuthNotifier extends Notifier<UserProfile?> {
     }
   }
 
-  /// Logout
   Future<void> signOut() async {
     await FirebaseAuth.instance.signOut();
-    await _logoutLocally();
-  }
-
-  Future<void> _logoutLocally() async {
-    await _storage.delete(key: 'jwt_token'); // Vymaž token
-    state = null;
+    await _storage.delete(key: 'jwt_token');
+    state = AuthState(user: null, isInitializing: false);
   }
 }

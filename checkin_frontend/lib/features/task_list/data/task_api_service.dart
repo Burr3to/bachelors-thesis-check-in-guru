@@ -14,14 +14,14 @@ part 'task_api_service.g.dart';
 abstract class TaskApiService {
   factory TaskApiService(Dio dio, {String baseUrl}) = _TaskApiService;
 
-  @POST('/api/Task')
+  @POST('api/Task')
   Future<TaskDetailModel> createTask(@Body() TaskCreateModel body);
 
-  @PUT('/api/Task')
+  @PUT('api/Task')
   Future<TaskDetailModel> updateTask(@Body() TaskUpdateModel body);
 
 
-  @GET('/api/Task')
+  @GET('api/Task')
   // Nový návratový typ: QueryResult, kde T je TaskListModel
   // Pridáme Query parametre zodpovedajúce TQueryModel v C#
   Future<QueryResult<TaskListModel>> getTasks({
@@ -33,15 +33,15 @@ abstract class TaskApiService {
     // @Query("sortBy") String? sortBy,
   });
 
-  @GET('/api/Task/{id}')
+  @GET('api/Task/{id}')
   Future<TaskDetailModel> getTask(@Path("id") String id);
 
-  @GET('/api/Task/{taskId}/subtasks')
+  @GET('api/Task/{taskId}/subtasks')
   Future<List<SubtaskCombinedListModel>> getTaskSubtasks(@Path("taskId") String taskId);
 
-  @GET('/api/Task/public/{hash}')
+  @GET('api/Task/public/{hash}')
   Future<TaskPublicDetailModel> getPublicSubtasks(@Path("hash") String hash);
 
-  @DELETE('/api/Task/{id}')
+  @DELETE('api/Task/{id}')
   Future<void> deleteTask(@Path("id") String taskId);
 }

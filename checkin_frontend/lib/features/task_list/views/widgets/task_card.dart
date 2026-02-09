@@ -37,7 +37,7 @@ class TaskCard extends StatelessWidget {
       ),
       child: InkWell(
         onTap: () {
-          context.go('/home/task/${task.id}');
+          context.go('/app/tasks/details/${task.id}');
           print("Klikol si na úlohu: ${task.title}");
         },
         child: Padding(

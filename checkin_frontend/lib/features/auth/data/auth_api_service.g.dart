@@ -29,7 +29,7 @@ class _AuthApiService implements AuthApiService {
       Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/Auth/verify-firebase-token',
+            'api/Auth/verify-firebase-token',
             queryParameters: queryParameters,
             data: _data,
           )

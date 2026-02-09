@@ -3,39 +3,41 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-// 1. Pridáme provider pre Storage, ak ho ešte nemáš globálne dostupný
-final storageProvider = Provider((ref) => const FlutterSecureStorage());
-final dioProvider = Provider<Dio>((ref) {
-  // 1. Vytvoríme čistú inštanciu Dio (ako doteraz)
-  final dio = DioClient.createDio();
-  // 2. Získame prístup k úložisku
-  //final storage = ref.watch(storageProvider);
+import '../../features/auth/views/providers/auth_provider.dart';
 
-  // 3. PRIDÁME INTERCEPTOR (Toto je tá chýbajúca časť)
+// 1.
+final dioProvider = Provider<Dio>((ref) {
+  final dio = DioClient.createDio();
+
   dio.interceptors.add(
     InterceptorsWrapper(
       onRequest: (options, handler) async {
-        // a) Prečítame token z mobilu
-        final storage = ref.read(storageProvider);
-        final token = await storage.read(key: 'jwt_token');
+        // 1. Skúsime vziať token primárne z pamäte (Notifieru) - je to najrýchlejšie
+        final authState = ref.read(authProvider).user;
+        String? token = authState?.jwtToken;
 
-        // b) Ak token máme, pridáme ho do hlavičky
+        // 2. Ak v pamäti ešte nie je (napr. prebieha inicializácia), skúsime storage
+        if (token == null) {
+          final storage = ref.read(storageProvider);
+          token = await storage.read(key: 'jwt_token');
+        }
+
         if (token != null) {
           options.headers['Authorization'] = 'Bearer $token';
         }
 
-        // c) Log pre kontrolu (uvidíš to v konzole)
-        print("Seding Request to: ${options.path}");
+        print("Sending Request to: ${options.path}");
         print("With Token: ${token != null ? 'YES (Bearer ...)' : 'NO TOKEN'}");
 
-        // d) Pokračujeme v požiadavke
         return handler.next(options);
       },
       onError: (DioException e, handler) {
-        // Tu môžeme odchytiť 401 a napr. odhlásiť užívateľa, ak vypršal token
-        // Ak dostaneš 401, len to logni, nevyvolávaj tu žiadne globálne zmeny stavu
         if (e.response?.statusCode == 401) {
-          print("DEBUG: Zachytená 401 v interceptore pre: ${e.requestOptions.path}");
+          print("DEBUG: Zachytená 401 pre: ${e.requestOptions.path}");
+
+          // Ak dostaneme 401, znamená to, že náš JWT je už neplatný.
+          // Musíme užívateľa odhlásiť v provideri, aby ho router hodil na login.
+          ref.read(authProvider.notifier).signOut();
         }
         return handler.next(e);
       },

@@ -75,7 +75,7 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
           const Icon(Icons.lock, size: 80, color: Colors.orange),
           const SizedBox(height: 16),
           const Text(
-            "Task requires to be loggen in",
+            "Task requires to be logged in",
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 24),
@@ -83,12 +83,14 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
             icon: const Icon(Icons.login),
             label: const Text("Google login"),
             onPressed: () {
-              // Pošleme ho na login a vrátime ho sem
-              final String targetPath = '/checkin/${widget.taskHash}';
-              print("DEBUG: Klik na login, cieľová cesta: $targetPath");
+              final String targetPath = '/p/${widget.taskHash}';
 
-              // Použi Uri na bezpečné zostavenie cesty (GoRouter to má rád)
-              final uri = Uri(path: '/login', queryParameters: {'redirect': targetPath});
+              print("DEBUG: Klik na login, cieľová cesta (interná): $targetPath");
+
+              final uri = Uri(
+                  path: '/login',
+                  queryParameters: {'redirect': targetPath}
+              );
               context.go(uri.toString());
             },
           ),
@@ -100,7 +102,7 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
   @override
   Widget build(BuildContext context) {
     final asyncData = ref.watch(publicTaskProvider(widget.taskHash));
-    final auth = ref.watch(authProvider);
+    final auth = ref.watch(authProvider).user;
 
     return Scaffold(
       appBar: AppBar(

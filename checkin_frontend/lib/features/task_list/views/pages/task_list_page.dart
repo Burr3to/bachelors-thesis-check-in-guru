@@ -26,8 +26,12 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
   @override
   @override
   Widget build(BuildContext context) {
-    final user = ref.watch(authProvider);
+    final user = ref.watch(authProvider).user;
     final meno = user?.name ?? 'hosť';
+
+    if (user == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
 
     // 1. Sledujeme providera (dáta sa sťahujú samé)
     final asyncTasks = ref.watch(taskListProvider);
@@ -44,7 +48,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
               text: "Create Task",
               icon: Icons.add,
               onPressed: () {
-                context.go('/home/create');
+                context.go('/app/create');
               },
             ),
 
@@ -98,16 +102,6 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
             ),
           ],
         ),
-      ),
-
-      // Floating Action Button na refresh (voliteľné, lebo pull-to-refresh je lepší, ale zatiaľ OK)
-      floatingActionButton: FloatingActionButton(
-        heroTag: "btnRefresh",
-        onPressed: () {
-          // Takto sa robí refresh s Riverpodom:
-          ref.invalidate(taskListProvider);
-        },
-        child: const Icon(Icons.refresh),
       ),
     );
   }

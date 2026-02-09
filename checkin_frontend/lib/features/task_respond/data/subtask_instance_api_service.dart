@@ -10,6 +10,6 @@ part 'subtask_instance_api_service.g.dart';
 abstract class SubtaskInstanceApiService {
   factory SubtaskInstanceApiService(Dio dio, {String baseUrl}) = _SubtaskInstanceApiService;
 
-  @POST('/api/SubtaskInstance/bulk-complete')
+  @POST('api/SubtaskInstance/bulk-complete')
   Future<dynamic> bulkComplete(@Body() BulkSubtaskCompleteModel body);
 }

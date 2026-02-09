@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-// Importy tvojich featúr
 import 'package:checkin_frontend/features/auth/views/providers/auth_provider.dart';
 import 'package:checkin_frontend/features/auth/views/pages/login_page.dart';
 import 'package:checkin_frontend/core/shared_widgets/main_layout.dart';
@@ -14,116 +13,80 @@ import 'package:checkin_frontend/features/task_respond/views/pages/task_respond_
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
 final routerProvider = Provider<GoRouter>((ref) {
+  // Tu budeme sledovať authState, aby sme mohli reagovať na zmeny
+  final authState = ref.watch(authProvider);
 
-  // Vytvoríme inštanciu routera
-  final router = GoRouter(
+  return GoRouter(
     navigatorKey: _rootNavigatorKey,
-    initialLocation: '/home',
-
-    // Zapne logovanie zmien v konzole (veľmi užitočné pri vývoji)
+    // DÔLEŽITÉ: initialLocation sa použije len vtedy, ak nie je zadaná žiadna URL
+    initialLocation: '/app/tasks',
     debugLogDiagnostics: true,
 
     redirect: (context, state) {
-      // TU ČÍTAME TVOJ STAV (JWT token z Backend-u)
-      final authState = ref.read(authProvider);
-      final isLoggedIn = authState != null;
+      // Ak inicializujeme, nič nerobíme (ostávame na URL, ktorú užívateľ zadal)
+      if (authState.isInitializing) return null;
 
-      final path = state.uri.path;
-      final queryParams = state.uri.queryParameters;
+      final bool isLoggedIn = authState.user != null;
+      final String path = state.uri.path;
 
-      print("---------------------------------------");
-      print("ROUTER REDIRECT LOG:");
-      print("Aktuálna cesta (path): $path");
-      print("Prihlásený (Backend JWT): $isLoggedIn");
-      print("Query parametre: $queryParams");
+      // Debug logy pre tvoju kontrolu
+      print("ROUTER REDIRECT: path=$path, loggedIn=$isLoggedIn");
 
-      // 1. Verejné linky checkin - ignorujeme, nech si ich rieši stránka sama
-      if (path.startsWith('/checkin')) {
+      if (path == '/' || path == '/app') return '/app/tasks';
+
+      // Ochrana /app zóny
+      if (path.startsWith('/app')) {
+        if (!isLoggedIn) return '/login?redirect=${Uri.encodeComponent(path)}';
         return null;
       }
 
-      final isLoggingIn = path == '/login';
-
-      // 2. Logika po prihlásení (keď už máme JWT)
-      if (isLoggedIn && isLoggingIn) {
-        final redirectTo = queryParams['redirect'];
-
-        if (redirectTo != null && redirectTo.isNotEmpty) {
-          print("ROUTER: Užívateľ prihlásený, vraciam sa na: $redirectTo");
-          return redirectTo;
-        }
-
-        print("ROUTER: Žiadny redirect, idem na /home");
-        return '/home';
-      }
-
-      // 3. Logika pre neprihláseného užívateľa
-      if (!isLoggedIn && !isLoggingIn) {
-        print("ROUTER: Neprihlásený užívateľ, smerujem na login.");
-        return '/login';
-      }
+      if (path == '/login' && isLoggedIn) return '/app/tasks';
 
       return null;
     },
 
     routes: [
-      // Stránka prihlásenia
+      // PRIDAJ TÚTO CESTU PRE LOADING (voliteľné, ale dobré)
+      // GoRoute(path: '/loading', builder: (context, state) => const LoadingPage()),
+
       GoRoute(
-          path: '/login',
-          builder: (context, state) => const LoginPage()
+        path: '/login',
+        builder: (context, state) => const LoginPage(),
       ),
 
-      // Verejná stránka pre Task (CheckIn)
-      GoRoute(
-        path: '/checkin/:hash',
-        builder: (context, state) {
-          final hash = state.pathParameters['hash'];
-          return TaskRespondPage(taskHash: hash!);
-        },
-      ),
-
-      // Chránené cesty zabalené v MainLayout (ShellRoute)
       ShellRoute(
         builder: (context, state, child) {
+          // TU VYRIEŠIME LOADING OBRAZOVKU
+          if (authState.isInitializing) {
+            return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          }
           return MainLayout(child: child);
         },
         routes: [
           GoRoute(
-            path: '/home',
+            path: '/app/tasks',
             builder: (context, state) => const TaskListPage(),
             routes: [
-              // Cesta: /home/task/:taskId
               GoRoute(
-                path: 'task/:taskId',
-                builder: (context, state) {
-                  final id = state.pathParameters['taskId'];
-                  return TaskOverviewPage(taskId: id!);
-                },
-              ),
-              // Cesta: /home/create
-              GoRoute(
-                path: 'create',
-                builder: (context, state) {
-                  return const TaskCreatePage();
-                },
+                path: 'details/:taskId',
+                builder: (context, state) => TaskOverviewPage(taskId: state.pathParameters['taskId']!),
               ),
             ],
           ),
+          GoRoute(path: '/app/create', builder: (context, state) => const TaskCreatePage()),
         ],
+      ),
+
+      GoRoute(
+        path: '/p/:hash',
+        builder: (context, state) {
+          // AJ TU VYRIEŠIME LOADING PRE VEREJNÚ STRÁNKU
+          if (authState.isInitializing) {
+            return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          }
+          return TaskRespondPage(taskHash: state.pathParameters['hash']!);
+        },
       ),
     ],
   );
-
-  // --- TOTO JE TA NAJDÔLEŽITEJŠIA ČASŤ ---
-  // Sledujeme tvoj authProvider. Keď sa v ňom zmení stav
-  // (napr. úspešne prebehne overenie Firebase tokenu na tvojom Backende),
-  // povieme routeru, aby znova spustil funkciu redirect.
-  ref.listen(authProvider, (previous, next) {
-    if (previous != next) {
-      print("ROUTER: AuthProvider sa zmenil! Osviežujem redirect logiku...");
-      router.refresh();
-    }
-  });
-
-  return router;
 });

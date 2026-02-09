@@ -29,7 +29,7 @@ class _TaskApiService implements TaskApiService {
       Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/Task',
+            'api/Task',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -56,7 +56,7 @@ class _TaskApiService implements TaskApiService {
       Options(method: 'PUT', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/Task',
+            'api/Task',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -89,7 +89,7 @@ class _TaskApiService implements TaskApiService {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/Task',
+            'api/Task',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -119,7 +119,7 @@ class _TaskApiService implements TaskApiService {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/Task/${id}',
+            'api/Task/${id}',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -146,7 +146,7 @@ class _TaskApiService implements TaskApiService {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/Task/${taskId}/subtasks',
+            'api/Task/${taskId}/subtasks',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -178,7 +178,7 @@ class _TaskApiService implements TaskApiService {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/Task/public/${hash}',
+            'api/Task/public/${hash}',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -205,7 +205,7 @@ class _TaskApiService implements TaskApiService {
       Options(method: 'DELETE', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/Task/${taskId}',
+            'api/Task/${taskId}',
             queryParameters: queryParameters,
             data: _data,
           )

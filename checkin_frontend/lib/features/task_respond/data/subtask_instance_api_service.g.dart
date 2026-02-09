@@ -29,7 +29,7 @@ class _SubtaskInstanceApiService implements SubtaskInstanceApiService {
       Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/SubtaskInstance/bulk-complete',
+            'api/SubtaskInstance/bulk-complete',
             queryParameters: queryParameters,
             data: _data,
           )

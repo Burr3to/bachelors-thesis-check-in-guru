@@ -8,9 +8,9 @@ class DioClient {
 
   static Dio createDio() {
     final String apiUrl = kReleaseMode
-        //? 'https://checkin.fit.vutbr.cz' // Produkčná URL (zmeníš podľa servera)
-        ? 'https://checkin-backend-bp.azurewebsites.net'
-        : 'https://localhost:7084'; // Lokálna URL pre vývoj
+        ? 'https://checkin.fit.vutbr.cz/checkin/' // Produkčná URL (zmeníš podľa servera)
+        //? 'https://checkin-backend-bp.azurewebsites.net'
+        : 'https://localhost:7084/'; // Lokálna URL pre vývoj
 
     final dio = Dio(
       BaseOptions(

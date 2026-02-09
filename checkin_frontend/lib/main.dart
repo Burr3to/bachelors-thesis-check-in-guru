@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 import 'core/routing/app_router.dart';
+import 'features/auth/views/providers/auth_provider.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -28,7 +29,6 @@ class MyApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Tu bude GoRouter
     return MaterialApp.router(
       title: 'CheckIn App',
       debugShowCheckedModeBanner: false,
