@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/utils/date_formatter.dart';
+
 class TaskCard extends StatelessWidget {
   final TaskListModel task;
 
@@ -12,18 +14,14 @@ class TaskCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final deadLine = task.deadLine != null
-        ? DateFormat('dd.MM.yyyy').format(task.deadLine.toLocal())
-        : 'Bez termínu';
+    final deadLineFriendly = DateFormatter.formatRelativeDeadline(task.deadLine);
 
-    final createdAt = DateFormat('dd.MM.yyyy').format(task.createdAt.toLocal());
-
+    // 3. LOGIKA PRE FARBU (ostáva rovnaká, aby sme mali červenú pri prekročení)
     final now = DateTime.now();
+    final isOverdue = task.deadLine.isBefore(now);
 
-    final isOverdue = task.deadLine.toLocal().isBefore(now);
-
-    final deadlineColor = isOverdue ? Colors.red : Colors.black;
-    final deadlineIconColor = isOverdue ? Colors.red : Colors.blue;
+    final deadlineColor = isOverdue ? Colors.red : Colors.black87;
+    final deadlineIconColor = isOverdue ? Colors.red : Colors.blueAccent;
 
     return Card.outlined(
       borderOnForeground: true,
@@ -51,7 +49,7 @@ class TaskCard extends StatelessWidget {
                     _buildDateRow(
                       Icons.alarm,
                       deadlineIconColor,
-                      deadLine,
+                      deadLineFriendly,
                       deadlineColor,
                     ),
 

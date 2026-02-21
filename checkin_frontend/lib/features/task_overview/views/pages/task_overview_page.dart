@@ -1,4 +1,5 @@
 import 'package:checkin_frontend/core/api/api_providers.dart';
+import 'package:checkin_frontend/core/utils/date_formatter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -69,12 +70,8 @@ class TaskOverviewPage extends ConsumerWidget {
 
         // C. Dáta sú tu! (task je typu TaskDetailModel)
         data: (task) {
-          final createdDate = DateFormat(
-            'dd.MM.yyyy HH:mm',
-          ).format(task.createdAt.toLocal());
-          final deadlineDate = DateFormat(
-            'dd.MM.yyyy HH:mm',
-          ).format(task.deadLine.toLocal());
+          final deadlineDate = DateFormatter.formatRelativeDeadline(task.deadLine);
+          final createdDate = DateFormatter.formatCreatedAt(task.createdAt);
 
           final String baseUrl = Uri.base.origin;
           final String taskLink = "$baseUrl/checkin/p/${task.hash}";
@@ -180,13 +177,13 @@ class TaskOverviewPage extends ConsumerWidget {
                           OutlinedButton.icon(
                             onPressed: () => _deleteTask(context, ref),
                             label: const Text("Delete",
-                              style: TextStyle(color: Colors.white),
+                              style: TextStyle(color: Colors.red),
                             ),
-                            icon: const Icon(Icons.delete, color: Colors.white),
+                            icon: const Icon(Icons.delete, color: Colors.red),
                             style: OutlinedButton.styleFrom(
-                              backgroundColor: Colors.red,
+                              backgroundColor: Colors.white,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              side: BorderSide(color: Colors.transparent, width: 0)
+                              side: BorderSide(color: Colors.red, width: 1)
                             ),
                           ),
 

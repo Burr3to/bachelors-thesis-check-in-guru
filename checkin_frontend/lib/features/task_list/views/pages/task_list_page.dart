@@ -42,7 +42,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
         // Pridal som Padding, nech to nie je nalepené na krajoch
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             PrimaryButton(
               text: "Create Task",

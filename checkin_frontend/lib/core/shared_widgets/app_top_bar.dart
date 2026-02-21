@@ -25,15 +25,57 @@ class AppTopBar extends ConsumerWidget implements PreferredSizeWidget {
               context.go('/app/tasks');
             },
             borderRadius: BorderRadius.circular(8),
-            child: Padding(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: const [
-                  Icon(Icons.check_circle_outline_rounded, size: 32, color: Colors.blueAccent),
+                  Icon(
+                    Icons.check_circle_outline_rounded,
+                    size: 32,
+                    color: Colors.blueAccent,
+                  ),
                   SizedBox(width: 10),
                   Text('CheckInGuru', style: TextStyle(color: Colors.black)),
                 ],
-              ),),
+              ),
+            ),
+          ),
+
+          const Spacer(),
+
+          Container(
+            height: 50,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.transparent),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(width: 1.5, color: Colors.blueAccent.withAlpha(123), height: 32),
+
+                TextButton(
+                  onPressed: () => context.go('/app/tasks'),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(8),
+                        bottomLeft: Radius.circular(8),
+                      ),
+                    ),
+                  ),
+                  child: const Text(
+                    "Tasks",
+                    style: TextStyle(color: Colors.black, fontSize: 21, fontWeight: FontWeight.normal ),
+                  ),
+                ),
+
+                Container(width: 1.5, color: Colors.blueAccent.withAlpha(123), height: 32),
+              ],
+            ),
           ),
 
           const Spacer(),
@@ -54,8 +96,20 @@ class AppTopBar extends ConsumerWidget implements PreferredSizeWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-
-                  Text(userState.name, style: TextStyle(fontSize: 18),),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(userState.name, style: TextStyle(fontSize: 18)),
+                      Text(
+                        userState.email,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.normal,
+                        ),
+                      ),
+                    ],
+                  ),
 
                   const SizedBox(width: 10),
 

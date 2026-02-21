@@ -1,15 +1,48 @@
-/.idea
-/CheckIn.sln.DotSettings.user
+# --- IDE & OS ---
+.idea/
+.vscode/
+*.sln.DotSettings.user
+.DS_Store
+Thumbs.db
 
-/CheckIn.Api.App/bin
-/CheckIn.Api.App/obj
-/CheckIn.Api.App/appsettings.Development.json
+# --- BACKEND (.NET) ---
+# Binárky a dočasné súbory
+bin/
+obj/
+/CheckIn.Api.App/bin/
+/CheckIn.Api.App/obj/
+/CheckIn.Api.Bl/bin/
+/CheckIn.Api.Bl/obj/
+/CheckIn.Api.Dal/bin/
+/CheckIn.Api.Dal/obj/
+/CheckIn.Api.Common/bin/
+/CheckIn.Api.Common/obj/
 
-/CheckIn.Api.Bl/bin
-/CheckIn.Api.Bl/obj
+# Lokálne nastavenia (obsahujú heslá k DB a API kľúče)
+appsettings.Development.json
+appsettings.Personal.json
+appsettings.Production.json
+usersecrets.json
+# Firebase Admin SDK kľúče
+*-firebase-adminsdk-*.json
 
-/CheckIn.Api.Dal/bin
-/CheckIn.Api.Dal/obj
+# --- FRONTEND (Flutter/Dart) ---
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+/checkin_frontend/build/
+/checkin_frontend/.firebase/
 
-/CheckIn.Api.Common/bin
-/CheckIn.Api.Common/obj
+# --- DEPLOYMENT & ARTEFAKTY ---
+# Výsledok buildu pre web
+publish_frontend/
+# Archívy na prenos
+*.tar.gz
+*.zip
+*.7z
+
+# --- SCRIPTS ---
+b.ps1
+f.ps1
