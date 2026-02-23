@@ -16,6 +16,8 @@ class TaskBasicInfo extends StatelessWidget {
       children: [
         TextField(
           controller: titleController,
+          maxLength: 255,
+
           decoration: InputDecoration(
             //Text
             labelText: "Title *",
@@ -47,6 +49,7 @@ class TaskBasicInfo extends StatelessWidget {
         TextField(
           controller: descController,
           maxLines: null,
+          maxLength: 1024,
           minLines: 2,
           keyboardType: TextInputType.multiline,
 
@@ -56,6 +59,7 @@ class TaskBasicInfo extends StatelessWidget {
             labelStyle: TextStyle(color: Colors.black54),
             floatingLabelStyle: TextStyle(color: Colors.blue),
             hintText: "Enter Task description",
+
             //Background
             filled: true,
             fillColor: Color.fromRGBO(100, 130, 255, 0.1),

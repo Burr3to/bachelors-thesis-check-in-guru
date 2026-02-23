@@ -9,7 +9,7 @@ class DateFormatter {
     // 1. Minulosť
     if (difference.isNegative) {
       if (difference.inDays.abs() == 0) return "Expired today";
-      return "Expired ${difference.inDays.abs()} days ago";
+      return "Overdue ${difference.inDays.abs()} days ago";
     }
 
     final today = DateTime(now.year, now.month, now.day);

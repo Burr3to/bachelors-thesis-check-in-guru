@@ -41,6 +41,12 @@ class AuthNotifier extends Notifier<AuthState> {
         }
       },
     );
+
+    ref.onDispose(() {
+      _authStateSubscription?.cancel();
+      print("AuthNotifier bol zrušený a subscription uzavretý.");
+    });
+
     return AuthState(isInitializing: true); // Štartujeme v stave loading
   }
 
@@ -66,6 +72,7 @@ class AuthNotifier extends Notifier<AuthState> {
     }
   }
 
+
   /// Google Sign In (Trigger z UI)
   Future<void> signInWithGoogle() async {
     try {
@@ -76,6 +83,7 @@ class AuthNotifier extends Notifier<AuthState> {
       print("Google Sign In Error: $e");
     }
   }
+
 
   Future<void> signOut() async {
     await FirebaseAuth.instance.signOut();

@@ -54,7 +54,11 @@ class AppTopBar extends ConsumerWidget implements PreferredSizeWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Container(width: 1.5, color: Colors.blueAccent.withAlpha(123), height: 32),
+                Container(
+                  width: 1.5,
+                  color: Colors.blueAccent.withAlpha(123),
+                  height: 32,
+                ),
 
                 TextButton(
                   onPressed: () => context.go('/app/tasks'),
@@ -69,63 +73,74 @@ class AppTopBar extends ConsumerWidget implements PreferredSizeWidget {
                   ),
                   child: const Text(
                     "Tasks",
-                    style: TextStyle(color: Colors.black, fontSize: 21, fontWeight: FontWeight.normal ),
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 21,
+                      fontWeight: FontWeight.normal,
+                    ),
                   ),
                 ),
 
-                Container(width: 1.5, color: Colors.blueAccent.withAlpha(123), height: 32),
+                Container(
+                  width: 1.5,
+                  color: Colors.blueAccent.withAlpha(123),
+                  height: 32,
+                ),
               ],
             ),
           ),
 
           const Spacer(),
 
-          if (userState != null) ...[
-            Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: Color.fromRGBO(204, 223, 255, 1),
-                  width: 2,
-                  style: BorderStyle.solid,
-                ),
-              ),
-
-              padding: EdgeInsets.symmetric(vertical: 2, horizontal: 8),
-
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(userState.name, style: TextStyle(fontSize: 18)),
-                      Text(
-                        userState.email,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                          fontWeight: FontWeight.normal,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(width: 10),
-
-                  IconButton(
-                    //icon: Icon(Icons.density_medium),
-                    icon: Icon(Icons.logout),
-                    tooltip: "Logout",
-                    color: Colors.blueAccent,
-                    onPressed: () {
-                      ref.read(authProvider.notifier).signOut();
-                    },
-                  ),
-                ],
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: Color.fromRGBO(204, 223, 255, 1),
+                width: 2,
+                style: BorderStyle.solid,
               ),
             ),
-          ],
+
+            padding: EdgeInsets.symmetric(vertical: 2, horizontal: 8),
+
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(userState?.name ?? "New User", style: TextStyle(fontSize: 18)),
+                    Text(
+                      userState?.email ?? "New User Mail",
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.normal,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(width: 10),
+
+                if (userState != null)
+                  IconButton(
+                    icon: const Icon(Icons.logout),
+                    tooltip: "Logout",
+                    color: Colors.redAccent, // Červená pre logout je prehľadnejšia
+                    onPressed: () => ref.read(authProvider.notifier).signOut(),
+                  )
+                else
+                  IconButton(
+                    icon: const Icon(Icons.login),
+                    tooltip: "Login",
+                    color: Colors.blueAccent,
+                    onPressed: () => ref.read(authProvider.notifier).signInWithGoogle(),
+                  ),
+                ]
+            ),
+          ),
         ],
       ),
     );

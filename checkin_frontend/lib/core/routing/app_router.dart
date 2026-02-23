@@ -10,45 +10,52 @@ import 'package:checkin_frontend/features/task_list/views/pages/task_list_page.d
 import 'package:checkin_frontend/features/task_overview/views/pages/task_overview_page.dart';
 import 'package:checkin_frontend/features/task_respond/views/pages/task_respond_page.dart';
 
+// 1. DEFINÍCIA KĽÚČA (Tento riadok tu musí byť hore)
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
 final routerProvider = Provider<GoRouter>((ref) {
-  // Tu budeme sledovať authState, aby sme mohli reagovať na zmeny
-  final authState = ref.watch(authProvider);
+  final refreshListenable = ValueNotifier<bool>(false);
+
+  // Sledujeme zmeny authProvidera, aby sme spustili redirect
+  ref.listen(authProvider, (_, __) {
+    refreshListenable.value = !refreshListenable.value;
+  });
 
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
-    // DÔLEŽITÉ: initialLocation sa použije len vtedy, ak nie je zadaná žiadna URL
     initialLocation: '/app/tasks',
+    refreshListenable: refreshListenable,
     debugLogDiagnostics: true,
 
     redirect: (context, state) {
-      // Ak inicializujeme, nič nerobíme (ostávame na URL, ktorú užívateľ zadal)
-      if (authState.isInitializing) return null;
+      // Získame aktuálny stav (read namiesto watch)
+      final auth = ref.read(authProvider);
 
-      final bool isLoggedIn = authState.user != null;
+      if (auth.isInitializing) return null;
+
+      final bool isLoggedIn = auth.user != null;
       final String path = state.uri.path;
 
-      // Debug logy pre tvoju kontrolu
-      print("ROUTER REDIRECT: path=$path, loggedIn=$isLoggedIn");
+      // Logika pre návrat z Login stránky
+      if (path == '/login' && isLoggedIn) {
+        final String? redirectTo = state.uri.queryParameters['redirect'];
+        return (redirectTo != null && redirectTo.isNotEmpty) ? redirectTo : '/app/tasks';
+      }
 
-      if (path == '/' || path == '/app') return '/app/tasks';
-
-      // Ochrana /app zóny
+      // Ochrana súkromných ciest
       if (path.startsWith('/app')) {
-        if (!isLoggedIn) return '/login?redirect=${Uri.encodeComponent(path)}';
+        if (!isLoggedIn) {
+          return '/login?redirect=${Uri.encodeComponent(state.uri.toString())}';
+        }
         return null;
       }
 
-      if (path == '/login' && isLoggedIn) return '/app/tasks';
+      if (path == '/' || path == '/app') return '/app/tasks';
 
       return null;
     },
 
     routes: [
-      // PRIDAJ TÚTO CESTU PRE LOADING (voliteľné, ale dobré)
-      // GoRoute(path: '/loading', builder: (context, state) => const LoadingPage()),
-
       GoRoute(
         path: '/login',
         builder: (context, state) => const LoginPage(),
@@ -56,11 +63,16 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       ShellRoute(
         builder: (context, state, child) {
-          // TU VYRIEŠIME LOADING OBRAZOVKU
-          if (authState.isInitializing) {
-            return const Scaffold(body: Center(child: CircularProgressIndicator()));
-          }
-          return MainLayout(child: child);
+          // 2. OPRAVA authState: Použijeme Consumer, aby sme sledovali loading
+          return Consumer(
+            builder: (context, ref, _) {
+              final auth = ref.watch(authProvider);
+              if (auth.isInitializing) {
+                return const Scaffold(body: Center(child: CircularProgressIndicator()));
+              }
+              return MainLayout(child: child);
+            },
+          );
         },
         routes: [
           GoRoute(
@@ -80,11 +92,16 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/p/:hash',
         builder: (context, state) {
-          // AJ TU VYRIEŠIME LOADING PRE VEREJNÚ STRÁNKU
-          if (authState.isInitializing) {
-            return const Scaffold(body: Center(child: CircularProgressIndicator()));
-          }
-          return TaskRespondPage(taskHash: state.pathParameters['hash']!);
+          // 3. OPRAVA authState aj tu (pre verejnú stránku)
+          return Consumer(
+            builder: (context, ref, _) {
+              final auth = ref.watch(authProvider);
+              if (auth.isInitializing) {
+                return const Scaffold(body: Center(child: CircularProgressIndicator()));
+              }
+              return TaskRespondPage(taskHash: state.pathParameters['hash']!);
+            },
+          );
         },
       ),
     ],

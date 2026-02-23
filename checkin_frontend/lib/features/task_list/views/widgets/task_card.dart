@@ -15,11 +15,8 @@ class TaskCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final deadLineFriendly = DateFormatter.formatRelativeDeadline(task.deadLine);
-
-    // 3. LOGIKA PRE FARBU (ostáva rovnaká, aby sme mali červenú pri prekročení)
     final now = DateTime.now();
     final isOverdue = task.deadLine.isBefore(now);
-
     final deadlineColor = isOverdue ? Colors.red : Colors.black87;
     final deadlineIconColor = isOverdue ? Colors.red : Colors.blueAccent;
 

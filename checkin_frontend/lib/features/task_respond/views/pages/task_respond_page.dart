@@ -1,3 +1,4 @@
+import 'package:checkin_frontend/core/shared_widgets/app_top_bar.dart';
 import 'package:checkin_frontend/features/auth/data/auth_providers.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -82,16 +83,18 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
           ElevatedButton.icon(
             icon: const Icon(Icons.login),
             label: const Text("Google login"),
-            onPressed: () {
-              final String targetPath = '/p/${widget.taskHash}';
+            onPressed: () async {
+              print("DEBUG: Spúšťam Google Login priamo z TaskRespondPage");
 
-              print("DEBUG: Klik na login, cieľová cesta (interná): $targetPath");
+              try {
+                // 1. Spustíme prihlasovanie
+                await ref.read(authProvider.notifier).signInWithGoogle();
 
-              final uri = Uri(
-                  path: '/login',
-                  queryParameters: {'redirect': targetPath}
-              );
-              context.go(uri.toString());
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Prihlásenie zlyhalo: $e")),
+                );
+              }
             },
           ),
         ],
@@ -105,55 +108,21 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
     final auth = ref.watch(authProvider).user;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("CheckInGuru"),
-        actions: [
-          // Ak je užívateľ prihlásený, ukážeme jeho meno a logout tlačidlo
-          if (auth != null) ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0),
-              child: Center(
-                child: Text(
-                  auth.name,
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-                ),
-              ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.logout),
-              tooltip: "Odhlásiť sa",
-              onPressed: () async {
-                // Zavoláme logout z tvojho authProvidera
-                await ref.read(authProvider.notifier).signOut();
-
-                // Voliteľné: Ak chceš po odhlásení skočiť na home
-                // context.go('/home');
-
-                // Ak ostaneš na tejto stránke a task vyžaduje auth,
-                // vďaka Riverpodu sa UI samo prepne späť na "Login Required" zámok.
-              },
-            ),
-          ],
-          const SizedBox(width: 8),
-        ],
-      ),
+      appBar: AppTopBar(),
+      backgroundColor: Colors.white,
 
       body: asyncData.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, s) => Text("Error: $e"),
 
         data: (publicTask) {
-          // --- LOGIKA PRE ZAMKNUTÝ TASK ---
-          // Ak task vyžaduje prihlásenie a užívateľ nie je prihlásený
           if (publicTask.requiresAuthenticationToComplete && auth == null) {
             return _buildLoginRequiredUI(context);
           }
 
           final deadlineStr = DateFormat(
-            'dd.MM.yyyy HH:mm',
+            'dd.MM.yyyy',
           ).format(publicTask.deadLine.toLocal());
-          // Zistíme, či existujú nejaké NESPLNENÉ úlohy (či je čo robiť)
-          // TODO zobrazit aj ulohy co ostatny splnili asi?
           final hasPendingTasks = publicTask.subtasks.any((s) => !s.isCompleted);
 
           return Center(
@@ -219,6 +188,8 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
                     const SizedBox(height: 8),
 
                     Card(
+                      color: const Color.fromRGBO(240, 244, 248, 1),
+                      surfaceTintColor: Colors.white,
                       child: Column(
                         children: publicTask.subtasks.asMap().entries.map((entry) {
                           final index = entry.key;

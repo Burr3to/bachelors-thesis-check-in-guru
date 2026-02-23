@@ -90,8 +90,8 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
       final createdTask = await ref.read(taskApiServiceProvider).createTask(newTask);
 
       if (mounted) {
-        // 2. Namiesto odchodu zobrazíme Dialog s linkom
-        await _showSuccessDialog(createdTask);
+        ref.invalidate(taskListProvider);
+        context.go('/app/tasks/details/${createdTask.id}');
       }
     } catch (e) {
       print(e);
@@ -101,76 +101,6 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
-  }
-
-  Future<void> _showSuccessDialog(TaskDetailModel task) async {
-    final String baseUrl = Uri.base.origin;
-    final String link = "$baseUrl/checkin/${task.hash}";
-
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        return AlertDialog(
-          title: const Row(
-            children: [
-              Icon(Icons.check_circle, color: Colors.green),
-              SizedBox(width: 10),
-              Text("Task Created!"),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text("Your task is ready. Share this link with others:"),
-              const SizedBox(height: 16),
-
-              // Pekný box s linkom
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey[300]!),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: SelectableText(
-                        link,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.copy),
-                      onPressed: () {
-                        // Kopírovanie do schránky
-                        Clipboard.setData(ClipboardData(text: link));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Link copied to clipboard!")),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            // Tlačidlo, ktoré nás konečne vráti na Home
-            TextButton(
-              onPressed: () {
-                context.pop(); // Zavrie dialog
-                ref.invalidate(taskListProvider);
-                context.go('/app/tasks/details/${task.id}');
-              },
-              child: const Text("Go to Detail"),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   @override
