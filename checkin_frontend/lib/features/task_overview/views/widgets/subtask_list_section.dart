@@ -22,7 +22,7 @@ class SubtaskListSection extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        ...subtasks.map((subtask) => _buildSubtaskCard(subtask)).toList(),
+        ...subtasks.map((subtask) => _buildSubtaskCard(subtask)),
       ],
     );
   }

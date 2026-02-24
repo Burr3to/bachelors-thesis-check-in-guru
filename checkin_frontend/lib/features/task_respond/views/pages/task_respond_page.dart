@@ -1,13 +1,9 @@
 import 'package:checkin_frontend/core/shared_widgets/app_top_bar.dart';
-import 'package:checkin_frontend/features/auth/data/auth_providers.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:checkin_frontend/features/task_respond/data/respond_providers.dart';
-
 import '../../../../core/models/action/bulk_subtask_complete_model.dart';
 import '../../../../core/models/user/user_profile.dart';
 import '../../../auth/views/providers/auth_provider.dart';

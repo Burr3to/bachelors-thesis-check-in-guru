@@ -1,4 +1,3 @@
-import 'package:checkin_frontend/features/auth/views/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 

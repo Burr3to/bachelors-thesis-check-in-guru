@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 // Importuj tvoje modely a widgety
@@ -9,7 +8,6 @@ import 'package:checkin_frontend/core/shared_widgets/primary_button.dart';
 
 import '../../../task_list/data/models/task_create_model.dart';
 import '../../../task_list/data/task_providers.dart';
-import '../../../task_overview/data/models/task_detail_model.dart';
 import '../widgets/subtask_list.dart';
 import '../widgets/task_basic_info.dart';
 import '../widgets/task_settings_section.dart';

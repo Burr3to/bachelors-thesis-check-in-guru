@@ -5,7 +5,7 @@ import 'package:checkin_frontend/features/task_respond/data/subtask_instance_api
 import '../../../core/models/task/task_public_detail_model.dart';
 import '../../auth/views/providers/auth_provider.dart';
 import '../../task_list/data/task_api_service.dart';
-import '../../task_overview/data/models/subtask_combined_list_model.dart'; // Ak máš getPublicSubtasks tu
+// Ak máš getPublicSubtasks tu
 
 // 1. Provider pre SubtaskInstanceApiService (na odoslanie BulkComplete)
 final subtaskInstanceApiServiceProvider = Provider<SubtaskInstanceApiService>((ref) {

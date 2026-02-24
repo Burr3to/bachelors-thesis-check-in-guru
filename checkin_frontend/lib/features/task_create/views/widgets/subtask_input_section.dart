@@ -1,5 +1,6 @@
+// ignore_for_file: unused_import
+
 import 'package:checkin_frontend/features/task_create/views/widgets/app_toggle_button.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/models/enums/task_enums.dart';

@@ -1,8 +1,6 @@
 import 'package:checkin_frontend/core/api/dio_client.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-
 import '../../features/auth/views/providers/auth_provider.dart';
 
 // Premenná mimo providera zabezpečí, že ak prebieha refresh,

@@ -1,7 +1,5 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-import '../../../../core/models/enums/task_enums.dart';
 
 class AppToggleButton extends StatelessWidget {
   final bool isActive;
@@ -47,7 +45,7 @@ class AppToggleButton extends StatelessWidget {
         minimumSize: const Size(double.infinity, 52),
         side: BorderSide(color: currentColor, width: 2),
         // Jemný nádych farby na pozadí
-        backgroundColor: currentColor.withOpacity(0.05),
+        backgroundColor: currentColor.withAlpha(23),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
       ),
