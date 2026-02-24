@@ -1,3 +1,4 @@
+import 'package:checkin_frontend/features/auth/views/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -36,17 +37,25 @@ class SubtaskProgressList extends StatelessWidget {
       children: [
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 150),
-          child: SelectionArea(
-            child: Text(
-              subtask.respondentName ?? "Unknown",
-              style: const TextStyle(
-                color: Colors.green,
-                fontWeight: FontWeight.bold,
-                fontSize: 15,
+          child: Row(
+            children: [
+              if (subtask.completedByUserId != null) ...[
+                Icon(Icons.verified_user_outlined, color: Colors.green, size: 21)
+              ],
+              const SizedBox(width: 4),
+              SelectionArea(
+                child: Text(
+                  subtask.respondentName ?? "Unknown",
+                  style: const TextStyle(
+                    color: Colors.green,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+            ],
           ),
         ),
         const SizedBox(width: 8),

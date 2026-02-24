@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:firebase_performance_dio/firebase_performance_dio.dart';
 import 'package:flutter/foundation.dart';
 // import 'package:flutter_riverpod/flutter_riverpod.dart'; // Ak budeš chcieť provider
 
@@ -24,6 +25,9 @@ class DioClient {
     // Pridáme Interceptor na logovanie (aby si videl v konzole čo sa deje)
     dio.interceptors.add(LogInterceptor(requestBody: true, responseBody: true));
 
+    if (kReleaseMode) {
+      dio.interceptors.add(DioFirebasePerformanceInterceptor());
+    }
     return dio;
   }
 }
