@@ -63,7 +63,8 @@ builder.Services.AddAuthentication(options =>
 			ValidateIssuerSigningKey = true,
 			ValidIssuer = jwtIssuer,
 			ValidAudience = jwtAudience,
-			IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+			IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+			ClockSkew = TimeSpan.Zero
 		};
 		jwtOptions.Events = new JwtBearerEvents
 		{
@@ -140,26 +141,26 @@ builder.Services.AddSwaggerGen(options =>
 // --- Registrácia Fasád/BL služieb 
 ApiBlInstaller.Install(builder.Services);
 
-// CORS - Dôležité pre Flutter
+var allowedOrigins = new[] 
+{ 
+    "https://bp-checkin-473517.web.app", 
+    "http://checkin.fit.vutbr.cz", 
+    "https://checkin.fit.vutbr.cz",
+    "https://localhost:7084",
+    "http://localhost:5000"
+};
+
 builder.Services.AddCors(options =>
 {
-   options.AddPolicy("ProductionPolicy", policy =>
+    options.AddPolicy("AppCorsPolicy", policy =>
     {
-        policy.WithOrigins(
-                "https://bp-checkin-473517.web.app",      // Azure/Firebase
-                "http://checkin.fit.vutbr.cz",            // Školský server (http)
-                "https://checkin.fit.vutbr.cz"            // Školský server (https)
-            )
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
+        policy.WithOrigins(allowedOrigins)
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
     });
-
-	options.AddDefaultPolicy(o =>
-		o.AllowAnyOrigin()
-			.AllowAnyHeader()
-			.AllowAnyMethod());
 });
+
 
 // Dependency Injection - Registruj DAL a BL služby
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
@@ -202,19 +203,7 @@ if (app.Environment.IsDevelopment())
 	app.MapOpenApi();
 }
 
-if (app.Environment.IsDevelopment())
-{
-	app.UseCors(); // Default (všetko povolené) pre local
-}
-else
-{
-	app.UseCors("ProductionPolicy"); // produkciu
-}
-
-/*if (!app.Environment.IsDevelopment())
-{
-	app.UseHttpsRedirection();
-} */
+app.UseCors("AppCorsPolicy"); 
 
 app.UseAuthentication();
 app.UseAuthorization();

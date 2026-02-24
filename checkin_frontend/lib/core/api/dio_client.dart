@@ -23,7 +23,15 @@ class DioClient {
     );
 
     // Pridáme Interceptor na logovanie (aby si videl v konzole čo sa deje)
-    dio.interceptors.add(LogInterceptor(requestBody: true, responseBody: true));
+    //dio.interceptors.add(LogInterceptor(requestBody: true, responseBody: true));
+
+    dio.interceptors.add(LogInterceptor(
+      requestHeader: false,
+      requestBody: false,
+      responseHeader: false,
+      responseBody: false,
+      error: true,
+    ));
 
     if (kReleaseMode) {
       dio.interceptors.add(DioFirebasePerformanceInterceptor());

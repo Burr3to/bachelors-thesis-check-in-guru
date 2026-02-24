@@ -84,7 +84,7 @@ namespace CheckIn.Api.App.Controllers
 			await userFacade.SaveAsync(Guid.Parse(user.Id), firebaseUid, user.Email, name);
 
 			// 1. Vygeneruj NOVÝ Access Token (teraz s krátkou expiráciou, napr. 15 minút)
-			var accessToken = GenerateJwtToken(user, TimeSpan.FromMinutes(480));
+			var accessToken = GenerateJwtToken(user, TimeSpan.FromMinutes(15));
 
 			// 2. Vygeneruj a ulož Refresh Token (dlhá expiráciu, napr. 30 dní)
 			var refreshToken = await GenerateAndSaveRefreshToken(user.Id, TimeSpan.FromDays(30));
@@ -125,7 +125,7 @@ namespace CheckIn.Api.App.Controllers
 			}
 
 			// 3. Vydáme nový Access Token (15m)
-			var newAccessToken = GenerateJwtToken(tokenRecord.User, TimeSpan.FromMinutes(60));
+			var newAccessToken = GenerateJwtToken(tokenRecord.User, TimeSpan.FromMinutes(15));
 
 			// 4. Vydáme NOVÝ Refresh Token a starý zneplatníme (tzv. Rotating Refresh Tokens)
 			// Týmto zvyšujeme bezpečnosť - ak by bol token ukradnutý, platí iba raz.
@@ -148,9 +148,14 @@ namespace CheckIn.Api.App.Controllers
 			var token = Guid.NewGuid().ToString("N");
 			var expiryDate = DateTime.UtcNow.Add(lifespan);
 
+
+
 			// Odstránenie starých tokenov (best practice)
 			var existingTokens = dbContext.RefreshTokens.Where(t => t.UserId == userId);
-			dbContext.RefreshTokens.RemoveRange(existingTokens);
+			 if (await existingTokens.AnyAsync()) 
+		    {
+		        dbContext.RefreshTokens.RemoveRange(existingTokens);
+		    }
 
 			var refreshToken = new RefreshToken
 			{
@@ -160,7 +165,11 @@ namespace CheckIn.Api.App.Controllers
 			};
 
 			await dbContext.RefreshTokens.AddAsync(refreshToken);
-			await dbContext.SaveChangesAsync();
+			try {
+				await dbContext.SaveChangesAsync();
+		    } catch (DbUpdateConcurrencyException) {
+		        // Ak sa dva requesty "pobili", nevadí, jeden z nich vyhrá
+		    }
 
 			return refreshToken;
 		}
@@ -172,7 +181,8 @@ namespace CheckIn.Api.App.Controllers
 				HttpOnly = true, // KĽÚČOVÉ: Neprístupné cez JavaScript (chráni proti XSS)
 				Secure = true, // KĽÚČOVÉ: Len cez HTTPS (chráni prenos)
 				Expires = DateTime.UtcNow.AddDays(30), // Expirácia zhodná s tokenom
-				SameSite = SameSiteMode.Strict // Chráni proti CSRF
+				SameSite = SameSiteMode.None, // Chráni proti CSRF
+				Path = "/" // Zabezpečí, že cookie sa pošle na všetky API endpointy
 			};
 
 			// POZOR: Flutter Web musí bežať na rovnakej doméne (alebo subdoméne) ako tvoj backend, 
@@ -182,7 +192,7 @@ namespace CheckIn.Api.App.Controllers
 
 		private string GenerateJwtToken(IdentityUser user, TimeSpan lifespan)
 		{
-			var expirationTime = DateTime.Now.Add(lifespan);
+			var expirationTime = DateTime.UtcNow.Add(lifespan); 
 
 			var claims = new List<Claim>
 			{

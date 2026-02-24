@@ -72,6 +72,20 @@ class AuthNotifier extends Notifier<AuthState> {
     }
   }
 
+  void updateToken(String newToken) {
+    if (state.user != null) {
+      state = AuthState(
+        isInitializing: false,
+        user: UserProfile(
+          userId: state.user!.userId,
+          email: state.user!.email,
+          name: state.user!.name,
+          jwtToken: newToken, // Tu priradíme nový token
+        ),
+      );
+    }
+  }
+
 
   /// Google Sign In (Trigger z UI)
   Future<void> signInWithGoogle() async {
