@@ -16,7 +16,7 @@ sealed class TaskDetailModel with _$TaskDetailModel {
     required DateTime createdAt,
     required DateTime deadLine,
     required String createdById,
-    required TaskState status,
+    required TaskState state,
     required SubtaskMode subtaskMode,
     @Default(true) bool requiresAuthenticationToComplete,
 

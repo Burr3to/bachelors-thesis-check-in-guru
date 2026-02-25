@@ -8,7 +8,10 @@ public class TaskEntity : IEntity
 {
 	public Guid Id { get; set; }
 	[MaxLength(255)] public required string Title { get; set; }
+
 	[MaxLength(512)] public required string Hash { get; set; }
+
+	//Delta Json string
 	[MaxLength(1024)] public string? Notes { get; set; }
 	public DateTime CreatedAt { get; set; }
 	public DateTime LastModifiedAt { get; set; }

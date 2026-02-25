@@ -17,7 +17,7 @@ mixin _$TaskListModel {
 
  String get id; String get title; String? get notes;// Pridané
  String get hash; DateTime get createdAt; DateTime get deadLine; String get createdById;// Nové polia
- TaskState get status;// Teraz už máme enum
+ TaskState get state;// Teraz už máme enum
  SubtaskMode get subtaskMode; bool get requiresAuthenticationToComplete;
 /// Create a copy of TaskListModel
 /// with the given fields replaced by the non-null parameter values.
@@ -31,16 +31,16 @@ $TaskListModelCopyWith<TaskListModel> get copyWith => _$TaskListModelCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is TaskListModel&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.hash, hash) || other.hash == hash)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.deadLine, deadLine) || other.deadLine == deadLine)&&(identical(other.createdById, createdById) || other.createdById == createdById)&&(identical(other.status, status) || other.status == status)&&(identical(other.subtaskMode, subtaskMode) || other.subtaskMode == subtaskMode)&&(identical(other.requiresAuthenticationToComplete, requiresAuthenticationToComplete) || other.requiresAuthenticationToComplete == requiresAuthenticationToComplete));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TaskListModel&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.hash, hash) || other.hash == hash)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.deadLine, deadLine) || other.deadLine == deadLine)&&(identical(other.createdById, createdById) || other.createdById == createdById)&&(identical(other.state, state) || other.state == state)&&(identical(other.subtaskMode, subtaskMode) || other.subtaskMode == subtaskMode)&&(identical(other.requiresAuthenticationToComplete, requiresAuthenticationToComplete) || other.requiresAuthenticationToComplete == requiresAuthenticationToComplete));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,title,notes,hash,createdAt,deadLine,createdById,status,subtaskMode,requiresAuthenticationToComplete);
+int get hashCode => Object.hash(runtimeType,id,title,notes,hash,createdAt,deadLine,createdById,state,subtaskMode,requiresAuthenticationToComplete);
 
 @override
 String toString() {
-  return 'TaskListModel(id: $id, title: $title, notes: $notes, hash: $hash, createdAt: $createdAt, deadLine: $deadLine, createdById: $createdById, status: $status, subtaskMode: $subtaskMode, requiresAuthenticationToComplete: $requiresAuthenticationToComplete)';
+  return 'TaskListModel(id: $id, title: $title, notes: $notes, hash: $hash, createdAt: $createdAt, deadLine: $deadLine, createdById: $createdById, state: $state, subtaskMode: $subtaskMode, requiresAuthenticationToComplete: $requiresAuthenticationToComplete)';
 }
 
 
@@ -51,7 +51,7 @@ abstract mixin class $TaskListModelCopyWith<$Res>  {
   factory $TaskListModelCopyWith(TaskListModel value, $Res Function(TaskListModel) _then) = _$TaskListModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String title, String? notes, String hash, DateTime createdAt, DateTime deadLine, String createdById, TaskState status, SubtaskMode subtaskMode, bool requiresAuthenticationToComplete
+ String id, String title, String? notes, String hash, DateTime createdAt, DateTime deadLine, String createdById, TaskState state, SubtaskMode subtaskMode, bool requiresAuthenticationToComplete
 });
 
 
@@ -68,7 +68,7 @@ class _$TaskListModelCopyWithImpl<$Res>
 
 /// Create a copy of TaskListModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? title = null,Object? notes = freezed,Object? hash = null,Object? createdAt = null,Object? deadLine = null,Object? createdById = null,Object? status = null,Object? subtaskMode = null,Object? requiresAuthenticationToComplete = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? title = null,Object? notes = freezed,Object? hash = null,Object? createdAt = null,Object? deadLine = null,Object? createdById = null,Object? state = null,Object? subtaskMode = null,Object? requiresAuthenticationToComplete = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -77,7 +77,7 @@ as String?,hash: null == hash ? _self.hash : hash // ignore: cast_nullable_to_no
 as String,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,deadLine: null == deadLine ? _self.deadLine : deadLine // ignore: cast_nullable_to_non_nullable
 as DateTime,createdById: null == createdById ? _self.createdById : createdById // ignore: cast_nullable_to_non_nullable
-as String,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
+as String,state: null == state ? _self.state : state // ignore: cast_nullable_to_non_nullable
 as TaskState,subtaskMode: null == subtaskMode ? _self.subtaskMode : subtaskMode // ignore: cast_nullable_to_non_nullable
 as SubtaskMode,requiresAuthenticationToComplete: null == requiresAuthenticationToComplete ? _self.requiresAuthenticationToComplete : requiresAuthenticationToComplete // ignore: cast_nullable_to_non_nullable
 as bool,
@@ -162,10 +162,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String title,  String? notes,  String hash,  DateTime createdAt,  DateTime deadLine,  String createdById,  TaskState status,  SubtaskMode subtaskMode,  bool requiresAuthenticationToComplete)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String title,  String? notes,  String hash,  DateTime createdAt,  DateTime deadLine,  String createdById,  TaskState state,  SubtaskMode subtaskMode,  bool requiresAuthenticationToComplete)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _TaskListModel() when $default != null:
-return $default(_that.id,_that.title,_that.notes,_that.hash,_that.createdAt,_that.deadLine,_that.createdById,_that.status,_that.subtaskMode,_that.requiresAuthenticationToComplete);case _:
+return $default(_that.id,_that.title,_that.notes,_that.hash,_that.createdAt,_that.deadLine,_that.createdById,_that.state,_that.subtaskMode,_that.requiresAuthenticationToComplete);case _:
   return orElse();
 
 }
@@ -183,10 +183,10 @@ return $default(_that.id,_that.title,_that.notes,_that.hash,_that.createdAt,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String title,  String? notes,  String hash,  DateTime createdAt,  DateTime deadLine,  String createdById,  TaskState status,  SubtaskMode subtaskMode,  bool requiresAuthenticationToComplete)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String title,  String? notes,  String hash,  DateTime createdAt,  DateTime deadLine,  String createdById,  TaskState state,  SubtaskMode subtaskMode,  bool requiresAuthenticationToComplete)  $default,) {final _that = this;
 switch (_that) {
 case _TaskListModel():
-return $default(_that.id,_that.title,_that.notes,_that.hash,_that.createdAt,_that.deadLine,_that.createdById,_that.status,_that.subtaskMode,_that.requiresAuthenticationToComplete);}
+return $default(_that.id,_that.title,_that.notes,_that.hash,_that.createdAt,_that.deadLine,_that.createdById,_that.state,_that.subtaskMode,_that.requiresAuthenticationToComplete);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -200,10 +200,10 @@ return $default(_that.id,_that.title,_that.notes,_that.hash,_that.createdAt,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String title,  String? notes,  String hash,  DateTime createdAt,  DateTime deadLine,  String createdById,  TaskState status,  SubtaskMode subtaskMode,  bool requiresAuthenticationToComplete)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String title,  String? notes,  String hash,  DateTime createdAt,  DateTime deadLine,  String createdById,  TaskState state,  SubtaskMode subtaskMode,  bool requiresAuthenticationToComplete)?  $default,) {final _that = this;
 switch (_that) {
 case _TaskListModel() when $default != null:
-return $default(_that.id,_that.title,_that.notes,_that.hash,_that.createdAt,_that.deadLine,_that.createdById,_that.status,_that.subtaskMode,_that.requiresAuthenticationToComplete);case _:
+return $default(_that.id,_that.title,_that.notes,_that.hash,_that.createdAt,_that.deadLine,_that.createdById,_that.state,_that.subtaskMode,_that.requiresAuthenticationToComplete);case _:
   return null;
 
 }
@@ -215,7 +215,7 @@ return $default(_that.id,_that.title,_that.notes,_that.hash,_that.createdAt,_tha
 @JsonSerializable()
 
 class _TaskListModel implements TaskListModel {
-  const _TaskListModel({required this.id, required this.title, this.notes, required this.hash, required this.createdAt, required this.deadLine, required this.createdById, required this.status, required this.subtaskMode, this.requiresAuthenticationToComplete = true});
+  const _TaskListModel({required this.id, required this.title, this.notes, required this.hash, required this.createdAt, required this.deadLine, required this.createdById, required this.state, required this.subtaskMode, this.requiresAuthenticationToComplete = true});
   factory _TaskListModel.fromJson(Map<String, dynamic> json) => _$TaskListModelFromJson(json);
 
 @override final  String id;
@@ -227,7 +227,7 @@ class _TaskListModel implements TaskListModel {
 @override final  DateTime deadLine;
 @override final  String createdById;
 // Nové polia
-@override final  TaskState status;
+@override final  TaskState state;
 // Teraz už máme enum
 @override final  SubtaskMode subtaskMode;
 @override@JsonKey() final  bool requiresAuthenticationToComplete;
@@ -245,16 +245,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TaskListModel&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.hash, hash) || other.hash == hash)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.deadLine, deadLine) || other.deadLine == deadLine)&&(identical(other.createdById, createdById) || other.createdById == createdById)&&(identical(other.status, status) || other.status == status)&&(identical(other.subtaskMode, subtaskMode) || other.subtaskMode == subtaskMode)&&(identical(other.requiresAuthenticationToComplete, requiresAuthenticationToComplete) || other.requiresAuthenticationToComplete == requiresAuthenticationToComplete));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TaskListModel&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.hash, hash) || other.hash == hash)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.deadLine, deadLine) || other.deadLine == deadLine)&&(identical(other.createdById, createdById) || other.createdById == createdById)&&(identical(other.state, state) || other.state == state)&&(identical(other.subtaskMode, subtaskMode) || other.subtaskMode == subtaskMode)&&(identical(other.requiresAuthenticationToComplete, requiresAuthenticationToComplete) || other.requiresAuthenticationToComplete == requiresAuthenticationToComplete));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,title,notes,hash,createdAt,deadLine,createdById,status,subtaskMode,requiresAuthenticationToComplete);
+int get hashCode => Object.hash(runtimeType,id,title,notes,hash,createdAt,deadLine,createdById,state,subtaskMode,requiresAuthenticationToComplete);
 
 @override
 String toString() {
-  return 'TaskListModel(id: $id, title: $title, notes: $notes, hash: $hash, createdAt: $createdAt, deadLine: $deadLine, createdById: $createdById, status: $status, subtaskMode: $subtaskMode, requiresAuthenticationToComplete: $requiresAuthenticationToComplete)';
+  return 'TaskListModel(id: $id, title: $title, notes: $notes, hash: $hash, createdAt: $createdAt, deadLine: $deadLine, createdById: $createdById, state: $state, subtaskMode: $subtaskMode, requiresAuthenticationToComplete: $requiresAuthenticationToComplete)';
 }
 
 
@@ -265,7 +265,7 @@ abstract mixin class _$TaskListModelCopyWith<$Res> implements $TaskListModelCopy
   factory _$TaskListModelCopyWith(_TaskListModel value, $Res Function(_TaskListModel) _then) = __$TaskListModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String title, String? notes, String hash, DateTime createdAt, DateTime deadLine, String createdById, TaskState status, SubtaskMode subtaskMode, bool requiresAuthenticationToComplete
+ String id, String title, String? notes, String hash, DateTime createdAt, DateTime deadLine, String createdById, TaskState state, SubtaskMode subtaskMode, bool requiresAuthenticationToComplete
 });
 
 
@@ -282,7 +282,7 @@ class __$TaskListModelCopyWithImpl<$Res>
 
 /// Create a copy of TaskListModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? title = null,Object? notes = freezed,Object? hash = null,Object? createdAt = null,Object? deadLine = null,Object? createdById = null,Object? status = null,Object? subtaskMode = null,Object? requiresAuthenticationToComplete = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? title = null,Object? notes = freezed,Object? hash = null,Object? createdAt = null,Object? deadLine = null,Object? createdById = null,Object? state = null,Object? subtaskMode = null,Object? requiresAuthenticationToComplete = null,}) {
   return _then(_TaskListModel(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -291,7 +291,7 @@ as String?,hash: null == hash ? _self.hash : hash // ignore: cast_nullable_to_no
 as String,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,deadLine: null == deadLine ? _self.deadLine : deadLine // ignore: cast_nullable_to_non_nullable
 as DateTime,createdById: null == createdById ? _self.createdById : createdById // ignore: cast_nullable_to_non_nullable
-as String,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
+as String,state: null == state ? _self.state : state // ignore: cast_nullable_to_non_nullable
 as TaskState,subtaskMode: null == subtaskMode ? _self.subtaskMode : subtaskMode // ignore: cast_nullable_to_non_nullable
 as SubtaskMode,requiresAuthenticationToComplete: null == requiresAuthenticationToComplete ? _self.requiresAuthenticationToComplete : requiresAuthenticationToComplete // ignore: cast_nullable_to_non_nullable
 as bool,

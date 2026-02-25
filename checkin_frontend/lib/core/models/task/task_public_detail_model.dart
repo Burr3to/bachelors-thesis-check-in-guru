@@ -13,7 +13,7 @@ sealed class TaskPublicDetailModel with _$TaskPublicDetailModel {
     required String title,
     String? notes,
     required DateTime deadLine,
-    required TaskState status,
+    required TaskState state,
     required SubtaskMode subtaskMode,
     required bool requiresAuthenticationToComplete,
     @Default([]) List<SubtaskCombinedListModel> subtasks,

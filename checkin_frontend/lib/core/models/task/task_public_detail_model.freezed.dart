@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$TaskPublicDetailModel {
 
- String get id; String get title; String? get notes; DateTime get deadLine; TaskState get status; SubtaskMode get subtaskMode; bool get requiresAuthenticationToComplete; List<SubtaskCombinedListModel> get subtasks;
+ String get id; String get title; String? get notes; DateTime get deadLine; TaskState get state; SubtaskMode get subtaskMode; bool get requiresAuthenticationToComplete; List<SubtaskCombinedListModel> get subtasks;
 /// Create a copy of TaskPublicDetailModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $TaskPublicDetailModelCopyWith<TaskPublicDetailModel> get copyWith => _$TaskPubl
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is TaskPublicDetailModel&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.deadLine, deadLine) || other.deadLine == deadLine)&&(identical(other.status, status) || other.status == status)&&(identical(other.subtaskMode, subtaskMode) || other.subtaskMode == subtaskMode)&&(identical(other.requiresAuthenticationToComplete, requiresAuthenticationToComplete) || other.requiresAuthenticationToComplete == requiresAuthenticationToComplete)&&const DeepCollectionEquality().equals(other.subtasks, subtasks));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TaskPublicDetailModel&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.deadLine, deadLine) || other.deadLine == deadLine)&&(identical(other.state, state) || other.state == state)&&(identical(other.subtaskMode, subtaskMode) || other.subtaskMode == subtaskMode)&&(identical(other.requiresAuthenticationToComplete, requiresAuthenticationToComplete) || other.requiresAuthenticationToComplete == requiresAuthenticationToComplete)&&const DeepCollectionEquality().equals(other.subtasks, subtasks));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,title,notes,deadLine,status,subtaskMode,requiresAuthenticationToComplete,const DeepCollectionEquality().hash(subtasks));
+int get hashCode => Object.hash(runtimeType,id,title,notes,deadLine,state,subtaskMode,requiresAuthenticationToComplete,const DeepCollectionEquality().hash(subtasks));
 
 @override
 String toString() {
-  return 'TaskPublicDetailModel(id: $id, title: $title, notes: $notes, deadLine: $deadLine, status: $status, subtaskMode: $subtaskMode, requiresAuthenticationToComplete: $requiresAuthenticationToComplete, subtasks: $subtasks)';
+  return 'TaskPublicDetailModel(id: $id, title: $title, notes: $notes, deadLine: $deadLine, state: $state, subtaskMode: $subtaskMode, requiresAuthenticationToComplete: $requiresAuthenticationToComplete, subtasks: $subtasks)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $TaskPublicDetailModelCopyWith<$Res>  {
   factory $TaskPublicDetailModelCopyWith(TaskPublicDetailModel value, $Res Function(TaskPublicDetailModel) _then) = _$TaskPublicDetailModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String title, String? notes, DateTime deadLine, TaskState status, SubtaskMode subtaskMode, bool requiresAuthenticationToComplete, List<SubtaskCombinedListModel> subtasks
+ String id, String title, String? notes, DateTime deadLine, TaskState state, SubtaskMode subtaskMode, bool requiresAuthenticationToComplete, List<SubtaskCombinedListModel> subtasks
 });
 
 
@@ -65,13 +65,13 @@ class _$TaskPublicDetailModelCopyWithImpl<$Res>
 
 /// Create a copy of TaskPublicDetailModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? title = null,Object? notes = freezed,Object? deadLine = null,Object? status = null,Object? subtaskMode = null,Object? requiresAuthenticationToComplete = null,Object? subtasks = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? title = null,Object? notes = freezed,Object? deadLine = null,Object? state = null,Object? subtaskMode = null,Object? requiresAuthenticationToComplete = null,Object? subtasks = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,notes: freezed == notes ? _self.notes : notes // ignore: cast_nullable_to_non_nullable
 as String?,deadLine: null == deadLine ? _self.deadLine : deadLine // ignore: cast_nullable_to_non_nullable
-as DateTime,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
+as DateTime,state: null == state ? _self.state : state // ignore: cast_nullable_to_non_nullable
 as TaskState,subtaskMode: null == subtaskMode ? _self.subtaskMode : subtaskMode // ignore: cast_nullable_to_non_nullable
 as SubtaskMode,requiresAuthenticationToComplete: null == requiresAuthenticationToComplete ? _self.requiresAuthenticationToComplete : requiresAuthenticationToComplete // ignore: cast_nullable_to_non_nullable
 as bool,subtasks: null == subtasks ? _self.subtasks : subtasks // ignore: cast_nullable_to_non_nullable
@@ -157,10 +157,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String title,  String? notes,  DateTime deadLine,  TaskState status,  SubtaskMode subtaskMode,  bool requiresAuthenticationToComplete,  List<SubtaskCombinedListModel> subtasks)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String title,  String? notes,  DateTime deadLine,  TaskState state,  SubtaskMode subtaskMode,  bool requiresAuthenticationToComplete,  List<SubtaskCombinedListModel> subtasks)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _TaskPublicDetailModel() when $default != null:
-return $default(_that.id,_that.title,_that.notes,_that.deadLine,_that.status,_that.subtaskMode,_that.requiresAuthenticationToComplete,_that.subtasks);case _:
+return $default(_that.id,_that.title,_that.notes,_that.deadLine,_that.state,_that.subtaskMode,_that.requiresAuthenticationToComplete,_that.subtasks);case _:
   return orElse();
 
 }
@@ -178,10 +178,10 @@ return $default(_that.id,_that.title,_that.notes,_that.deadLine,_that.status,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String title,  String? notes,  DateTime deadLine,  TaskState status,  SubtaskMode subtaskMode,  bool requiresAuthenticationToComplete,  List<SubtaskCombinedListModel> subtasks)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String title,  String? notes,  DateTime deadLine,  TaskState state,  SubtaskMode subtaskMode,  bool requiresAuthenticationToComplete,  List<SubtaskCombinedListModel> subtasks)  $default,) {final _that = this;
 switch (_that) {
 case _TaskPublicDetailModel():
-return $default(_that.id,_that.title,_that.notes,_that.deadLine,_that.status,_that.subtaskMode,_that.requiresAuthenticationToComplete,_that.subtasks);}
+return $default(_that.id,_that.title,_that.notes,_that.deadLine,_that.state,_that.subtaskMode,_that.requiresAuthenticationToComplete,_that.subtasks);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -195,10 +195,10 @@ return $default(_that.id,_that.title,_that.notes,_that.deadLine,_that.status,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String title,  String? notes,  DateTime deadLine,  TaskState status,  SubtaskMode subtaskMode,  bool requiresAuthenticationToComplete,  List<SubtaskCombinedListModel> subtasks)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String title,  String? notes,  DateTime deadLine,  TaskState state,  SubtaskMode subtaskMode,  bool requiresAuthenticationToComplete,  List<SubtaskCombinedListModel> subtasks)?  $default,) {final _that = this;
 switch (_that) {
 case _TaskPublicDetailModel() when $default != null:
-return $default(_that.id,_that.title,_that.notes,_that.deadLine,_that.status,_that.subtaskMode,_that.requiresAuthenticationToComplete,_that.subtasks);case _:
+return $default(_that.id,_that.title,_that.notes,_that.deadLine,_that.state,_that.subtaskMode,_that.requiresAuthenticationToComplete,_that.subtasks);case _:
   return null;
 
 }
@@ -210,14 +210,14 @@ return $default(_that.id,_that.title,_that.notes,_that.deadLine,_that.status,_th
 @JsonSerializable()
 
 class _TaskPublicDetailModel implements TaskPublicDetailModel {
-  const _TaskPublicDetailModel({required this.id, required this.title, this.notes, required this.deadLine, required this.status, required this.subtaskMode, required this.requiresAuthenticationToComplete, final  List<SubtaskCombinedListModel> subtasks = const []}): _subtasks = subtasks;
+  const _TaskPublicDetailModel({required this.id, required this.title, this.notes, required this.deadLine, required this.state, required this.subtaskMode, required this.requiresAuthenticationToComplete, final  List<SubtaskCombinedListModel> subtasks = const []}): _subtasks = subtasks;
   factory _TaskPublicDetailModel.fromJson(Map<String, dynamic> json) => _$TaskPublicDetailModelFromJson(json);
 
 @override final  String id;
 @override final  String title;
 @override final  String? notes;
 @override final  DateTime deadLine;
-@override final  TaskState status;
+@override final  TaskState state;
 @override final  SubtaskMode subtaskMode;
 @override final  bool requiresAuthenticationToComplete;
  final  List<SubtaskCombinedListModel> _subtasks;
@@ -241,16 +241,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TaskPublicDetailModel&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.deadLine, deadLine) || other.deadLine == deadLine)&&(identical(other.status, status) || other.status == status)&&(identical(other.subtaskMode, subtaskMode) || other.subtaskMode == subtaskMode)&&(identical(other.requiresAuthenticationToComplete, requiresAuthenticationToComplete) || other.requiresAuthenticationToComplete == requiresAuthenticationToComplete)&&const DeepCollectionEquality().equals(other._subtasks, _subtasks));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TaskPublicDetailModel&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.deadLine, deadLine) || other.deadLine == deadLine)&&(identical(other.state, state) || other.state == state)&&(identical(other.subtaskMode, subtaskMode) || other.subtaskMode == subtaskMode)&&(identical(other.requiresAuthenticationToComplete, requiresAuthenticationToComplete) || other.requiresAuthenticationToComplete == requiresAuthenticationToComplete)&&const DeepCollectionEquality().equals(other._subtasks, _subtasks));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,title,notes,deadLine,status,subtaskMode,requiresAuthenticationToComplete,const DeepCollectionEquality().hash(_subtasks));
+int get hashCode => Object.hash(runtimeType,id,title,notes,deadLine,state,subtaskMode,requiresAuthenticationToComplete,const DeepCollectionEquality().hash(_subtasks));
 
 @override
 String toString() {
-  return 'TaskPublicDetailModel(id: $id, title: $title, notes: $notes, deadLine: $deadLine, status: $status, subtaskMode: $subtaskMode, requiresAuthenticationToComplete: $requiresAuthenticationToComplete, subtasks: $subtasks)';
+  return 'TaskPublicDetailModel(id: $id, title: $title, notes: $notes, deadLine: $deadLine, state: $state, subtaskMode: $subtaskMode, requiresAuthenticationToComplete: $requiresAuthenticationToComplete, subtasks: $subtasks)';
 }
 
 
@@ -261,7 +261,7 @@ abstract mixin class _$TaskPublicDetailModelCopyWith<$Res> implements $TaskPubli
   factory _$TaskPublicDetailModelCopyWith(_TaskPublicDetailModel value, $Res Function(_TaskPublicDetailModel) _then) = __$TaskPublicDetailModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String title, String? notes, DateTime deadLine, TaskState status, SubtaskMode subtaskMode, bool requiresAuthenticationToComplete, List<SubtaskCombinedListModel> subtasks
+ String id, String title, String? notes, DateTime deadLine, TaskState state, SubtaskMode subtaskMode, bool requiresAuthenticationToComplete, List<SubtaskCombinedListModel> subtasks
 });
 
 
@@ -278,13 +278,13 @@ class __$TaskPublicDetailModelCopyWithImpl<$Res>
 
 /// Create a copy of TaskPublicDetailModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? title = null,Object? notes = freezed,Object? deadLine = null,Object? status = null,Object? subtaskMode = null,Object? requiresAuthenticationToComplete = null,Object? subtasks = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? title = null,Object? notes = freezed,Object? deadLine = null,Object? state = null,Object? subtaskMode = null,Object? requiresAuthenticationToComplete = null,Object? subtasks = null,}) {
   return _then(_TaskPublicDetailModel(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,notes: freezed == notes ? _self.notes : notes // ignore: cast_nullable_to_non_nullable
 as String?,deadLine: null == deadLine ? _self.deadLine : deadLine // ignore: cast_nullable_to_non_nullable
-as DateTime,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
+as DateTime,state: null == state ? _self.state : state // ignore: cast_nullable_to_non_nullable
 as TaskState,subtaskMode: null == subtaskMode ? _self.subtaskMode : subtaskMode // ignore: cast_nullable_to_non_nullable
 as SubtaskMode,requiresAuthenticationToComplete: null == requiresAuthenticationToComplete ? _self.requiresAuthenticationToComplete : requiresAuthenticationToComplete // ignore: cast_nullable_to_non_nullable
 as bool,subtasks: null == subtasks ? _self._subtasks : subtasks // ignore: cast_nullable_to_non_nullable

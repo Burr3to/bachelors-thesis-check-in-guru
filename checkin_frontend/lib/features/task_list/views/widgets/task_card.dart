@@ -80,7 +80,7 @@ class TaskCard extends StatelessWidget {
                   Container(
                     decoration: BoxDecoration(
                       border: Border.all(
-                        color: task.status.color,
+                        color: task.state.color,
                         width: 1,
                         style: BorderStyle.solid,
                         strokeAlign: BorderSide.strokeAlignCenter,
@@ -89,8 +89,8 @@ class TaskCard extends StatelessWidget {
                     ),
                     padding: EdgeInsets.all(4),
                     child: Text(
-                      task.status.label,
-                      style: TextStyle(color: task.status.color),
+                      task.state.label,
+                      style: TextStyle(color: task.state.color),
                     ),
                   ),
                 ],

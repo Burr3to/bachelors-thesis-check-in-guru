@@ -13,7 +13,7 @@ _TaskPublicDetailModel _$TaskPublicDetailModelFromJson(
   title: json['title'] as String,
   notes: json['notes'] as String?,
   deadLine: DateTime.parse(json['deadLine'] as String),
-  status: $enumDecode(_$TaskStateEnumMap, json['status']),
+  state: $enumDecode(_$TaskStateEnumMap, json['state']),
   subtaskMode: $enumDecode(_$SubtaskModeEnumMap, json['subtaskMode']),
   requiresAuthenticationToComplete:
       json['requiresAuthenticationToComplete'] as bool,
@@ -33,7 +33,7 @@ Map<String, dynamic> _$TaskPublicDetailModelToJson(
   'title': instance.title,
   'notes': instance.notes,
   'deadLine': instance.deadLine.toIso8601String(),
-  'status': _$TaskStateEnumMap[instance.status]!,
+  'state': _$TaskStateEnumMap[instance.state]!,
   'subtaskMode': _$SubtaskModeEnumMap[instance.subtaskMode]!,
   'requiresAuthenticationToComplete': instance.requiresAuthenticationToComplete,
   'subtasks': instance.subtasks,

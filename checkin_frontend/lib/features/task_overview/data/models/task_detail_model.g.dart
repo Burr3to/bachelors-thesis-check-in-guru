@@ -15,7 +15,7 @@ _TaskDetailModel _$TaskDetailModelFromJson(Map<String, dynamic> json) =>
       createdAt: DateTime.parse(json['createdAt'] as String),
       deadLine: DateTime.parse(json['deadLine'] as String),
       createdById: json['createdById'] as String,
-      status: $enumDecode(_$TaskStateEnumMap, json['status']),
+      state: $enumDecode(_$TaskStateEnumMap, json['state']),
       subtaskMode: $enumDecode(_$SubtaskModeEnumMap, json['subtaskMode']),
       requiresAuthenticationToComplete:
           json['requiresAuthenticationToComplete'] as bool? ?? true,
@@ -40,7 +40,7 @@ Map<String, dynamic> _$TaskDetailModelToJson(
   'createdAt': instance.createdAt.toIso8601String(),
   'deadLine': instance.deadLine.toIso8601String(),
   'createdById': instance.createdById,
-  'status': _$TaskStateEnumMap[instance.status]!,
+  'state': _$TaskStateEnumMap[instance.state]!,
   'subtaskMode': _$SubtaskModeEnumMap[instance.subtaskMode]!,
   'requiresAuthenticationToComplete': instance.requiresAuthenticationToComplete,
   'subtasks': instance.subtasks,

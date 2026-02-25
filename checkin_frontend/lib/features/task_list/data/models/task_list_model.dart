@@ -17,7 +17,7 @@ sealed class TaskListModel with _$TaskListModel {
     required String createdById,
 
     // Nové polia
-    required TaskState status, // Teraz už máme enum
+    required TaskState state, // Teraz už máme enum
     required SubtaskMode subtaskMode,
     @Default(true) bool requiresAuthenticationToComplete,
   }) = _TaskListModel;

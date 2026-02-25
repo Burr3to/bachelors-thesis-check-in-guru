@@ -34,6 +34,11 @@ public class CheckInDbContext(DbContextOptions<CheckInDbContext> options)
 			.HasForeignKey(st => st.ParentTaskId)
 			.OnDelete(DeleteBehavior.Cascade); // Ak sa zmaže Task, zmažú sa aj všetky šablóny subtaskov
 
+		// Delta JSON string for rich text flutter_quill
+		modelBuilder.Entity<TaskEntity>()
+			.Property(b => b.Notes)
+			.HasColumnType("jsonb");
+
 		// 3. SubtaskTemplateEntity a SubtaskInstanceEntity (1:N)
 		modelBuilder.Entity<SubtaskInstanceEntity>()
 			.HasOne(si => si.TemplateSubtask)
