@@ -15,7 +15,7 @@ _TaskListModel _$TaskListModelFromJson(Map<String, dynamic> json) =>
       createdAt: DateTime.parse(json['createdAt'] as String),
       deadLine: DateTime.parse(json['deadLine'] as String),
       createdById: json['createdById'] as String,
-      status: $enumDecode(_$TaskStatusEnumMap, json['status']),
+      status: $enumDecode(_$TaskStateEnumMap, json['status']),
       subtaskMode: $enumDecode(_$SubtaskModeEnumMap, json['subtaskMode']),
       requiresAuthenticationToComplete:
           json['requiresAuthenticationToComplete'] as bool? ?? true,
@@ -31,15 +31,15 @@ Map<String, dynamic> _$TaskListModelToJson(
   'createdAt': instance.createdAt.toIso8601String(),
   'deadLine': instance.deadLine.toIso8601String(),
   'createdById': instance.createdById,
-  'status': _$TaskStatusEnumMap[instance.status]!,
+  'status': _$TaskStateEnumMap[instance.status]!,
   'subtaskMode': _$SubtaskModeEnumMap[instance.subtaskMode]!,
   'requiresAuthenticationToComplete': instance.requiresAuthenticationToComplete,
 };
 
-const _$TaskStatusEnumMap = {
-  TaskStatus.todo: 0,
-  TaskStatus.inProgress: 1,
-  TaskStatus.completed: 2,
+const _$TaskStateEnumMap = {
+  TaskState.todo: 0,
+  TaskState.inProgress: 1,
+  TaskState.completed: 2,
 };
 
 const _$SubtaskModeEnumMap = {SubtaskMode.shared: 1, SubtaskMode.individual: 2};

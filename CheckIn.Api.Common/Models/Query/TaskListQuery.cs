@@ -1,10 +1,10 @@
-namespace CheckIn.Api.Common.Models.Query;
+using CheckIn.Api.Common.Enums;
 
-using TaskStatus = CheckIn.Api.Common.Enums.TaskStatus;
+namespace CheckIn.Api.Common.Models.Query;
 
 public record TaskListQuery : ListQuery
 {
-	public TaskStatus? Status { get; init; }
+	public TaskState? Status { get; init; }
 
 	// Filtrovanie podľa dátumu (Deadline)
 	public DateTime? DeadLineBefore { get; init; }

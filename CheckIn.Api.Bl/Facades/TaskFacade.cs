@@ -15,7 +15,6 @@ using CheckIn.Api.Dal;
 using CheckIn.Api.Dal.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using TaskStatus = CheckIn.Api.Common.Enums.TaskStatus;
 
 namespace CheckIn.Api.Bl.Facades;
 
@@ -33,7 +32,7 @@ public class TaskFacade(CheckInDbContext dbContext, IMapper mapper, IUserContext
 			filter = filter.And(entity => entity.Title.ToLower().Contains(query.NameContains.ToLower()));
 
 		if (query.Status.HasValue)
-			filter = filter.And(entity => entity.Status == query.Status.Value);
+			filter = filter.And(entity => entity.State == query.Status.Value);
 
 		if (query.DeadLineBefore.HasValue)
 			filter = filter.And(entity => entity.DeadLine <= query.DeadLineBefore.Value);
@@ -81,7 +80,7 @@ public class TaskFacade(CheckInDbContext dbContext, IMapper mapper, IUserContext
 		if (createModel is not null)
 		{
 			entity.CreatedById = CurrentUserId;
-			entity.Status = TaskStatus.Todo;
+			entity.State = TaskState.Todo;
 
 			// var assignedUsers = taskCreateModel.AssignedUserIds;
 

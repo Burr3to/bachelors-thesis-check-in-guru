@@ -1,6 +1,6 @@
 namespace CheckIn.Api.Common.Enums;
 
-public enum TaskStatus
+public enum TaskState
 {
 	Todo = 0,
 	InProgress = 1,

@@ -1,7 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:flutter/material.dart';
 
-enum TaskStatus {
+enum TaskState {
   @JsonValue(0)
   todo,
   @JsonValue(1)
@@ -11,17 +11,17 @@ enum TaskStatus {
 
   String get label {
     return switch (this) {
-      TaskStatus.todo => "ToDo",
-      TaskStatus.inProgress => "In Progress",
-      TaskStatus.completed => "Completed",
+      TaskState.todo => "ToDo",
+      TaskState.inProgress => "In Progress",
+      TaskState.completed => "Completed",
     };
   }
 
   Color get color {
     return switch (this) {
-      TaskStatus.todo => Color.fromRGBO(155, 29, 219, 1.0),
-      TaskStatus.inProgress => Colors.blue,
-      TaskStatus.completed => Colors.green,
+      TaskState.todo => Color.fromRGBO(155, 29, 219, 1.0),
+      TaskState.inProgress => Colors.blue,
+      TaskState.completed => Colors.green,
     };
   }
 }

@@ -17,7 +17,7 @@ mixin _$TaskListModel {
 
  String get id; String get title; String? get notes;// Pridané
  String get hash; DateTime get createdAt; DateTime get deadLine; String get createdById;// Nové polia
- TaskStatus get status;// Teraz už máme enum
+ TaskState get status;// Teraz už máme enum
  SubtaskMode get subtaskMode; bool get requiresAuthenticationToComplete;
 /// Create a copy of TaskListModel
 /// with the given fields replaced by the non-null parameter values.
@@ -51,7 +51,7 @@ abstract mixin class $TaskListModelCopyWith<$Res>  {
   factory $TaskListModelCopyWith(TaskListModel value, $Res Function(TaskListModel) _then) = _$TaskListModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String title, String? notes, String hash, DateTime createdAt, DateTime deadLine, String createdById, TaskStatus status, SubtaskMode subtaskMode, bool requiresAuthenticationToComplete
+ String id, String title, String? notes, String hash, DateTime createdAt, DateTime deadLine, String createdById, TaskState status, SubtaskMode subtaskMode, bool requiresAuthenticationToComplete
 });
 
 
@@ -78,7 +78,7 @@ as String,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: 
 as DateTime,deadLine: null == deadLine ? _self.deadLine : deadLine // ignore: cast_nullable_to_non_nullable
 as DateTime,createdById: null == createdById ? _self.createdById : createdById // ignore: cast_nullable_to_non_nullable
 as String,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
-as TaskStatus,subtaskMode: null == subtaskMode ? _self.subtaskMode : subtaskMode // ignore: cast_nullable_to_non_nullable
+as TaskState,subtaskMode: null == subtaskMode ? _self.subtaskMode : subtaskMode // ignore: cast_nullable_to_non_nullable
 as SubtaskMode,requiresAuthenticationToComplete: null == requiresAuthenticationToComplete ? _self.requiresAuthenticationToComplete : requiresAuthenticationToComplete // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
@@ -162,7 +162,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String title,  String? notes,  String hash,  DateTime createdAt,  DateTime deadLine,  String createdById,  TaskStatus status,  SubtaskMode subtaskMode,  bool requiresAuthenticationToComplete)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String title,  String? notes,  String hash,  DateTime createdAt,  DateTime deadLine,  String createdById,  TaskState status,  SubtaskMode subtaskMode,  bool requiresAuthenticationToComplete)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _TaskListModel() when $default != null:
 return $default(_that.id,_that.title,_that.notes,_that.hash,_that.createdAt,_that.deadLine,_that.createdById,_that.status,_that.subtaskMode,_that.requiresAuthenticationToComplete);case _:
@@ -183,7 +183,7 @@ return $default(_that.id,_that.title,_that.notes,_that.hash,_that.createdAt,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String title,  String? notes,  String hash,  DateTime createdAt,  DateTime deadLine,  String createdById,  TaskStatus status,  SubtaskMode subtaskMode,  bool requiresAuthenticationToComplete)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String title,  String? notes,  String hash,  DateTime createdAt,  DateTime deadLine,  String createdById,  TaskState status,  SubtaskMode subtaskMode,  bool requiresAuthenticationToComplete)  $default,) {final _that = this;
 switch (_that) {
 case _TaskListModel():
 return $default(_that.id,_that.title,_that.notes,_that.hash,_that.createdAt,_that.deadLine,_that.createdById,_that.status,_that.subtaskMode,_that.requiresAuthenticationToComplete);}
@@ -200,7 +200,7 @@ return $default(_that.id,_that.title,_that.notes,_that.hash,_that.createdAt,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String title,  String? notes,  String hash,  DateTime createdAt,  DateTime deadLine,  String createdById,  TaskStatus status,  SubtaskMode subtaskMode,  bool requiresAuthenticationToComplete)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String title,  String? notes,  String hash,  DateTime createdAt,  DateTime deadLine,  String createdById,  TaskState status,  SubtaskMode subtaskMode,  bool requiresAuthenticationToComplete)?  $default,) {final _that = this;
 switch (_that) {
 case _TaskListModel() when $default != null:
 return $default(_that.id,_that.title,_that.notes,_that.hash,_that.createdAt,_that.deadLine,_that.createdById,_that.status,_that.subtaskMode,_that.requiresAuthenticationToComplete);case _:
@@ -227,7 +227,7 @@ class _TaskListModel implements TaskListModel {
 @override final  DateTime deadLine;
 @override final  String createdById;
 // Nové polia
-@override final  TaskStatus status;
+@override final  TaskState status;
 // Teraz už máme enum
 @override final  SubtaskMode subtaskMode;
 @override@JsonKey() final  bool requiresAuthenticationToComplete;
@@ -265,7 +265,7 @@ abstract mixin class _$TaskListModelCopyWith<$Res> implements $TaskListModelCopy
   factory _$TaskListModelCopyWith(_TaskListModel value, $Res Function(_TaskListModel) _then) = __$TaskListModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String title, String? notes, String hash, DateTime createdAt, DateTime deadLine, String createdById, TaskStatus status, SubtaskMode subtaskMode, bool requiresAuthenticationToComplete
+ String id, String title, String? notes, String hash, DateTime createdAt, DateTime deadLine, String createdById, TaskState status, SubtaskMode subtaskMode, bool requiresAuthenticationToComplete
 });
 
 
@@ -292,7 +292,7 @@ as String,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: 
 as DateTime,deadLine: null == deadLine ? _self.deadLine : deadLine // ignore: cast_nullable_to_non_nullable
 as DateTime,createdById: null == createdById ? _self.createdById : createdById // ignore: cast_nullable_to_non_nullable
 as String,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
-as TaskStatus,subtaskMode: null == subtaskMode ? _self.subtaskMode : subtaskMode // ignore: cast_nullable_to_non_nullable
+as TaskState,subtaskMode: null == subtaskMode ? _self.subtaskMode : subtaskMode // ignore: cast_nullable_to_non_nullable
 as SubtaskMode,requiresAuthenticationToComplete: null == requiresAuthenticationToComplete ? _self.requiresAuthenticationToComplete : requiresAuthenticationToComplete // ignore: cast_nullable_to_non_nullable
 as bool,
   ));

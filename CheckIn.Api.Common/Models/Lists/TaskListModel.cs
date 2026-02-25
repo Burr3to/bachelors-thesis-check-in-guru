@@ -1,6 +1,5 @@
 using CheckIn.Api.Common.Enums;
 using CheckIn.Api.Common.Models.Interfaces;
-using TaskStatus = CheckIn.Api.Common.Enums.TaskStatus;
 
 
 namespace CheckIn.Api.Common.Models.Lists;
@@ -15,7 +14,7 @@ public record TaskListModel : IEntityModel
 	public DateTime CreatedAt { get; init; }
 	public DateTime LastModifiedAt { get; set; }
 	public DateTime DeadLine { get; init; }
-	public TaskStatus Status { get; init; }
+	public TaskState State { get; init; }
 	public Guid CreatedById { get; init; }
 	public SubtaskMode SubtaskMode { get; init; }
 	public bool RequiresAuthenticationToComplete { get; init; } = true;

@@ -1,7 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using CheckIn.Api.Dal.Entities.InterfacesOrAbstracts;
 using CheckIn.Api.Common.Enums;
-using TaskStatus = CheckIn.Api.Common.Enums.TaskStatus;
 
 namespace CheckIn.Api.Dal.Entities;
 
@@ -14,7 +13,7 @@ public class TaskEntity : IEntity
 	public DateTime CreatedAt { get; set; }
 	public DateTime LastModifiedAt { get; set; }
 	public DateTime DeadLine { get; set; }
-	public TaskStatus Status { get; set; }
+	public TaskState State { get; set; }
 
 	public SubtaskMode SubtaskMode { get; set; }
 	public ICollection<SubtaskTemplateEntity> Subtasks { get; set; } = new List<SubtaskTemplateEntity>();
