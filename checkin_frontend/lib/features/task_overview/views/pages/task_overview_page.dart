@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/utils/quill_viewer.dart';
 import '../../../task_list/data/task_providers.dart';
 import '../widgets/subtask_list_section.dart';
 import '../widgets/subtask_progress_list.dart';
@@ -67,7 +68,7 @@ class TaskOverviewPage extends ConsumerWidget {
                       ),
                       const SizedBox(height: 24),
                       if (task.notes != null && task.notes!.isNotEmpty) ...[
-                        SelectionArea(child: Text(task.notes!),),
+                        QuillViewer(jsonText: task.notes),
                         const SizedBox(height: 24),
                       ],
 

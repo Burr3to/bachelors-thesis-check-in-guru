@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 // Importuj tvoje modely a widgety
@@ -6,6 +7,7 @@ import 'package:checkin_frontend/core/models/enums/task_enums.dart';
 import 'package:checkin_frontend/core/models/subtask_template/subtask_template_create_model.dart';
 import 'package:checkin_frontend/core/shared_widgets/primary_button.dart';
 
+import '../../../../core/utils/quill_utils.dart';
 import '../../../task_list/data/models/task_create_model.dart';
 import '../../../task_list/data/task_providers.dart';
 import '../widgets/subtask_list.dart';
@@ -23,7 +25,7 @@ class TaskCreatePage extends ConsumerStatefulWidget {
 class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
   // Stav formulára
   final _titleCtrl = TextEditingController();
-  final _descCtrl = TextEditingController();
+  final QuillController _quillCtrl = QuillController.basic();
 
   DateTime? _selectedDeadline;
   bool _requiresAuth = false;
@@ -35,7 +37,7 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
   @override
   void dispose() {
     _titleCtrl.dispose();
-    _descCtrl.dispose();
+    _quillCtrl.dispose();
     super.dispose();
   }
 
@@ -75,9 +77,12 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
     setState(() => _isLoading = true);
 
     try {
+      final bool isEditorEmpty = _quillCtrl.document.isEmpty() ||
+          _quillCtrl.document.toPlainText().trim().isEmpty;
+
       final newTask = TaskCreateModel(
         title: _titleCtrl.text,
-        notes: _descCtrl.text.isNotEmpty ? _descCtrl.text : null,
+        notes: !isEditorEmpty ? QuillUtils.controllerToString(_quillCtrl) : null,
         deadLine: _selectedDeadline!.toUtc(),
         subtaskMode: _subtaskMode,
         requiresAuthenticationToComplete: _requiresAuth,
@@ -125,7 +130,7 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
                   const SizedBox(height: 16),
 
                   // --- Basic Info ---
-                  TaskBasicInfo(titleController: _titleCtrl, descController: _descCtrl),
+                  TaskBasicInfo(titleController: _titleCtrl, quillController: _quillCtrl),
                   const SizedBox(height: 8),
 
                   // --- Subtask Input ---
