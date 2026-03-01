@@ -82,6 +82,16 @@ public class TaskFacade(CheckInDbContext dbContext, IMapper mapper, IUserContext
 			entity.CreatedById = CurrentUserId;
 			entity.State = TaskState.Todo;
 
+			if (entity.Subtasks is null || !entity.Subtasks.Any())
+			{
+				entity.Subtasks.Add(new SubtaskTemplateEntity
+				{
+					Title = entity.Title,
+					Description = entity.Notes,
+					IsGeneratedFromTask = true
+				});
+			}
+
 			// var assignedUsers = taskCreateModel.AssignedUserIds;
 
 			foreach (var subtaskTemplate in entity.Subtasks)
@@ -99,17 +109,6 @@ public class TaskFacade(CheckInDbContext dbContext, IMapper mapper, IUserContext
 				}
 				else if (entity.SubtaskMode == SubtaskMode.Individual)
 				{
-					// Typ 2: Vytvoríme N inštancií pre každého pozvaného
-					/*
-					foreach (var userId in assignedUsers)
-					{
-						subtaskTemplate.Instances.Add(new SubtaskInstanceEntity
-						{
-							AssignedToUserId = userId,
-							IsCompleted = false
-						});
-					}
-					*/
 				}
 			}
 		}
@@ -166,57 +165,30 @@ public class TaskFacade(CheckInDbContext dbContext, IMapper mapper, IUserContext
 		return updatedTask;
 	}
 
-	public async Task<Result<List<SubtaskCombinedListModel>>> GetSubTasksForTask(Guid taskId)
+	// V TaskFacade.cs
+	public async Task<Result<List<SubtaskCombinedListModel>>> GetTaskTemplatesAsync(Guid taskId)
 	{
-		var currentUserId = CurrentUserId; // Vyhodí Unauthorized, ak nie je prihlásený
-
-		// 1. Zabezpečenie prístupu: Načítať inštancie, ktoré patria danému tasku.
-		// POZOR: Musíme načítať Task, aby sme vedeli, či je shared alebo individual.
-
-		// Načítame všetky šablóny a ich inštancie pre daný Task
-		var task = await dbContext.Set<TaskEntity>()
+		var task = await dbContext.Tasks
 			.Include(t => t.Subtasks)
-			.ThenInclude(st => st.Instances)
-			// ODSTRÁNILI SME: .ThenInclude(i => i.TemplateSubtask) 
-			// Táto navigácia je redundantná a spôsobovala chybu.
-			.Where(t => t.Id == taskId && t.CreatedById == currentUserId)
-			.FirstOrDefaultAsync();
+			.FirstOrDefaultAsync(t => t.Id == taskId && t.CreatedById == CurrentUserId);
 
-		if (task == null)
-		{
-			return Result<List<SubtaskCombinedListModel>>.NotFound($"Task with ID {taskId} was not found or access denied.");
-		}
+		if (task == null) return Result<List<SubtaskCombinedListModel>>.NotFound();
 
-		// 2. Filtrácia Inštancií na základe Režimu (Biznis Logika)
+		var result = mapper.Map<List<SubtaskCombinedListModel>>(task.Subtasks);
 
-		// Zoznam SubtaskInstance entít, ktoré má user vidieť:
-		IEnumerable<SubtaskInstanceEntity> instancesToShow;
+		return Result<List<SubtaskCombinedListModel>>.Success(result);
+	}
 
-		if (task.SubtaskMode == SubtaskMode.Shared)
-		{
-			// Všetky inštancie (bude len 1 inštancia na šablónu s AssignedToUserId=null)
-			instancesToShow = task.Subtasks.SelectMany(s => s.Instances);
-		}
-		else // Individual
-		{
-			// Len inštancie priradené aktuálnemu používateľovi
-			instancesToShow = task.Subtasks.SelectMany(s => s.Instances)
-				.Where(i => i.AssignedToUserId == currentUserId);
-		}
+	public async Task<Result<List<SubtaskCombinedListModel>>> GetTaskInstancesAsync(Guid taskId)
+	{
+		var instances = await dbContext.SubtaskInstances
+			.Include(i => i.TemplateSubtask)
+			.Where(i => i.TemplateSubtask.ParentTaskId == taskId && i.TemplateSubtask.ParentTask.CreatedById == CurrentUserId)
+			.ToListAsync();
 
-		// 3. Projekcia na DTO
-		// Musíme konvertovať instancesToShow (Entity) na ListModel (DTO)
+		var result = mapper.Map<List<SubtaskCombinedListModel>>(instances);
 
-		// POZOR: Musíte použiť LINQ in memory (.ToList() pred mapovaním) 
-		// alebo zložitý dotaz v EF Core, aby sa dáta spojili.
-
-		// Pre jednoduchosť a výkon (ak už dáta máme):
-		var subtasksList = instancesToShow
-			.AsQueryable()
-			.ProjectTo<SubtaskCombinedListModel>(mapper.ConfigurationProvider) // Používame nový model
-			.ToList();
-
-		return Result<List<SubtaskCombinedListModel>>.Success(subtasksList);
+		return Result<List<SubtaskCombinedListModel>>.Success(result);
 	}
 
 
@@ -248,11 +220,23 @@ public class TaskFacade(CheckInDbContext dbContext, IMapper mapper, IUserContext
 		// 2. Filtrácia inštancií
 		if (task.SubtaskMode == SubtaskMode.Individual && !currentUserId.HasValue)
 		{
-			// Individuálny režim a ANONYMNÝ používateľ: Vrátime len Task Detail, ale bez Subtaskov.
-			var publicModel = mapper.Map<TaskPublicDetailModel>(task);
-			publicModel = publicModel with { Subtasks = new List<SubtaskCombinedListModel>() };
+			// Individuálny režim a ANONYMNÝ používateľ:
+			// Nemá žiadne inštancie, tak mu vrátime "prázdne" inštancie vytvorené zo šablón.
+			var subtasks = task.Subtasks.Select(st => new SubtaskCombinedListModel
+			{
+				// Tu je dôležitý trik: Keďže inštancia neexistuje, 
+				// môžeme poslať ID šablóny, aby frontend vedel, k čomu sa podpisuje.
+				Id = st.Id,
+				Title = st.Title,
+				Description = st.Description,
+				IsCompleted = false,
+				IsGeneratedFromTask = st.IsGeneratedFromTask,
+				// Pridáme flag, aby frontend vedel, že toto je len "šablóna" na vyplnenie
+				// (voliteľné, ak to potrebuješ rozlíšiť)
+			}).ToList();
 
-			return Result<TaskPublicDetailModel>.Success(publicModel);
+			var publicModel = mapper.Map<TaskPublicDetailModel>(task);
+			return Result<TaskPublicDetailModel>.Success(publicModel with { Subtasks = subtasks });
 		}
 		else if (task.SubtaskMode == SubtaskMode.Individual && currentUserId.HasValue)
 		{

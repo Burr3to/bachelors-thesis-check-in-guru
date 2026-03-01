@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CheckIn.Api.Dal.Migrations
 {
     [DbContext(typeof(CheckInDbContext))]
-    [Migration("20251211125614_FinalDeployFix")]
-    partial class FinalDeployFix
+    [Migration("20260228215057_SoloTask")]
+    partial class SoloTask
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -101,6 +101,9 @@ namespace CheckIn.Api.Dal.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
+                    b.Property<bool>("IsGeneratedFromTask")
+                        .HasColumnType("boolean");
+
                     b.Property<Guid>("ParentTaskId")
                         .HasColumnType("uuid");
 
@@ -136,14 +139,17 @@ namespace CheckIn.Api.Dal.Migrations
                         .HasMaxLength(512)
                         .HasColumnType("character varying(512)");
 
+                    b.Property<DateTime>("LastModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Notes")
                         .HasMaxLength(1024)
-                        .HasColumnType("character varying(1024)");
+                        .HasColumnType("jsonb");
 
                     b.Property<bool>("RequiresAuthenticationToComplete")
                         .HasColumnType("boolean");
 
-                    b.Property<int>("Status")
+                    b.Property<int>("State")
                         .HasColumnType("integer");
 
                     b.Property<int>("SubtaskMode")

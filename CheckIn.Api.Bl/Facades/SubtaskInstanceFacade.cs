@@ -105,7 +105,7 @@ public class SubtaskInstanceFacade(CheckInDbContext dbContext, IMapper mapper, I
 		}
 
 		// 1. Načítanie všetkých inštancií, ktoré majú byť zmenené
-		var instancesToComplete = await dbContext.Set<SubtaskInstanceEntity>()
+		var existingInstances = await dbContext.Set<SubtaskInstanceEntity>()
 			.Include(i => i.TemplateSubtask) // Potrebujeme Task pre RequiresAuthentication
 			.ThenInclude(st => st.ParentTask)
 			.Where(i => model.InstanceIds.Contains(i.Id))
@@ -114,28 +114,20 @@ public class SubtaskInstanceFacade(CheckInDbContext dbContext, IMapper mapper, I
 		int completedCount = 0;
 
 		// 2. Iterácia a overovanie každého Subtasku
-		foreach (var instance in instancesToComplete)
+		foreach (var instance in existingInstances)
 		{
 			if (instance.IsCompleted) continue;
 
 			var task = instance.TemplateSubtask?.ParentTask;
 			if (task == null) continue; // Chyba integrity, ignorujeme
 
-			// Kontrola autentifikácie a autorizácie (rovnaká logika ako predtým)
+			// Kontrola autentifikácie
 			if (task.RequiresAuthenticationToComplete && currentUserId == null)
-			{
-				// V hromadnom režime by sme nemali vrátiť 401 hneď, ale logovať to,
-				// alebo vrátiť chybu, ktorá zruší celú transakciu.
-				return Result<int>.Unauthorized("Authentication is required for at least one task in the batch.");
-			}
+				return Result<int>.Unauthorized("Authentication is required for this task.");
 
-			// Individuálna autorizácia (ak AssignedToUserId != currentUserId)
+			// Kontrola priradenia (ak je inštancia niekomu priradená, iný ju nemôže splniť)
 			if (instance.AssignedToUserId.HasValue && instance.AssignedToUserId.Value != currentUserId)
-			{
-				// V hromadnom režime by sme mali ignorovať neoprávnené a pokračovať,
-				// ale pre integritu radšej zrušíme celú transakciu.
-				return Result<int>.Unauthorized($"Cannot complete instance {instance.Id}: unauthorized access.");
-			}
+				return Result<int>.Unauthorized("Unauthorized access to subtask instance.");
 
 			// 3. Aktualizácia stavu
 			instance.IsCompleted = true;
@@ -146,6 +138,52 @@ public class SubtaskInstanceFacade(CheckInDbContext dbContext, IMapper mapper, I
 
 			completedCount++;
 		}
+
+		// --- 2. KROK: Spracovanie nových inštancií z ID šablón (pre anonymný Individual) ---
+		// Zistíme, ktoré ID z modelu neboli nájdené medzi existujúcimi inštanciami
+		var processedInstanceIds = existingInstances.Select(i => i.Id).ToList();
+		var remainingIds = model.InstanceIds.Except(processedInstanceIds).ToList();
+
+		if (remainingIds.Any())
+		{
+			var templates = await dbContext.Set<SubtaskTemplateEntity>()
+				.Include(t => t.ParentTask)
+				.Where(t => remainingIds.Contains(t.Id))
+				.ToListAsync();
+
+			foreach (var template in templates)
+			{
+				var task = template.ParentTask;
+				if (task == null) continue;
+
+				// Logika: Ak je to Individual a anonym, vytvoríme novú inštanciu "on-the-fly"
+				if (task.SubtaskMode == SubtaskMode.Individual)
+				{
+					if (task.RequiresAuthenticationToComplete && currentUserId == null)
+						return Result<int>.Unauthorized("Authentication is required to complete this task.");
+
+					var newInstance = new SubtaskInstanceEntity
+					{
+						TemplateSubtaskId = template.Id,
+						IsCompleted = true,
+						RespondentName = model.RespondentName,
+						CompletedAt = DateTime.UtcNow,
+						CompletedByUserId = OptionalUserId, // Guid? (null pre anonymov)
+						//AssignedToUserId = currentUserId   // Guid? (null pre anonymov)
+					};
+
+					await dbContext.Set<SubtaskInstanceEntity>().AddAsync(newInstance);
+					completedCount++;
+				}
+				else
+				{
+					// Ak je to Shared mód, ale inštancia nebola nájdená v 1. kroku, 
+					// niečo je zle (inštancia mala byť vytvorená pri Tasku).
+					// Môžeš to buď ignorovať, alebo vrátiť chybu.
+				}
+			}
+		}
+
 
 		// 4. Uloženie VŠETKÝCH zmien v jednej transakcii
 		await dbContext.SaveChangesAsync();

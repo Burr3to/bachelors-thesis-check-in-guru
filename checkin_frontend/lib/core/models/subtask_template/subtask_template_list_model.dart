@@ -10,6 +10,8 @@ sealed class SubtaskTemplateListModel with _$SubtaskTemplateListModel {
     required String title,
     String? description,
     required String parentTaskId,
+    @Default(false) bool isGeneratedFromTask
+
   }) = _SubtaskTemplateListModel;
 
   factory SubtaskTemplateListModel.fromJson(Map<String, dynamic> json) =>

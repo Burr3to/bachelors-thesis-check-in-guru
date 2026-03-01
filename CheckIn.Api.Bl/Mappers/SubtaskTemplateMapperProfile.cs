@@ -35,5 +35,10 @@ public class SubtaskTemplateMapperProfile : Profile
 		CreateMap<SubtaskTemplateUpdateModel, SubtaskTemplateEntity>()
 			// Ignorujeme ParentTaskId, aby sme ho nechtiac nezmenili
 			.ForMember(dest => dest.ParentTaskId, opt => opt.Ignore());
+
+		CreateMap<SubtaskTemplateEntity, SubtaskCombinedListModel>()
+			.ForMember(d => d.Id, opt => opt.MapFrom(s => s.Id))
+			.ForMember(d => d.IsCompleted, opt => opt.MapFrom(_ => false))
+			.ForMember(d => d.RespondentName, opt => opt.Ignore());
 	}
 }

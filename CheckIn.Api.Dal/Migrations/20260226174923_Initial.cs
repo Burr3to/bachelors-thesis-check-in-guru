@@ -197,12 +197,13 @@ namespace CheckIn.Api.Dal.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Title = table.Column<string>(type: "text", nullable: false),
-                    Hash = table.Column<string>(type: "text", nullable: false),
-                    Notes = table.Column<string>(type: "text", nullable: true),
+                    Title = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    Hash = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: false),
+                    Notes = table.Column<string>(type: "jsonb", maxLength: 1024, nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    LastModifiedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     DeadLine = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    Status = table.Column<int>(type: "integer", nullable: false),
+                    State = table.Column<int>(type: "integer", nullable: false),
                     SubtaskMode = table.Column<int>(type: "integer", nullable: false),
                     RequiresAuthenticationToComplete = table.Column<bool>(type: "boolean", nullable: false),
                     CreatedById = table.Column<Guid>(type: "uuid", nullable: false),

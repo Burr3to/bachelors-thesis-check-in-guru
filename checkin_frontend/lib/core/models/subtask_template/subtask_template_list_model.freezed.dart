@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$SubtaskTemplateListModel {
 
- String get id; String get title; String? get description; String get parentTaskId;
+ String get id; String get title; String? get description; String get parentTaskId; bool get isGeneratedFromTask;
 /// Create a copy of SubtaskTemplateListModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $SubtaskTemplateListModelCopyWith<SubtaskTemplateListModel> get copyWith => _$Su
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SubtaskTemplateListModel&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.parentTaskId, parentTaskId) || other.parentTaskId == parentTaskId));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SubtaskTemplateListModel&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.parentTaskId, parentTaskId) || other.parentTaskId == parentTaskId)&&(identical(other.isGeneratedFromTask, isGeneratedFromTask) || other.isGeneratedFromTask == isGeneratedFromTask));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,title,description,parentTaskId);
+int get hashCode => Object.hash(runtimeType,id,title,description,parentTaskId,isGeneratedFromTask);
 
 @override
 String toString() {
-  return 'SubtaskTemplateListModel(id: $id, title: $title, description: $description, parentTaskId: $parentTaskId)';
+  return 'SubtaskTemplateListModel(id: $id, title: $title, description: $description, parentTaskId: $parentTaskId, isGeneratedFromTask: $isGeneratedFromTask)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $SubtaskTemplateListModelCopyWith<$Res>  {
   factory $SubtaskTemplateListModelCopyWith(SubtaskTemplateListModel value, $Res Function(SubtaskTemplateListModel) _then) = _$SubtaskTemplateListModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String title, String? description, String parentTaskId
+ String id, String title, String? description, String parentTaskId, bool isGeneratedFromTask
 });
 
 
@@ -65,13 +65,14 @@ class _$SubtaskTemplateListModelCopyWithImpl<$Res>
 
 /// Create a copy of SubtaskTemplateListModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? title = null,Object? description = freezed,Object? parentTaskId = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? title = null,Object? description = freezed,Object? parentTaskId = null,Object? isGeneratedFromTask = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String?,parentTaskId: null == parentTaskId ? _self.parentTaskId : parentTaskId // ignore: cast_nullable_to_non_nullable
-as String,
+as String,isGeneratedFromTask: null == isGeneratedFromTask ? _self.isGeneratedFromTask : isGeneratedFromTask // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
@@ -153,10 +154,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String title,  String? description,  String parentTaskId)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String title,  String? description,  String parentTaskId,  bool isGeneratedFromTask)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _SubtaskTemplateListModel() when $default != null:
-return $default(_that.id,_that.title,_that.description,_that.parentTaskId);case _:
+return $default(_that.id,_that.title,_that.description,_that.parentTaskId,_that.isGeneratedFromTask);case _:
   return orElse();
 
 }
@@ -174,10 +175,10 @@ return $default(_that.id,_that.title,_that.description,_that.parentTaskId);case 
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String title,  String? description,  String parentTaskId)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String title,  String? description,  String parentTaskId,  bool isGeneratedFromTask)  $default,) {final _that = this;
 switch (_that) {
 case _SubtaskTemplateListModel():
-return $default(_that.id,_that.title,_that.description,_that.parentTaskId);}
+return $default(_that.id,_that.title,_that.description,_that.parentTaskId,_that.isGeneratedFromTask);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -191,10 +192,10 @@ return $default(_that.id,_that.title,_that.description,_that.parentTaskId);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String title,  String? description,  String parentTaskId)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String title,  String? description,  String parentTaskId,  bool isGeneratedFromTask)?  $default,) {final _that = this;
 switch (_that) {
 case _SubtaskTemplateListModel() when $default != null:
-return $default(_that.id,_that.title,_that.description,_that.parentTaskId);case _:
+return $default(_that.id,_that.title,_that.description,_that.parentTaskId,_that.isGeneratedFromTask);case _:
   return null;
 
 }
@@ -206,13 +207,14 @@ return $default(_that.id,_that.title,_that.description,_that.parentTaskId);case 
 @JsonSerializable()
 
 class _SubtaskTemplateListModel implements SubtaskTemplateListModel {
-  const _SubtaskTemplateListModel({required this.id, required this.title, this.description, required this.parentTaskId});
+  const _SubtaskTemplateListModel({required this.id, required this.title, this.description, required this.parentTaskId, this.isGeneratedFromTask = false});
   factory _SubtaskTemplateListModel.fromJson(Map<String, dynamic> json) => _$SubtaskTemplateListModelFromJson(json);
 
 @override final  String id;
 @override final  String title;
 @override final  String? description;
 @override final  String parentTaskId;
+@override@JsonKey() final  bool isGeneratedFromTask;
 
 /// Create a copy of SubtaskTemplateListModel
 /// with the given fields replaced by the non-null parameter values.
@@ -227,16 +229,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SubtaskTemplateListModel&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.parentTaskId, parentTaskId) || other.parentTaskId == parentTaskId));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SubtaskTemplateListModel&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.parentTaskId, parentTaskId) || other.parentTaskId == parentTaskId)&&(identical(other.isGeneratedFromTask, isGeneratedFromTask) || other.isGeneratedFromTask == isGeneratedFromTask));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,title,description,parentTaskId);
+int get hashCode => Object.hash(runtimeType,id,title,description,parentTaskId,isGeneratedFromTask);
 
 @override
 String toString() {
-  return 'SubtaskTemplateListModel(id: $id, title: $title, description: $description, parentTaskId: $parentTaskId)';
+  return 'SubtaskTemplateListModel(id: $id, title: $title, description: $description, parentTaskId: $parentTaskId, isGeneratedFromTask: $isGeneratedFromTask)';
 }
 
 
@@ -247,7 +249,7 @@ abstract mixin class _$SubtaskTemplateListModelCopyWith<$Res> implements $Subtas
   factory _$SubtaskTemplateListModelCopyWith(_SubtaskTemplateListModel value, $Res Function(_SubtaskTemplateListModel) _then) = __$SubtaskTemplateListModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String title, String? description, String parentTaskId
+ String id, String title, String? description, String parentTaskId, bool isGeneratedFromTask
 });
 
 
@@ -264,13 +266,14 @@ class __$SubtaskTemplateListModelCopyWithImpl<$Res>
 
 /// Create a copy of SubtaskTemplateListModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? title = null,Object? description = freezed,Object? parentTaskId = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? title = null,Object? description = freezed,Object? parentTaskId = null,Object? isGeneratedFromTask = null,}) {
   return _then(_SubtaskTemplateListModel(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String?,parentTaskId: null == parentTaskId ? _self.parentTaskId : parentTaskId // ignore: cast_nullable_to_non_nullable
-as String,
+as String,isGeneratedFromTask: null == isGeneratedFromTask ? _self.isGeneratedFromTask : isGeneratedFromTask // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 

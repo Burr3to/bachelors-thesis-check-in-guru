@@ -59,20 +59,11 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                 loading: () => const Center(child: CircularProgressIndicator()),
 
                 // B) Chyba
-                error: (error, stack) => Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text("Chyba: $error", style: const TextStyle(color: Colors.red)),
-                      const SizedBox(height: 8),
-                      ElevatedButton(
-                        onPressed: () => ref.invalidate(taskListProvider), // Skúsiť znova
-                        child: const Text("Refresh"),
-                      ),
-                    ],
-                  ),
-                ),
-
+                error: (error, stack) {
+                  print("Detail chyby: $error"); // Pozri si toto v konzole prehliadača (F12)
+                  print("Stacktrace: $stack");
+                  return Center(child: Text("Chyba: $error"));
+                },
                 // C) Dáta sú tu!
                 data: (queryResult) {
                   final tasks = queryResult.items; // Vytiahneme zoznam z QueryResultu

@@ -1,9 +1,11 @@
 
+import 'package:checkin_frontend/core/utils/quill_viewer.dart';
 import 'package:checkin_frontend/features/task_list/data/models/task_list_model.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/utils/date_formatter.dart';
+import '../../../../core/utils/quill_utils.dart';
 
 class TaskCard extends StatelessWidget {
   final TaskListModel task;
@@ -61,12 +63,16 @@ class TaskCard extends StatelessWidget {
 
                     const SizedBox(height: 12),
 
-                    Text(
-                      task.notes ?? "",
-                      style: Theme.of(context).textTheme.bodyMedium,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    if (task.notes != null && task.notes!.isNotEmpty)
+                      Text(
+                        QuillUtils.toPlainText(task.notes),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.black54,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+
                   ],
                 ),
               ),

@@ -31,4 +31,19 @@ class QuillUtils {
     // Toto uložíš do databázy ako string
     return jsonEncode(controller.document.toDelta().toJson());
   }
+
+  static String toPlainText(String? text) {
+    if (text == null || text.isEmpty) return "";
+
+    try {
+      // Skúsime, či je to JSON (nový formát)
+      final json = jsonDecode(text);
+      final doc = Document.fromJson(json);
+      // Vytiahneme čistý text, odstránime prebytočné konce riadkov a biele znaky
+      return doc.toPlainText().replaceAll('\n', ' ').trim();
+    } catch (e) {
+      // Ak to nie je JSON, je to starý čistý text - vrátime ho upravený
+      return text.replaceAll('\n', ' ').trim();
+    }
+  }
 }

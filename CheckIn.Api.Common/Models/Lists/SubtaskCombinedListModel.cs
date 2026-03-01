@@ -13,6 +13,7 @@ public record SubtaskCombinedListModel : IEntityModel
 	public Guid? AssignedToUserId { get; init; }
 	public Guid? CompletedByUserId { get; init; }
 	public DateTime? CompletedAt { get; init; }
+	public bool IsGeneratedFromTask { get; set; }
 
 	// Dáta zo SubtaskTemplateEntity
 	public required string Title { get; init; }

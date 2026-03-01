@@ -10,6 +10,7 @@ public class SubtaskTemplateEntity : IEntity
 
 	[MaxLength(255)] public required string Title { get; set; }
 	[MaxLength(255)] public string? Description { get; set; }
+	public bool IsGeneratedFromTask { get; set; } // Indikuje, že ide o "hlavný" podpis tasku
 
 	// FK na Parent Task
 	public Guid ParentTaskId { get; set; }

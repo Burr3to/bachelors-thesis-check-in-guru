@@ -26,7 +26,12 @@ final taskDetailProvider = FutureProvider.autoDispose.family<TaskDetailModel, St
   return apiService.getTask(taskId);
 });
 
-final taskSubtasksProvider = FutureProvider.autoDispose.family<List<SubtaskCombinedListModel>, String>((ref, taskId) async {
+final taskTemplatesProvider = FutureProvider.autoDispose.family<List<SubtaskCombinedListModel>, String>((ref, taskId) async {
   final apiService = ref.watch(taskApiServiceProvider);
-  return apiService.getTaskSubtasks(taskId);
+  return apiService.getTemplates(taskId);
+});
+
+final taskInstancesProvider = FutureProvider.autoDispose.family<List<SubtaskCombinedListModel>, String>((ref, taskId) async {
+  final apiService = ref.watch(taskApiServiceProvider);
+  return apiService.getInstances(taskId);
 });

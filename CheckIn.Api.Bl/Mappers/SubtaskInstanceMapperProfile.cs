@@ -52,7 +52,14 @@ public class SubtaskInstanceMapperProfile : Profile
 			.ForMember(dest => dest.Description,
 				opt => opt.MapFrom(src => src.TemplateSubtask!.Description))
 			.ForMember(dest => dest.TemplateSubtaskId,
-				opt => opt.MapFrom(src => src.TemplateSubtaskId));
+				opt => opt.MapFrom(src => src.TemplateSubtaskId))
+			.ForMember(d => d.IsGeneratedFromTask, opt => opt.MapFrom(s => s.TemplateSubtask!.IsGeneratedFromTask));
+
+		CreateMap<SubtaskInstanceEntity, SubtaskCombinedListModel>()
+			.ForMember(d => d.Id, opt => opt.MapFrom(s => s.Id))
+			.ForMember(d => d.Title, opt => opt.MapFrom(s => s.TemplateSubtask.Title))
+			.ForMember(d => d.Description, opt => opt.MapFrom(s => s.TemplateSubtask.Description))
+			.ForMember(d => d.IsGeneratedFromTask, opt => opt.MapFrom(s => s.TemplateSubtask.IsGeneratedFromTask));
 
 		// POZNÁMKA: V metóde CompleteAsync v SubtaskInstanceFacade by ste nikdy
 		// nemali mapovať z Update modelu. Stav by sa mal meniť priamo v BL logike

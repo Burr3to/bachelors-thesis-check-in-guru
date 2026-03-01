@@ -30,7 +30,7 @@ public class TaskMapperProfile : Profile
 			.ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Title))
 			.ForMember(dest => dest.Notes, opt => opt.MapFrom(src => src.Notes))
 			.ForMember(dest => dest.DeadLine, opt => opt.MapFrom(src => src.DeadLine))
-			.ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.State))
+			.ForMember(dest => dest.State, opt => opt.MapFrom(src => src.State))
 			.ForMember(dest => dest.SubtaskMode, opt => opt.MapFrom(src => src.SubtaskMode))
 			.ForMember(dest => dest.RequiresAuthenticationToComplete,
 				opt => opt.MapFrom(src => src.RequiresAuthenticationToComplete))

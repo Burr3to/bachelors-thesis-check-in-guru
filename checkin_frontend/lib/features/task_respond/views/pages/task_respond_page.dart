@@ -1,12 +1,15 @@
 import 'package:checkin_frontend/core/shared_widgets/app_top_bar.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import 'package:checkin_frontend/features/task_respond/data/respond_providers.dart';
 import '../../../../core/models/action/bulk_subtask_complete_model.dart';
 import '../../../../core/models/user/user_profile.dart';
 import '../../../auth/views/providers/auth_provider.dart';
+import '../widgets/login_required_view.dart';
+import '../widgets/respondent_signature_field.dart';
+import '../widgets/subtask_list_card.dart';
+import '../widgets/task_header.dart';
+
 
 class TaskRespondPage extends ConsumerStatefulWidget {
   final String taskHash;
@@ -28,74 +31,28 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
   }
 
   void _submit(UserProfile? auth) async {
-    // Rozhodneme sa, aké meno použijeme
     final String respondentName = auth != null ? auth.name : _nameCtrl.text;
-
     if (respondentName.isEmpty || _selectedIds.isEmpty) return;
 
     setState(() => _isLoading = true);
     try {
       final model = BulkSubtaskCompleteModel(
         instanceIds: _selectedIds.toList(),
-        respondentName: respondentName, // Toto meno sa pošle na BE
+        respondentName: respondentName,
       );
 
       await ref.read(subtaskInstanceApiServiceProvider).bulkComplete(model);
 
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Successfully Saved")));
-
-        // Refresh dát
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Successfully Saved")));
         ref.invalidate(publicTaskProvider(widget.taskHash));
-
-        // Reset výberu
-        setState(() {
-          _selectedIds.clear();
-        });
+        setState(() => _selectedIds.clear());
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Chyba: $e")));
-      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Chyba: $e")));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
-  }
-
-  Widget _buildLoginRequiredUI(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.lock, size: 80, color: Colors.orange),
-          const SizedBox(height: 16),
-          const Text(
-            "Task requires to be logged in",
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.login),
-            label: const Text("Google login"),
-            onPressed: () async {
-              print("DEBUG: Spúšťam Google Login priamo z TaskRespondPage");
-
-              try {
-                // 1. Spustíme prihlasovanie
-                await ref.read(authProvider.notifier).signInWithGoogle();
-
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("Prihlásenie zlyhalo: $e")),
-                );
-              }
-            },
-          ),
-        ],
-      ),
-    );
   }
 
   @override
@@ -106,19 +63,26 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
     return Scaffold(
       appBar: AppTopBar(),
       backgroundColor: Colors.white,
-
       body: asyncData.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, s) => Text("Error: $e"),
-
+        error: (e, s) => Center(child: Text("Error: $e")),
         data: (publicTask) {
           if (publicTask.requiresAuthenticationToComplete && auth == null) {
-            return _buildLoginRequiredUI(context);
+            return const LoginRequiredView();
           }
 
-          final deadlineStr = DateFormat(
-            'dd.MM.yyyy',
-          ).format(publicTask.deadLine.toLocal());
+          final bool isMainTaskOnly = publicTask.subtasks.isNotEmpty &&
+              publicTask.subtasks.every((s) => s.isGeneratedFromTask);
+
+          // Ak je to hlavný task a ešte nie je vybraný v set-e, pridáme ho tam automaticky
+          if (isMainTaskOnly && !publicTask.subtasks.first.isCompleted) {
+            if (!_selectedIds.contains(publicTask.subtasks.first.id)) {
+              Future.microtask(() => setState(() {
+                _selectedIds.add(publicTask.subtasks.first.id);
+              }));
+            }
+          }
+
           final hasPendingTasks = publicTask.subtasks.any((s) => !s.isCompleted);
 
           return Center(
@@ -129,240 +93,47 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // --- HLAVIČKA TASKU ---
-                    Text(
-                      publicTask.title,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
-                      textAlign: TextAlign.center,
+                    TaskHeader(
+                      title: publicTask.title,
+                      notes: publicTask.notes,
+                      deadline: publicTask.deadLine,
                     ),
-                    const SizedBox(height: 8),
 
-                    if (publicTask.notes != null) ...[
-                      Text(
-                        publicTask.notes!,
-                        style: const TextStyle(fontSize: 16, color: Colors.grey),
-                        textAlign: TextAlign.center,
+                    if (!isMainTaskOnly) ...[
+                      const Text("Tasks:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                      const SizedBox(height: 8),
+                      SubtaskListCard(
+                        subtasks: publicTask.subtasks,
+                        selectedIds: _selectedIds,
+                        onSelectionChanged: (id, isSelected) {
+                          setState(() {
+                            isSelected ? _selectedIds.add(id) : _selectedIds.remove(id);
+                          });
+                        },
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 24),
                     ],
 
-                    // Deadline Badge
-                    Center(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.red[50],
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.red[200]!),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.alarm, size: 16, color: Colors.red),
-                            const SizedBox(width: 6),
-                            Text(
-                              "Deadline: $deadlineStr",
-                              style: const TextStyle(
-                                color: Colors.red,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 32),
-
-                    // --- ZOZNAM ÚLOH ---
-                    const Text(
-                      "Tasks:",
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                    ),
-                    const SizedBox(height: 8),
-
-                    Card(
-                      color: const Color.fromRGBO(240, 244, 248, 1),
-                      surfaceTintColor: Colors.white,
-                      child: Column(
-                        children: publicTask.subtasks.asMap().entries.map((entry) {
-                          final index = entry.key;
-                          final subtask = entry.value;
-                          final isDone = subtask.isCompleted;
-
-                          return Column(
-                            children: [
-                              // A) Ak je hotový -> Len Info (ReadOnly)
-                              if (isDone)
-                                ListTile(
-                                  leading: const Icon(
-                                    Icons.check_circle,
-                                    color: Colors.green,
-                                  ),
-                                  title: Text(
-                                    subtask.title,
-                                    style: const TextStyle(
-                                      decoration: TextDecoration.lineThrough,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                  subtitle: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      if (subtask.description != null)
-                                        Text(subtask.description!),
-                                      const SizedBox(height: 4),
-                                      // Info o splnení
-                                      Row(
-                                        children: [
-                                          const Icon(
-                                            Icons.person,
-                                            size: 14,
-                                            color: Colors.green,
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            "Completed by: ${subtask.respondentName ?? 'Unknown'}",
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 12,
-                                              color: Colors.green,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          if (subtask.completedAt != null)
-                                            Text(
-                                              DateFormat(
-                                                'dd.MM HH:mm',
-                                              ).format(subtask.completedAt!.toLocal()),
-                                              style: const TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.grey,
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                )
-                              // B) Ak nie je hotový -> Checkbox (Aktívny)
-                              else
-                                CheckboxListTile(
-                                  controlAffinity:
-                                      ListTileControlAffinity.leading, // Checkbox vľavo
-                                  title: Text(subtask.title),
-                                  subtitle: subtask.description != null
-                                      ? Text(subtask.description!)
-                                      : null,
-                                  value: _selectedIds.contains(subtask.id),
-                                  activeColor: Colors.blue,
-                                  onChanged: (bool? checked) {
-                                    setState(() {
-                                      if (checked == true) {
-                                        _selectedIds.add(subtask.id);
-                                      } else {
-                                        _selectedIds.remove(subtask.id);
-                                      }
-                                    });
-                                  },
-                                ),
-
-                              // Čiara medzi položkami (okrem poslednej)
-                              if (index != publicTask.subtasks.length - 1)
-                                const Divider(height: 1, indent: 16, endIndent: 16),
-                            ],
-                          );
-                        }).toList(),
-                      ),
-                    ),
 
                     const SizedBox(height: 24),
-
-                    // --- FORMULÁR NA ODOSLANIE ---
-                    // Zobrazíme ho VŽDY, ak existujú nejaké nesplnené úlohy
                     if (hasPendingTasks) ...[
-                      // 1. Logika pre Signature / Meno
-                      if (auth == null) ...[
-                        // ANONYMNÝ POUŽÍVATEĽ -> Musí napísať meno
-                        TextField(
-                          controller: _nameCtrl,
-                          maxLength: 25,
-                          decoration: const InputDecoration(
-                            labelText: "Your name / signature",
-                            hintText: "Sign yourself here",
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.person),
-                          ),inputFormatters: [
-                            LengthLimitingTextInputFormatter(50)
-                        ],
-                          onChanged: (_) => setState(() {}),
+                      // Ak je to main task only, môžeme tu pridať malý text "Please sign to complete this task"
+                      if (isMainTaskOnly)
+                        const Padding(
+                          padding: EdgeInsets.only(bottom: 16),
+                          child: Text("Please sign below to confirm completion:",
+                              style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey)),
                         ),
-                      ] else ...[
-                        // PRIHLÁSENÝ POUŽÍVATEĽ -> Ukážeme mu len info
-                        Card(
-                          color: Colors.blue.withAlpha(25),
-                          child: ListTile(
-                            leading: const Icon(Icons.verified_user, color: Colors.blue),
-                            title: Text("Signed as: ${auth.name}"),
-                            subtitle: Text(auth.email),
-                          ),
-                        ),
-                      ],
-
+                      RespondentSignatureField(
+                        auth: auth,
+                        controller: _nameCtrl,
+                        onChanged: () => setState(() {}),
+                      ),
                       const SizedBox(height: 24),
-
-                      SizedBox(
-                        height: 50,
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed:
-                              (_isLoading ||
-                                  _selectedIds.isEmpty ||
-                                  (auth == null &&
-                                      _nameCtrl
-                                          .text
-                                          .isEmpty)) // Ak nie je auth, meno je povinné
-                              ? null
-                              : () => _submit(auth), // Pošleme auth do submitu
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            foregroundColor: Colors.white,
-                          ),
-                          child: _isLoading
-                              ? const CircularProgressIndicator(color: Colors.white)
-                              : Text(
-                                  _selectedIds.isEmpty
-                                      ? "Check tasks you have completed"
-                                      : "Submit (${_selectedIds.length})",
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                        ),
-                      ),
+                      _buildSubmitButton(auth, isMainTaskOnly), // Pridaný parameter
                     ] else ...[
-                      const Card(
-                        color: Colors.greenAccent,
-                        child: Padding(
-                          padding: EdgeInsets.all(16.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.thumb_up, color: Colors.white),
-                              SizedBox(width: 8),
-                              Text(
-                                "All Tasks are Completed!",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                      _buildAllCompletedBadge(),
                     ],
-
                     const SizedBox(height: 40),
                   ],
                 ),
@@ -370,6 +141,43 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildSubmitButton(UserProfile? auth, bool isMainTaskOnly) {
+    final bool isDisabled = _isLoading || _selectedIds.isEmpty || (auth == null && _nameCtrl.text.isEmpty);
+
+    String buttonText = "Submit (${_selectedIds.length})";
+    if (isMainTaskOnly) buttonText = "Confirm Completion";
+    if (_selectedIds.isEmpty && !isMainTaskOnly) buttonText = "Check tasks you have completed";
+
+    return SizedBox(
+      height: 50,
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: isDisabled ? null : () => _submit(auth),
+        style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+        child: _isLoading
+            ? const CircularProgressIndicator(color: Colors.white)
+            : Text(buttonText, style: const TextStyle(fontWeight: FontWeight.bold)),
+      ),
+    );
+  }
+
+  Widget _buildAllCompletedBadge() {
+    return const Card(
+      color: Colors.greenAccent,
+      child: Padding(
+        padding: EdgeInsets.all(16.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.thumb_up, color: Colors.white),
+            SizedBox(width: 8),
+            Text("All Tasks are Completed!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ],
+        ),
       ),
     );
   }

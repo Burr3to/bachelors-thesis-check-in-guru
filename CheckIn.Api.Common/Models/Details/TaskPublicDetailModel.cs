@@ -15,7 +15,7 @@ public record TaskPublicDetailModel : IEntityModel
 	public required string Title { get; init; }
 	public string? Notes { get; init; }
 	public DateTime DeadLine { get; init; }
-	public TaskStatus Status { get; init; }
+	public TaskState State { get; init; }
 
 	// Kľúčové pre FE logiku
 	public SubtaskMode SubtaskMode { get; init; }

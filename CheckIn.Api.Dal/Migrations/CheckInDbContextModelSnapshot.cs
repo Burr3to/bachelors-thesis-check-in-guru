@@ -98,6 +98,9 @@ namespace CheckIn.Api.Dal.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
+                    b.Property<bool>("IsGeneratedFromTask")
+                        .HasColumnType("boolean");
+
                     b.Property<Guid>("ParentTaskId")
                         .HasColumnType("uuid");
 
@@ -138,7 +141,7 @@ namespace CheckIn.Api.Dal.Migrations
 
                     b.Property<string>("Notes")
                         .HasMaxLength(1024)
-                        .HasColumnType("character varying(1024)");
+                        .HasColumnType("jsonb");
 
                     b.Property<bool>("RequiresAuthenticationToComplete")
                         .HasColumnType("boolean");

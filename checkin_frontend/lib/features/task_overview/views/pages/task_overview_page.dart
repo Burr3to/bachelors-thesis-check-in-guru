@@ -1,3 +1,4 @@
+import 'package:checkin_frontend/features/task_overview/views/widgets/main_task_results.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -35,7 +36,8 @@ class TaskOverviewPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Sledujeme dáta (Riverpod)
     final asyncTask = ref.watch(taskDetailProvider(taskId));
-    final asyncSubtasks = ref.watch(taskSubtasksProvider(taskId));
+    final asyncTemplates = ref.watch(taskTemplatesProvider(taskId)); // NOVÝ
+    final asyncInstances = ref.watch(taskInstancesProvider(taskId)); // NOVÝ
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -59,7 +61,6 @@ class TaskOverviewPage extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-
                       SelectionArea(
                         child: Text(
                           task.title,
@@ -93,32 +94,55 @@ class TaskOverviewPage extends ConsumerWidget {
 
                       const SizedBox(height: 16),
 
-                      asyncSubtasks.when(
+                      asyncTemplates.when(
                         loading: () => const LinearProgressIndicator(),
-                        error: (e, s) => const Text("Failed to load subtasks"),
-                        data: (subtasks) => Column(
-                          children: [
-                            SubtaskListSection(
-                              title: "Task Checklist",
-                              subtasks: subtasks,
-                            ),
-                            const SizedBox(height: 24),
-                            const Divider(color: Colors.blueAccent),
-                            const SizedBox(height: 24),
-                            const Align(
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                "Subtasks Progress",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            SubtaskProgressList(subtasks: subtasks),
-                          ],
-                        ),
+                        error: (e, s) => const Text("Failed to load task structure"),
+                        data: (templates) {
+                          // Zistíme, či ide o "Hlavný Task" podľa šablón
+                          final bool isMainTaskOnly =
+                              templates.isNotEmpty &&
+                              templates.every((t) => t.isGeneratedFromTask);
+
+                          return asyncInstances.when(
+                            loading: () => const LinearProgressIndicator(),
+                            error: (e, s) => const Text("Failed to load progress"),
+                            data: (instances) {
+                              if (isMainTaskOnly) {
+                                // Scenár 1 & 2: Zobrazíme len výsledky podpisov
+                                return MainTaskResults(
+                                  subtask: templates.first, // Kvôli title/desc
+                                  subtaskMode: task.subtaskMode,
+                                  allInstances: instances, // Zoznam všetkých podpisov
+                                );
+                              }
+
+                              // Scenár 3 & 4: Zobrazíme Checklist (Templates) a Progress (Instances)
+                              return Column(
+                                children: [
+                                  SubtaskListSection(
+                                    title: "Task Checklist (Definition)",
+                                    subtasks: templates,
+                                  ),
+                                  const SizedBox(height: 24),
+                                  const Divider(color: Colors.blueAccent),
+                                  const SizedBox(height: 24),
+                                  const Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      "Subtasks Progress (Results)",
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  SubtaskProgressList(subtasks: instances, subtaskMode: task.subtaskMode, templates: templates,),
+                                ],
+                              );
+                            },
+                          );
+                        },
                       ),
                     ],
                   ),

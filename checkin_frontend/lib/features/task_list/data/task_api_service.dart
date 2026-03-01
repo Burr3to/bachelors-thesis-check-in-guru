@@ -36,8 +36,11 @@ abstract class TaskApiService {
   @GET('api/Task/{id}')
   Future<TaskDetailModel> getTask(@Path("id") String id);
 
-  @GET('api/Task/{taskId}/subtasks')
-  Future<List<SubtaskCombinedListModel>> getTaskSubtasks(@Path("taskId") String taskId);
+  @GET('api/Task/{taskId}/templates')
+  Future<List<SubtaskCombinedListModel>> getTemplates(@Path("taskId") String taskId);
+
+  @GET('api/Task/{taskId}/instances')
+  Future<List<SubtaskCombinedListModel>> getInstances(@Path("taskId") String taskId);
 
   @GET('api/Task/public/{hash}')
   Future<TaskPublicDetailModel> getPublicSubtasks(@Path("hash") String hash);

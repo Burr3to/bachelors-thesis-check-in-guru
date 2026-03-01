@@ -11,7 +11,8 @@ namespace CheckIn.Api.Bl.Facades.Interfaces;
 public interface ITaskFacade : IFacade<TaskEntity, TaskListModel, TaskDetailModel,
 	TaskCreateModel, TaskUpdateModel, TaskListQuery>
 {
-	Task<Result<List<SubtaskCombinedListModel>>> GetSubTasksForTask(Guid taskId);
+	Task<Result<List<SubtaskCombinedListModel>>> GetTaskTemplatesAsync(Guid taskId);
+	Task<Result<List<SubtaskCombinedListModel>>> GetTaskInstancesAsync(Guid taskId);
 	Task<Result<TaskPublicDetailModel>> GetTaskPublicDetailByHashAsync(string hash);
 	Task EnsureIndividualInstancesExist(TaskEntity task, Guid userId);
 }

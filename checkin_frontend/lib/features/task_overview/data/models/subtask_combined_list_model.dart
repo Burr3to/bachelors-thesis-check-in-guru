@@ -17,6 +17,7 @@ sealed class SubtaskCombinedListModel with _$SubtaskCombinedListModel {
     required String title,            // Názov zo šablóny
     String? description,              // Popis zo šablóny
     required String templateSubtaskId,
+    @Default(false) bool isGeneratedFromTask,
   }) = _SubtaskCombinedListModel;
 
   factory SubtaskCombinedListModel.fromJson(Map<String, dynamic> json) =>

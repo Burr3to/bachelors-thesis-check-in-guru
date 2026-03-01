@@ -8,4 +8,5 @@ public record SubtaskTemplateListModel : IEntityModel
 	public required string Title { get; init; }
 	public string? Description { get; init; }
 	public Guid ParentTaskId { get; init; }
+	public bool IsGeneratedFromTask { get; set; }
 }

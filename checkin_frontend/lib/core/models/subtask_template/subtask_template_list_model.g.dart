@@ -13,6 +13,7 @@ _SubtaskTemplateListModel _$SubtaskTemplateListModelFromJson(
   title: json['title'] as String,
   description: json['description'] as String?,
   parentTaskId: json['parentTaskId'] as String,
+  isGeneratedFromTask: json['isGeneratedFromTask'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$SubtaskTemplateListModelToJson(
@@ -22,4 +23,5 @@ Map<String, dynamic> _$SubtaskTemplateListModelToJson(
   'title': instance.title,
   'description': instance.description,
   'parentTaskId': instance.parentTaskId,
+  'isGeneratedFromTask': instance.isGeneratedFromTask,
 };

@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CheckIn.Api.Dal.Migrations
 {
     [DbContext(typeof(CheckInDbContext))]
-    [Migration("20260225150548_RenameStatusToState")]
-    partial class RenameStatusToState
+    [Migration("20260226174923_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -141,7 +141,7 @@ namespace CheckIn.Api.Dal.Migrations
 
                     b.Property<string>("Notes")
                         .HasMaxLength(1024)
-                        .HasColumnType("character varying(1024)");
+                        .HasColumnType("jsonb");
 
                     b.Property<bool>("RequiresAuthenticationToComplete")
                         .HasColumnType("boolean");

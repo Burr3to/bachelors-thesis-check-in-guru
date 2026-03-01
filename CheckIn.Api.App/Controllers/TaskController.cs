@@ -45,11 +45,21 @@ public class TaskController(ITaskFacade taskFacade)
 		return HandleResultFailure(result);
 	}
 
-	[HttpGet("{taskId}/subtasks")]
-	public async Task<ActionResult<List<SubtaskCombinedListModel>>> GetSubtasksByTask([FromRoute] Guid taskId)
+	[HttpGet("{taskId}/instances")]
+	public async Task<ActionResult<List<SubtaskCombinedListModel>>> GetInstances([FromRoute] Guid taskId)
 	{
-		// Využitie Facade, ktorá je definovaná v Base Controleri
-		var result = await taskFacade.GetSubTasksForTask(taskId);
+		var result = await taskFacade.GetTaskInstancesAsync(taskId);
+
+		if (result.IsSuccess)
+			return Ok(result.Value);
+
+		return HandleResultFailure(result);
+	}
+
+	[HttpGet("{taskId}/templates")]
+	public async Task<ActionResult<List<SubtaskCombinedListModel>>> GetTemplates([FromRoute] Guid taskId)
+	{
+		var result = await taskFacade.GetTaskTemplatesAsync(taskId);
 
 		if (result.IsSuccess)
 			return Ok(result.Value);

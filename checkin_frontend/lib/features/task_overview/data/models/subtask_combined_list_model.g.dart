@@ -21,6 +21,7 @@ _SubtaskCombinedListModel _$SubtaskCombinedListModelFromJson(
   title: json['title'] as String,
   description: json['description'] as String?,
   templateSubtaskId: json['templateSubtaskId'] as String,
+  isGeneratedFromTask: json['isGeneratedFromTask'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$SubtaskCombinedListModelToJson(
@@ -36,4 +37,5 @@ Map<String, dynamic> _$SubtaskCombinedListModelToJson(
   'title': instance.title,
   'description': instance.description,
   'templateSubtaskId': instance.templateSubtaskId,
+  'isGeneratedFromTask': instance.isGeneratedFromTask,
 };
