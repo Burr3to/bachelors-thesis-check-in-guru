@@ -243,17 +243,10 @@ public class TaskFacade(CheckInDbContext dbContext, IMapper mapper, IUserContext
 			// Individuálny režim a PRIHLÁSENÝ používateľ: Filtrujeme podľa ID
 			await EnsureIndividualInstancesExist(task, currentUserId.Value);
 
-			task = await dbContext.Set<TaskEntity>()
-				.Include(t => t.Subtasks).ThenInclude(st => st.Instances).ThenInclude(i => i.TemplateSubtask)
-				.Where(t => t.Id == task.Id) // Použijeme existujúce ID Tasku
-				.FirstOrDefaultAsync();
-
-			// Ak sa Task nenašiel, vrátime chybu
-			if (task == null) return Result<TaskPublicDetailModel>.Failure(ErrorType.InternalError, "Task lost after save.");
-			// ****************
-
-			instancesToShow = task.Subtasks.SelectMany(s => s.Instances)
-				.Where(i => i.AssignedToUserId == currentUserId.Value);
+			instancesToShow = await dbContext.Set<SubtaskInstanceEntity>()
+				.Include(i => i.TemplateSubtask) // Tu môžeme includnuť šablónu, lebo ideme smerom "hore"
+				.Where(i => i.TemplateSubtask.ParentTaskId == task.Id && i.AssignedToUserId == currentUserId.Value)
+				.ToListAsync();
 		}
 		else // Shared Mode
 		{

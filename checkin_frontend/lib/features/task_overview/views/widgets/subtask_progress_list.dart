@@ -53,6 +53,7 @@ class SubtaskProgressList extends StatelessWidget {
       children: grouped.entries.map((entry) {
         final respondentName = entry.key;
         final userInstances = entry.value;
+        final bool isAuthenticatedUser = userInstances.any((s) => s.completedByUserId != null);
 
         return Card(
           margin: const EdgeInsets.only(bottom: 16),
@@ -68,8 +69,18 @@ class SubtaskProgressList extends StatelessWidget {
                     const Icon(Icons.person, size: 18, color: Colors.blueAccent),
                     const SizedBox(width: 8),
                     Text(respondentName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    if (isAuthenticatedUser) ...[
+                      const SizedBox(width: 6),
+                      const Tooltip(
+                        message: "Authenticated User",
+                        child: Icon(
+                          Icons.verified_user_outlined,
+                          color: Colors.green,
+                          size: 18,
+                        ),
+                      ),
+                    ],
                     const Spacer(),
-                    // TU JE OPRAVA: Počítame z celkového počtu šablón
                     Text(
                       "${userInstances.length}/$totalTaskCount Completed",
                       style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),

@@ -46,7 +46,10 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Successfully Saved")));
         ref.invalidate(publicTaskProvider(widget.taskHash));
-        setState(() => _selectedIds.clear());
+        setState(() {
+          _selectedIds.clear();
+          _nameCtrl.clear();
+        });
       }
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Chyba: $e")));
@@ -149,7 +152,7 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
     final bool isDisabled = _isLoading || _selectedIds.isEmpty || (auth == null && _nameCtrl.text.isEmpty);
 
     String buttonText = "Submit (${_selectedIds.length})";
-    if (isMainTaskOnly) buttonText = "Confirm Completion";
+    if (isMainTaskOnly) buttonText = "Sign & Send";
     if (_selectedIds.isEmpty && !isMainTaskOnly) buttonText = "Check tasks you have completed";
 
     return SizedBox(

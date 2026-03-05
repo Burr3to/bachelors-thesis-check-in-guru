@@ -12,7 +12,7 @@ public class TaskEntity : IEntity
 	[MaxLength(512)] public required string Hash { get; set; }
 
 	//Delta Json string
-	[MaxLength(1024)] public string? Notes { get; set; }
+	public string? Notes { get; set; }
 	public DateTime CreatedAt { get; set; }
 	public DateTime LastModifiedAt { get; set; }
 	public DateTime DeadLine { get; set; }

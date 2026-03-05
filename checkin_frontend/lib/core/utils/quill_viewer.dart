@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'quill_utils.dart'; // tvoja pomocná trieda
 
 class QuillViewer extends StatefulWidget {
@@ -41,12 +42,20 @@ class _QuillViewerState extends State<QuillViewer> {
 
     return QuillEditor.basic(
       controller: _controller,
-      config: const QuillEditorConfig(
-        showCursor: false, // Schová blikajúcu paličku
+      config: QuillEditorConfig(
+        showCursor: false,
         autoFocus: false,
         expands: false,
         padding: EdgeInsets.zero,
-        enableInteractiveSelection: true, // Povolí užívateľovi kopírovať text
+        enableInteractiveSelection: true,
+        onLaunchUrl: (String url) async {
+          try {
+            final Uri uri = Uri.parse(url);
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
+          } catch (e) {
+            debugPrint("Could not launch $url: $e");
+          }
+        },
       ),
     );
   }

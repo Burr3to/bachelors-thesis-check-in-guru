@@ -1,17 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/utils/quill_viewer.dart';
+
 class TaskHeader extends StatelessWidget {
   final String title;
   final String? notes;
   final DateTime deadline;
 
-  const TaskHeader({
-    super.key,
-    required this.title,
-    this.notes,
-    required this.deadline,
-  });
+  const TaskHeader({super.key, required this.title, this.notes, required this.deadline});
 
   @override
   Widget build(BuildContext context) {
@@ -19,20 +16,6 @@ class TaskHeader extends StatelessWidget {
 
     return Column(
       children: [
-        Text(
-          title,
-          style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 8),
-        if (notes != null) ...[
-          Text(
-            notes!,
-            style: const TextStyle(fontSize: 16, color: Colors.grey),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-        ],
         Center(
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -54,6 +37,20 @@ class TaskHeader extends StatelessWidget {
             ),
           ),
         ),
+        const SizedBox(height: 16),
+
+        Text(
+          title,
+          style: Theme.of(
+            context,
+          ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 8),
+        if (notes != null) ...[
+          QuillViewer(jsonText: notes),
+          const SizedBox(height: 24),
+        ],
       ],
     );
   }
