@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/models/task/task_update_model.dart';
+import '../../../../core/utils/app_snack_bar.dart';
 import '../../../../core/utils/quill_viewer.dart';
-import '../../../task_list/data/task_providers.dart';
+import '../../../../core/providers/task_providers.dart';
 import '../../data/models/task_detail_model.dart';
 import '../widgets/editable_task_notes.dart';
 import '../widgets/editable_task_title.dart';
@@ -28,39 +29,14 @@ class TaskOverviewPage extends ConsumerWidget {
     try {
       // 1. Zavoláme API
       await ref.read(taskApiServiceProvider).updateTask(task.id, model);
+      if (!context.mounted) return;
 
-      // 2. Refreshneme dáta v UI
       ref.invalidate(taskDetailProvider(taskId));
+      AppSnackBar.showSuccess(context, "Task updated successfully");
 
-      // 3. Zobrazíme potvrdenie (SnackBar)
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Row(
-              children: [
-                Icon(Icons.check_circle, color: Colors.white, size: 20),
-                SizedBox(width: 12),
-                Text("Task updated successfully"),
-              ],
-            ),
-            backgroundColor: Colors.green[700],
-            behavior: SnackBarBehavior.floating, // Vyzerá to modernejšie
-            duration: const Duration(seconds: 2),
-            width: 300, // Zúžime ho, aby nepôsobil cez celú obrazovku na webe
-          ),
-        );
-      }
     } catch (e) {
-      // 4. Ošetrenie chyby
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Failed to update task: $e"),
-            backgroundColor: Colors.red[700],
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
+      if (!context.mounted) return;
+      AppSnackBar.showError(context, "Failed to update: $e");
     }
   }
 

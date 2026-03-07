@@ -1,12 +1,12 @@
 import 'package:dio/dio.dart';
 import 'package:retrofit/retrofit.dart';
-import '../../../core/models/task/task_public_detail_model.dart';
-import '../../../core/models/task/task_update_model.dart';
-import '../../task_overview/data/models/subtask_combined_list_model.dart';
-import '../../task_overview/data/models/task_detail_model.dart';
-import 'models/query/query_result.dart';
-import 'models/task_create_model.dart';
-import 'models/task_list_model.dart';
+import '../models/task/task_public_detail_model.dart';
+import '../models/task/task_update_model.dart';
+import '../../features/task_overview/data/models/subtask_combined_list_model.dart';
+import '../../features/task_overview/data/models/task_detail_model.dart';
+import '../../features/task_list/data/models/query/query_result.dart';
+import '../../features/task_create/data/models/task_create_model.dart';
+import '../../features/task_list/data/models/task_list_model.dart';
 
 part 'task_api_service.g.dart';
 

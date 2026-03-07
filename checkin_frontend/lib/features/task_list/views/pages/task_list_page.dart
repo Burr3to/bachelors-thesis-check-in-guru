@@ -4,7 +4,7 @@ import 'package:checkin_frontend/features/auth/views/providers/auth_provider.dar
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/shared_widgets/primary_button.dart';
-import '../../data/task_providers.dart';
+import '../../../../core/providers/task_providers.dart';
 import '../widgets/task_card.dart';
 
 class TaskListPage extends ConsumerStatefulWidget {

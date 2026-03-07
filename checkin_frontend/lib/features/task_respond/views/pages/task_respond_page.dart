@@ -1,9 +1,10 @@
 import 'package:checkin_frontend/core/shared_widgets/app_top_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:checkin_frontend/features/task_respond/data/respond_providers.dart';
+import 'package:checkin_frontend/core/providers/respond_providers.dart';
 import '../../../../core/models/action/bulk_subtask_complete_model.dart';
 import '../../../../core/models/user/user_profile.dart';
+import '../../../../core/utils/app_snack_bar.dart';
 import '../../../auth/views/providers/auth_provider.dart';
 import '../widgets/login_required_view.dart';
 import '../widgets/respondent_signature_field.dart';
@@ -44,7 +45,7 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
       await ref.read(subtaskInstanceApiServiceProvider).bulkComplete(model);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Successfully Saved")));
+        AppSnackBar.showSuccess(context, "Task updated successfully");
         ref.invalidate(publicTaskProvider(widget.taskHash));
         setState(() {
           _selectedIds.clear();
@@ -52,7 +53,7 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
         });
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Chyba: $e")));
+      if (mounted) AppSnackBar.showError(context, "Error: $e");
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

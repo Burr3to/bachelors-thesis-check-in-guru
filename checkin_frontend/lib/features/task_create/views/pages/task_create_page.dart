@@ -1,3 +1,4 @@
+import 'package:checkin_frontend/core/utils/app_snack_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,8 +9,8 @@ import 'package:checkin_frontend/core/models/subtask_template/subtask_template_c
 import 'package:checkin_frontend/core/shared_widgets/primary_button.dart';
 
 import '../../../../core/utils/quill_utils.dart';
-import '../../../task_list/data/models/task_create_model.dart';
-import '../../../task_list/data/task_providers.dart';
+import '../../data/models/task_create_model.dart';
+import '../../../../core/providers/task_providers.dart';
 import '../widgets/subtask_list.dart';
 import '../widgets/task_basic_info.dart';
 import '../widgets/task_settings_section.dart';
@@ -68,9 +69,7 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
 
   Future<void> _submit() async {
     if (_titleCtrl.text.isEmpty || _selectedDeadline == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Title and Deadline are required")));
+      AppSnackBar.showInfo(context, "Deadline and Title are required");
       return;
     }
 

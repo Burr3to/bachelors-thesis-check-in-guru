@@ -1,10 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:checkin_frontend/core/api/api_providers.dart'; // Tu máš Dio
-import 'package:checkin_frontend/features/task_respond/data/subtask_instance_api_service.dart';
+import 'package:checkin_frontend/core/services/subtask_instance_api_service.dart';
 
-import '../../../core/models/task/task_public_detail_model.dart';
-import '../../auth/views/providers/auth_provider.dart';
-import '../../task_list/data/task_api_service.dart';
+import '../models/task/task_public_detail_model.dart';
+import '../../features/auth/views/providers/auth_provider.dart';
+import '../services/task_api_service.dart';
 // Ak máš getPublicSubtasks tu
 
 // 1. Provider pre SubtaskInstanceApiService (na odoslanie BulkComplete)

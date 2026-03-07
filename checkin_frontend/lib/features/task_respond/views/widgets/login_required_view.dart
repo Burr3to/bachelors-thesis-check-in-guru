@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/utils/app_snack_bar.dart';
 import '../../../auth/views/providers/auth_provider.dart';
 
 class LoginRequiredView extends ConsumerWidget {
@@ -25,9 +26,8 @@ class LoginRequiredView extends ConsumerWidget {
               try {
                 await ref.read(authProvider.notifier).signInWithGoogle();
               } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("Login failed: $e")),
-                );
+                if (!context.mounted) return;
+                AppSnackBar.showError(context, "Login Failed: $e");
               }
             },
           ),

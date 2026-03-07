@@ -39,16 +39,56 @@ class TaskSettingsSection extends StatelessWidget {
                       : SubtaskMode.shared;
                   onModeChanged(newMode);
                 },
-                activeLabel: "Group list for everyone",
+                activeTooltip: "Collaborative: One list for everyone. Anyone can complete tasks for the whole group. Everyone sees shared progress and names.",
+                inactiveTooltip: "Independent: Each participant gets their own private copy. Progress is separate for every person who opens the link.",
+
+                activeLabel: "Collaborative",
                 activeIcon: Icons.group_outlined,
                 activeColor: Colors.blue,
-                inactiveLabel: "Personal for each participant",
+                inactiveLabel: "Independent",
                 inactiveIcon: Icons.person_outline,
                 inactiveColor: Colors.orange,
               ),
             ),
 
             const SizedBox(width: 12),
+
+            Expanded(
+              child: InkWell(
+                onTap: onDateTap,
+                borderRadius: BorderRadius.circular(12),
+                child: InputDecorator(
+                  decoration: InputDecoration(
+                    labelText: "Deadline",
+                    labelStyle: const TextStyle(color: Colors.blueAccent),
+                    isDense: true,
+
+                    contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colors.blueAccent, width: 2),
+                    ),
+
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colors.blueAccent, width: 2),
+                    ),
+
+                    suffixIcon: const Icon(Icons.calendar_today, color: Colors.blueAccent, size: 20),
+                  ),
+                  child: Text(
+                    selectedDeadline == null
+                        ? "Set Deadline"
+                        : DateFormat('dd.MM.yyyy').format(selectedDeadline!),
+                    style: const TextStyle(fontSize: 15), // Môžeš tiež upraviť veľkosť písma
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(width: 12),
+
 
             // 2. AUTH TOGGLE (Teraz používa dynamický widget)
             Expanded(
@@ -58,34 +98,19 @@ class TaskSettingsSection extends StatelessWidget {
                 activeLabel: "Verified Only",
                 activeIcon: Icons.lock,
                 activeColor: Colors.blue,
+                activeTooltip: "Only users signed in through Google can confirm sasks",
+
                 inactiveLabel: "Public",
                 inactiveIcon: Icons.lock_open,
                 inactiveColor: Colors.black54, // Pre Public dáme šedú
+                inactiveTooltip: "Everyone has access with a link, beware of duplicates from one person",
               ),
             ),
           ],
         ),
 
-        const SizedBox(height: 24),
 
-        InkWell(
-          onTap: onDateTap,
-          child: InputDecorator(
-            decoration: const InputDecoration(
-              labelText: "Deadline",
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.all(Radius.circular(12)),
-              ),
-              isDense: true,
-              suffixIcon: Icon(Icons.calendar_today, size: 20),
-            ),
-            child: Text(
-              selectedDeadline == null
-                  ? "Set Deadline"
-                  : DateFormat('dd.MM.yyyy').format(selectedDeadline!),
-            ),
-          ),
-        ),
+
       ],
     );
   }

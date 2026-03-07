@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 
-import '../../../task_list/data/task_providers.dart';
+import '../../../../core/providers/task_providers.dart';
 
 class TaskActionButtons extends ConsumerWidget {
   final String taskId;
