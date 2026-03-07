@@ -47,7 +47,7 @@ class _TaskApiService implements TaskApiService {
   }
 
   @override
-  Future<TaskDetailModel> updateTask(TaskUpdateModel body) async {
+  Future<TaskDetailModel> updateTask(String id, TaskUpdateModel body) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     final _headers = <String, dynamic>{};
@@ -56,7 +56,7 @@ class _TaskApiService implements TaskApiService {
       Options(method: 'PUT', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            'api/Task',
+            'api/Task/${id}',
             queryParameters: queryParameters,
             data: _data,
           )

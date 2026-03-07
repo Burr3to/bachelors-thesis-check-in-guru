@@ -45,6 +45,22 @@ public class TaskController(ITaskFacade taskFacade)
 		return HandleResultFailure(result);
 	}
 
+	[HttpPut("{id}")]
+	public override async Task<IActionResult> Put(Guid id, [FromBody] TaskUpdateModel model)
+	{
+		if (id != model.Id)
+			return BadRequest("ID mismatch.");
+
+		var result = await taskFacade.SaveUpdateModelAsync(model);
+
+		if (result.IsSuccess)
+		{
+			return CreatedAtAction(nameof(GetById), new { id = result.Value!.Id }, result.Value);
+		}
+
+		return HandleResultFailure(result);
+	}
+
 	[HttpGet("{taskId}/instances")]
 	public async Task<ActionResult<List<SubtaskCombinedListModel>>> GetInstances([FromRoute] Guid taskId)
 	{

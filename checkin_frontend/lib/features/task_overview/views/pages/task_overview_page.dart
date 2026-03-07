@@ -2,8 +2,12 @@ import 'package:checkin_frontend/features/task_overview/views/widgets/main_task_
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/models/task/task_update_model.dart';
 import '../../../../core/utils/quill_viewer.dart';
 import '../../../task_list/data/task_providers.dart';
+import '../../data/models/task_detail_model.dart';
+import '../widgets/editable_task_notes.dart';
+import '../widgets/editable_task_title.dart';
 import '../widgets/subtask_list_section.dart';
 import '../widgets/subtask_progress_list.dart';
 import '../widgets/task_action_buttons.dart';
@@ -11,33 +15,61 @@ import '../widgets/task_info_header.dart';
 
 class TaskOverviewPage extends ConsumerWidget {
   final String taskId;
-
   const TaskOverviewPage({super.key, required this.taskId});
 
-  // Pomocná funkcia na mazanie (zostáva tu, lebo ovláda navigáciu)
-  Future<void> _handleDelete(BuildContext context, WidgetRef ref) async {
+  void _updateTask(BuildContext context, WidgetRef ref, TaskDetailModel task, {String? title, String? notes}) async {
+    final model = TaskUpdateModel(
+      id: task.id,
+      title: title ?? task.title,
+      notes: notes ?? task.notes,
+      deadLine: task.deadLine,
+    );
+
     try {
-      await ref.read(taskApiServiceProvider).deleteTask(taskId);
-      ref.invalidate(taskListProvider);
+      // 1. Zavoláme API
+      await ref.read(taskApiServiceProvider).updateTask(task.id, model);
+
+      // 2. Refreshneme dáta v UI
+      ref.invalidate(taskDetailProvider(taskId));
+
+      // 3. Zobrazíme potvrdenie (SnackBar)
       if (context.mounted) {
-        context.go('/app/tasks');
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Task was deleted")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white, size: 20),
+                SizedBox(width: 12),
+                Text("Task updated successfully"),
+              ],
+            ),
+            backgroundColor: Colors.green[700],
+            behavior: SnackBarBehavior.floating, // Vyzerá to modernejšie
+            duration: const Duration(seconds: 2),
+            width: 300, // Zúžime ho, aby nepôsobil cez celú obrazovku na webe
+          ),
+        );
       }
     } catch (e) {
+      // 4. Ošetrenie chyby
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Failed to update task: $e"),
+            backgroundColor: Colors.red[700],
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
     }
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Sledujeme dáta (Riverpod)
+
     final asyncTask = ref.watch(taskDetailProvider(taskId));
-    final asyncTemplates = ref.watch(taskTemplatesProvider(taskId)); // NOVÝ
-    final asyncInstances = ref.watch(taskInstancesProvider(taskId)); // NOVÝ
+    final asyncTemplates = ref.watch(taskTemplatesProvider(taskId));
+    final asyncInstances = ref.watch(taskInstancesProvider(taskId));
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -61,17 +93,19 @@ class TaskOverviewPage extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SelectionArea(
-                        child: Text(
-                          task.title,
-                          style: Theme.of(context).textTheme.headlineMedium,
-                        ),
+
+                      //Basic info
+                      EditableTaskTitle(
+                        initialTitle: task.title,
+                        onSave: (newTitle) => _updateTask(context, ref, task, title: newTitle),
                       ),
-                      const SizedBox(height: 24),
-                      if (task.notes != null && task.notes!.isNotEmpty) ...[
-                        QuillViewer(jsonText: task.notes),
-                        const SizedBox(height: 24),
-                      ],
+                      const SizedBox(height: 16),
+                      EditableTaskNotes(
+                        initialNotes: task.notes,
+                        onSave: (newNotes) => _updateTask(context, ref, task, notes: newNotes),
+                      ),
+                      const SizedBox(height: 16),
+
 
                       TaskActionButtons(
                         taskId: taskId,

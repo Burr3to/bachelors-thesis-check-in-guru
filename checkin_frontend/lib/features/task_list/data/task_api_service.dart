@@ -17,8 +17,8 @@ abstract class TaskApiService {
   @POST('api/Task')
   Future<TaskDetailModel> createTask(@Body() TaskCreateModel body);
 
-  @PUT('api/Task')
-  Future<TaskDetailModel> updateTask(@Body() TaskUpdateModel body);
+  @PUT('api/Task/{id}')
+  Future<TaskDetailModel> updateTask(@Path("id") String id, @Body() TaskUpdateModel body);
 
 
   @GET('api/Task')

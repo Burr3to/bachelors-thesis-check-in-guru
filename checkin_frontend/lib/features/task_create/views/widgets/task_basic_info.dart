@@ -95,39 +95,6 @@ class TaskBasicInfo extends StatelessWidget {
             ),
           ),
         ),
-
-        /*TextField(
-          controller: descController,
-          maxLines: null,
-          maxLength: 1024,
-          minLines: 2,
-          keyboardType: TextInputType.multiline,
-
-          decoration: InputDecoration(
-            //Text
-            labelText: "Description",
-            labelStyle: TextStyle(color: Colors.black54),
-            floatingLabelStyle: TextStyle(color: Colors.blue),
-            hintText: "Enter Task description",
-
-            //Background
-            filled: true,
-            fillColor: Color.fromRGBO(100, 130, 255, 0.1),
-
-            //Borders
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Color.fromRGBO(81, 119, 200, 0.5), width: 2),
-            ),
-
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.blueAccent, width: 2),
-            ),
-          ),
-        ),*/
       ],
     );
   }
