@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:retrofit/retrofit.dart';
+import '../models/Statistics/task_summary_stats.dart';
 import '../models/task/task_public_detail_model.dart';
 import '../models/task/task_update_model.dart';
 import '../../features/task_overview/data/models/subtask_combined_list_model.dart';
@@ -38,6 +39,9 @@ abstract class TaskApiService {
 
   @GET('api/Task/{taskId}/templates')
   Future<List<SubtaskCombinedListModel>> getTemplates(@Path("taskId") String taskId);
+
+  @POST("/tasks/summary-stats")
+  Future<List<TaskSummaryStats>> getTaskSummaryStats(@Body() List<String> taskIds);
 
   @GET('api/Task/{taskId}/instances')
   Future<List<SubtaskCombinedListModel>> getInstances(@Path("taskId") String taskId);

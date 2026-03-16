@@ -169,6 +169,39 @@ class _TaskApiService implements TaskApiService {
   }
 
   @override
+  Future<List<TaskSummaryStats>> getTaskSummaryStats(
+    List<String> taskIds,
+  ) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    final _headers = <String, dynamic>{};
+    final _data = taskIds;
+    final _options = _setStreamType<List<TaskSummaryStats>>(
+      Options(method: 'POST', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/tasks/summary-stats',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch<List<dynamic>>(_options);
+    late List<TaskSummaryStats> _value;
+    try {
+      _value = _result.data!
+          .map(
+            (dynamic i) => TaskSummaryStats.fromJson(i as Map<String, dynamic>),
+          )
+          .toList();
+    } on Object catch (e, s) {
+      errorLogger?.logError(e, s, _options, response: _result);
+      rethrow;
+    }
+    return _value;
+  }
+
+  @override
   Future<List<SubtaskCombinedListModel>> getInstances(String taskId) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
