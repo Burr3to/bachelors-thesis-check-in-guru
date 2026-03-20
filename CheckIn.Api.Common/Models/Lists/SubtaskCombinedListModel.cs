@@ -5,18 +5,19 @@ namespace CheckIn.Api.Common.Models.Lists;
 
 public record SubtaskCombinedListModel : IEntityModel
 {
-	// Dáta zo SubtaskInstanceEntity
-	public Guid Id { get; init; } // Toto je ID inštancie! (pre kliknutie Complete)
-	public bool IsCompleted { get; init; }
-	[MaxLength(255)] public string? RespondentName { get; init; }
-	[MaxLength(255)] public string? Comment { get; init; }
-	public Guid? AssignedToUserId { get; init; }
-	public Guid? CompletedByUserId { get; init; }
-	public DateTime? CompletedAt { get; init; }
-	public bool IsGeneratedFromTask { get; set; }
+    // Dáta zo SubtaskInstanceEntity
+    public Guid Id { get; init; } // Toto je ID inštancie! (pre kliknutie Complete)
+    public bool IsCompleted { get; init; }
+    public Guid ResponseGroupId { get; set; }
+    [MaxLength(255)] public string? RespondentName { get; init; }
+    [MaxLength(255)] public string? Comment { get; init; }
+    public Guid? AssignedToUserId { get; init; }
+    public Guid? CompletedByUserId { get; init; }
+    public DateTime? CompletedAt { get; init; }
+    public bool IsGeneratedFromTask { get; set; }
 
-	// Dáta zo SubtaskTemplateEntity
-	public required string Title { get; init; }
-	public string? Description { get; init; }
-	public Guid TemplateSubtaskId { get; init; } // ID šablóny, ak by sme ju potrebovali
+    // Dáta zo SubtaskTemplateEntity
+    public required string Title { get; init; }
+    public string? Description { get; init; }
+    public Guid TemplateSubtaskId { get; init; } // ID šablóny, ak by sme ju potrebovali
 }

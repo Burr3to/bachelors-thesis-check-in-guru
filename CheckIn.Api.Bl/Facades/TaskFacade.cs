@@ -95,6 +95,7 @@ public class TaskFacade(CheckInDbContext dbContext, IMapper mapper, IUserContext
             }
 
             // var assignedUsers = taskCreateModel.AssignedUserIds;
+            var sharedGroupId = Guid.NewGuid();
 
             foreach (var subtaskTemplate in entity.Subtasks)
             {
@@ -103,10 +104,9 @@ public class TaskFacade(CheckInDbContext dbContext, IMapper mapper, IUserContext
                     // Typ 1: Vytvoríme 1 zdieľanú inštanciu
                     subtaskTemplate.Instances.Add(new SubtaskInstanceEntity
                     {
-                        // TemplateSubtaskId bude nastavené automaticky EF Core, 
-                        // lebo používame navigačnú property subtaskTemplate.Instances.Add()
                         AssignedToUserId = null,
                         IsCompleted = false,
+                        ResponseGroupId = sharedGroupId,
                     });
                 }
                 else if (entity.SubtaskMode == SubtaskMode.Individual)
@@ -280,11 +280,14 @@ public class TaskFacade(CheckInDbContext dbContext, IMapper mapper, IUserContext
         if (instancesExist)
             return;
 
+        var userResponseGroupId = Guid.NewGuid();
+
         // 2. Ak neexistujú, vytvoríme N inštancií
         foreach (var subtaskTemplate in task.Subtasks)
         {
             subtaskTemplate.Instances.Add(new SubtaskInstanceEntity
             {
+                ResponseGroupId = userResponseGroupId,
                 AssignedToUserId = userId,
                 IsCompleted = false
             });
@@ -302,7 +305,8 @@ public class TaskFacade(CheckInDbContext dbContext, IMapper mapper, IUserContext
                 TaskId = i.TemplateSubtask.ParentTaskId,
                 i.TemplateSubtask.ParentTask.SubtaskMode,
                 i.AssignedToUserId,
-                i.IsCompleted
+                i.IsCompleted,
+                i.ResponseGroupId
             })
             .ToListAsync();
 
@@ -321,7 +325,7 @@ public class TaskFacade(CheckInDbContext dbContext, IMapper mapper, IUserContext
             if (mode == SubtaskMode.Individual)
             {
                 var userGroups = taskInstances
-                    .GroupBy(i => i.AssignedToUserId)
+                    .GroupBy(i => i.ResponseGroupId)
                     .Select(g => new
                     {
                         TotalCount = g.Count(),

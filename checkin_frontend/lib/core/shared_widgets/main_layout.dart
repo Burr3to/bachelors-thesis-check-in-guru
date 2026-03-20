@@ -9,7 +9,7 @@ class MainLayout extends StatelessWidget{
   @override
   Widget build(BuildContext context){
     return Padding(
-      padding: const EdgeInsets.only(left: 22, right: 22, top: 8, bottom: 8),
+      padding: const EdgeInsets.only(left: 0, right: 0, top: 5, bottom: 0),
       child: Scaffold(
         appBar: const AppTopBar(),
         body: child,

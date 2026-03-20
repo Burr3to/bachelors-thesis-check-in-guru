@@ -1,6 +1,7 @@
 
 import 'package:checkin_frontend/core/utils/quill_viewer.dart';
 import 'package:checkin_frontend/features/task_list/data/models/task_list_model.dart';
+import 'package:checkin_frontend/features/task_list/views/widgets/task_progress_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -36,7 +37,7 @@ class TaskCard extends StatelessWidget {
           print("Klikol si na úlohu: ${task.title}");
         },
         child: Padding(
-          padding: const EdgeInsets.only(left: 32, right: 32, top: 16, bottom: 16),
+          padding: const EdgeInsets.only(left: 32, right: 32, top: 16, bottom: 12),
           child: Row(
             children: [
               Expanded(
@@ -50,7 +51,7 @@ class TaskCard extends StatelessWidget {
                       deadlineColor,
                     ),
 
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
 
                     Text(
                       task.title,
@@ -61,7 +62,7 @@ class TaskCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
 
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
 
                     if (task.notes != null && task.notes!.isNotEmpty)
                       Text(
@@ -72,6 +73,10 @@ class TaskCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
+
+                    const SizedBox(height: 8),
+
+                    TaskProgressBar(taskId: task.id),
 
                   ],
                 ),

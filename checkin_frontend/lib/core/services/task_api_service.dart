@@ -40,7 +40,7 @@ abstract class TaskApiService {
   @GET('api/Task/{taskId}/templates')
   Future<List<SubtaskCombinedListModel>> getTemplates(@Path("taskId") String taskId);
 
-  @POST("/tasks/summary-stats")
+  @POST("api/Task/summary-stats")
   Future<List<TaskSummaryStats>> getTaskSummaryStats(@Body() List<String> taskIds);
 
   @GET('api/Task/{taskId}/instances')

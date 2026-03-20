@@ -10,6 +10,7 @@ _SubtaskInstanceListModel _$SubtaskInstanceListModelFromJson(
   Map<String, dynamic> json,
 ) => _SubtaskInstanceListModel(
   id: json['id'] as String,
+  responseGroupId: json['responseGroupId'] as String,
   templateSubtaskId: json['templateSubtaskId'] as String,
   assignedToUserId: json['assignedToUserId'] as String?,
   isCompleted: json['isCompleted'] as bool? ?? false,
@@ -23,6 +24,7 @@ Map<String, dynamic> _$SubtaskInstanceListModelToJson(
   _SubtaskInstanceListModel instance,
 ) => <String, dynamic>{
   'id': instance.id,
+  'responseGroupId': instance.responseGroupId,
   'templateSubtaskId': instance.templateSubtaskId,
   'assignedToUserId': instance.assignedToUserId,
   'isCompleted': instance.isCompleted,

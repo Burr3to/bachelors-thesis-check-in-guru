@@ -1,3 +1,4 @@
+import 'package:checkin_frontend/features/home/views/pages/home_page.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -24,7 +25,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
-    initialLocation: '/app/tasks',
+    initialLocation: '/',
     refreshListenable: refreshListenable,
     debugLogDiagnostics: true,
 
@@ -33,29 +34,28 @@ final routerProvider = Provider<GoRouter>((ref) {
     ],
 
     redirect: (context, state) {
-      // Získame aktuálny stav (read namiesto watch)
       final auth = ref.read(authProvider);
-
       if (auth.isInitializing) return null;
 
       final bool isLoggedIn = auth.user != null;
       final String path = state.uri.path;
 
-      // Logika pre návrat z Login stránky
+      // 1. Ak je prihlásený a ide na login, pošli ho do appky (predvolene na tasks)
       if (path == '/login' && isLoggedIn) {
         final String? redirectTo = state.uri.queryParameters['redirect'];
         return (redirectTo != null && redirectTo.isNotEmpty) ? redirectTo : '/app/tasks';
       }
 
-      // Ochrana súkromných ciest
-      if (path.startsWith('/app')) {
+      // 2. Ochrana súkromných ciest
+      // POZOR: Povolíme cestu '/app/home' aj pre neprihlásených
+      if (path.startsWith('/app') && path != '/app/home') {
         if (!isLoggedIn) {
           return '/login?redirect=${Uri.encodeComponent(state.uri.toString())}';
         }
-        return null;
       }
 
-      if (path == '/' || path == '/app') return '/app/tasks';
+      // 3. Ak niekto príde na čisté "/" alebo "/app", pošleme ho na home
+      if (path == '/' || path == '/app') return '/app/home';
 
       return null;
     },
@@ -80,6 +80,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           );
         },
         routes: [
+          GoRoute(
+              path: '/app/home',
+              builder: (context, state) => const HomePage()
+          ),
           GoRoute(
             path: '/app/tasks',
             builder: (context, state) => const TaskListPage(),

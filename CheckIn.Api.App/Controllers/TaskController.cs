@@ -84,7 +84,7 @@ public class TaskController(ITaskFacade taskFacade)
         return HandleResultFailure(result);
     }
 
-    [HttpPost("tasks/summary-stats")]
+    [HttpPost("summary-stats")]
     public async Task<ActionResult<List<TaskSummaryStats>>> GetTaskSummaryStats([FromBody] List<Guid> taskIds)
     {
         var result = await taskFacade.GetSummaryStats(taskIds);

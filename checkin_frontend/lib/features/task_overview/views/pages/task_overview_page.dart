@@ -130,7 +130,7 @@ class TaskOverviewPage extends ConsumerWidget {
                               return Column(
                                 children: [
                                   SubtaskListSection(
-                                    title: "Task Checklist (Definition)",
+                                    title: "Task Checklist",
                                     subtasks: templates,
                                   ),
                                   const SizedBox(height: 24),
@@ -139,7 +139,7 @@ class TaskOverviewPage extends ConsumerWidget {
                                   const Align(
                                     alignment: Alignment.centerLeft,
                                     child: Text(
-                                      "Subtasks Progress (Results)",
+                                      "Subtasks Progress",
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 18,

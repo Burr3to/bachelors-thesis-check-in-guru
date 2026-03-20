@@ -180,7 +180,7 @@ class _TaskApiService implements TaskApiService {
       Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/tasks/summary-stats',
+            'api/Task/summary-stats',
             queryParameters: queryParameters,
             data: _data,
           )

@@ -61,6 +61,32 @@ class AppTopBar extends ConsumerWidget implements PreferredSizeWidget {
                 ),
 
                 TextButton(
+                  onPressed: () => context.go('/app/home'),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(8),
+                        bottomLeft: Radius.circular(8),
+                      ),
+                    ),
+                  ),
+                  child: const Text(
+                    "Home",
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 21,
+                      fontWeight: FontWeight.normal,
+                    ),
+                  ),
+                ),
+
+                Container(
+                  width: 1.5,
+                  color: Colors.blueAccent.withAlpha(123),
+                  height: 32,
+                ),
+                TextButton(
                   onPressed: () => context.go('/app/tasks'),
                   style: TextButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
