@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
+using CheckIn.Api.App.Hubs;
 using CheckIn.Api.Bl.Facades.Interfaces;
 using CheckIn.Api.Bl.Services.Interfaces;
 using CheckIn.Api.Common.Enums;
@@ -15,11 +16,16 @@ using CheckIn.Api.Common.Utils.Expressions;
 using CheckIn.Api.Dal;
 using CheckIn.Api.Dal.Entities;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace CheckIn.Api.Bl.Facades;
 
-public class TaskFacade(CheckInDbContext dbContext, IMapper mapper, IUserContext userContext)
+public class TaskFacade(
+    CheckInDbContext dbContext,
+    IMapper mapper,
+    IUserContext userContext,
+    IHubContext<TaskHub> hubContext)
     : FacadeBase<TaskEntity, TaskListModel, TaskDetailModel, TaskCreateModel,
             TaskUpdateModel, TaskListQuery>
         (dbContext, mapper, userContext), ITaskFacade
@@ -167,7 +173,6 @@ public class TaskFacade(CheckInDbContext dbContext, IMapper mapper, IUserContext
         return updatedTask;
     }
 
-    // V TaskFacade.cs
     public async Task<Result<List<SubtaskCombinedListModel>>> GetTaskTemplatesAsync(Guid taskId)
     {
         var task = await dbContext.Tasks

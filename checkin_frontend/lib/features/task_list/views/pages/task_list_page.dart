@@ -77,7 +77,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                       maxCrossAxisExtent: 900,
                       crossAxisSpacing: 10,
                       mainAxisSpacing: 10,
-                      childAspectRatio: 4 / 1,
+                      mainAxisExtent: 180,
                     ),
                     itemCount: tasks.length,
                     itemBuilder: (context, index) {

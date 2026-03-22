@@ -1,4 +1,3 @@
-
 import 'package:checkin_frontend/core/utils/quill_viewer.dart';
 import 'package:checkin_frontend/features/task_list/data/models/task_list_model.dart';
 import 'package:checkin_frontend/features/task_list/views/widgets/task_progress_bar.dart';
@@ -23,22 +22,19 @@ class TaskCard extends StatelessWidget {
 
     return Card.outlined(
       borderOnForeground: true,
-        color: Color.fromRGBO(240, 244, 248, 1),
+      color: Color.fromRGBO(240, 244, 248, 1),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
-        side: const BorderSide(
-          color: Color.fromRGBO(204, 223, 255, 1),
-          width: 2
-        )
+        side: const BorderSide(color: Color.fromRGBO(204, 223, 255, 1), width: 2),
       ),
       child: InkWell(
-        onTap: () {
-          context.go('/app/tasks/details/${task.id}');
-          print("Klikol si na úlohu: ${task.title}");
-        },
-        child: Padding(
-          padding: const EdgeInsets.only(left: 32, right: 32, top: 16, bottom: 12),
+        onTap: () => context.go('/app/tasks/details/${task.id}'),
+        child: Container(
+          // 1. Nastavíme fixnú alebo minimálnu výšku karty
+          constraints: const BoxConstraints(minHeight: 160),
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start, // Zarovná status tag hore
             children: [
               Expanded(
                 child: Column(
@@ -50,58 +46,55 @@ class TaskCard extends StatelessWidget {
                       deadLineFriendly,
                       deadlineColor,
                     ),
-
                     const SizedBox(height: 10),
-
                     Text(
                       task.title,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-
-                    const SizedBox(height: 10),
-
+                    const SizedBox(height: 6),
+                    // 2. Poznámky s maxLines: 2
                     if (task.notes != null && task.notes!.isNotEmpty)
                       Text(
                         QuillUtils.toPlainText(task.notes),
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Colors.black54,
                         ),
-                        maxLines: 1,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
 
-                    const SizedBox(height: 8),
+                    // 3. Tento Spacer odtlačí všetko pod ním nadol
+                    const Spacer(),
 
+                    const SizedBox(height: 12),
                     TaskProgressBar(taskId: task.id),
-
                   ],
                 ),
               ),
-
               const SizedBox(width: 32),
-
+              // Pravý stĺpec so statusom
               Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
                     decoration: BoxDecoration(
                       border: Border.all(
                         color: task.state.color,
                         width: 1,
-                        style: BorderStyle.solid,
-                        strokeAlign: BorderSide.strokeAlignCenter,
                       ),
                       borderRadius: BorderRadius.circular(6),
                     ),
-                    padding: EdgeInsets.all(4),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     child: Text(
                       task.state.label,
-                      style: TextStyle(color: task.state.color),
+                      style: TextStyle(
+                          color: task.state.color,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 12
+                      ),
                     ),
                   ),
                 ],

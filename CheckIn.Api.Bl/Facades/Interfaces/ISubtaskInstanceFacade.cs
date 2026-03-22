@@ -10,9 +10,8 @@ using CheckIn.Api.Dal.Entities;
 namespace CheckIn.Api.Bl.Facades.Interfaces;
 
 public interface ISubtaskInstanceFacade :
-	IFacade<SubtaskInstanceEntity, SubtaskInstanceListModel, SubtaskInstanceDetailModel,
-		SubtaskInstanceCreateModel, SubtaskInstanceUpdateModel, SubtaskInstanceQuery>
+    IFacade<SubtaskInstanceEntity, SubtaskInstanceListModel, SubtaskInstanceDetailModel,
+        SubtaskInstanceCreateModel, SubtaskInstanceUpdateModel, SubtaskInstanceQuery>
 {
-	Task<Result<bool>> CompleteAsync(Guid instanceId);
-	Task<Result<int>> BulkCompleteAsync(BulkSubtaskCompleteModel model);
+    Task<Result<int>> BulkCompleteAsync(BulkSubtaskCompleteModel model);
 }

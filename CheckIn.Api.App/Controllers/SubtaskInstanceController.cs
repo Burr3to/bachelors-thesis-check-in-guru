@@ -15,38 +15,25 @@ namespace CheckIn.Api.App.Controllers;
 [ApiController]
 [Authorize(AuthenticationSchemes = "Bearer")]
 public class SubtaskInstanceController(ISubtaskInstanceFacade facade)
-	: ApiControllerBase<SubtaskInstanceEntity, SubtaskInstanceListModel, SubtaskInstanceDetailModel,
-			SubtaskInstanceCreateModel, SubtaskInstanceUpdateModel, SubtaskInstanceQuery>
-		(facade)
+    : ApiControllerBase<SubtaskInstanceEntity, SubtaskInstanceListModel, SubtaskInstanceDetailModel,
+            SubtaskInstanceCreateModel, SubtaskInstanceUpdateModel, SubtaskInstanceQuery>
+        (facade)
 {
-	// Custom endpoint pre splnenie Subtasku (namiesto generického PUT)
-	[HttpPost("complete/{id}")]
-	public async Task<IActionResult> Complete([FromRoute] Guid id)
-	{
-		var result = await facade.CompleteAsync(id);
+    [HttpPost("bulk-complete")] // Nový hromadný endpoint
+    [AllowAnonymous]
+    public async Task<ActionResult<int>> BulkComplete([FromBody] BulkSubtaskCompleteModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
 
-		if (result.IsSuccess)
-			return NoContent(); // 204 No Content
+        var result = await ((ISubtaskInstanceFacade)Facade).BulkCompleteAsync(model);
 
-		// Použitie helpera na spracovanie chyby
-		return HandleResultFailure(result);
-	}
+        if (result.IsSuccess)
+            return Ok(new { CompletedCount = result.Value });
 
-	[HttpPost("bulk-complete")] // Nový hromadný endpoint
-	[AllowAnonymous]
-	public async Task<ActionResult<int>> BulkComplete([FromBody] BulkSubtaskCompleteModel model)
-	{
-		if (!ModelState.IsValid)
-		{
-			return BadRequest(ModelState);
-		}
-
-		var result = await ((ISubtaskInstanceFacade)Facade).BulkCompleteAsync(model);
-
-		if (result.IsSuccess)
-			return Ok(new { CompletedCount = result.Value });
-
-		// Vráti 401, 403, 500 atď.
-		return HandleResultFailure(result);
-	}
+        // Vráti 401, 403, 500 atď.
+        return HandleResultFailure(result);
+    }
 }

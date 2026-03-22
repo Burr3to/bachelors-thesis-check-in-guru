@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
+using CheckIn.Api.App.Hubs;
 using CheckIn.Api.Bl.Facades.Interfaces;
 using CheckIn.Api.Bl.Services.Interfaces;
 using CheckIn.Api.Common.Enums;
@@ -13,11 +14,16 @@ using CheckIn.Api.Common.Models.Update;
 using CheckIn.Api.Common.Results;
 using CheckIn.Api.Dal;
 using CheckIn.Api.Dal.Entities;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace CheckIn.Api.Bl.Facades;
 
-public class SubtaskInstanceFacade(CheckInDbContext dbContext, IMapper mapper, IUserContext userContext)
+public class SubtaskInstanceFacade(
+    CheckInDbContext dbContext,
+    IMapper mapper,
+    IUserContext userContext,
+    IHubContext<TaskHub> hubContext)
     : FacadeBase<SubtaskInstanceEntity, SubtaskInstanceListModel, SubtaskInstanceDetailModel,
             SubtaskInstanceCreateModel, SubtaskInstanceUpdateModel, SubtaskInstanceQuery>
         (dbContext, mapper, userContext), ISubtaskInstanceFacade
@@ -39,64 +45,10 @@ public class SubtaskInstanceFacade(CheckInDbContext dbContext, IMapper mapper, I
     }
 
 
-    public async Task<Result<bool>> CompleteAsync(Guid instanceId)
-    {
-        var instance = await dbContext.Set<SubtaskInstanceEntity>()
-            .Include(i => i.TemplateSubtask) // Načítame šablónu
-            .ThenInclude(t => t.ParentTask) // A Task (aby sme zistili RequiresAuth)
-            .FirstOrDefaultAsync(i => i.Id == instanceId);
-
-        if (instance == null)
-            return Result.NotFound($"Subtask instance with ID {instanceId} not found.");
-
-        var task = instance.TemplateSubtask?.ParentTask;
-        if (task == null)
-            return Result.Failure(ErrorType.InternalError, "Parent Task structure missing.");
-
-        var currentUserId = OptionalUserId;
-
-        if (task.RequiresAuthenticationToComplete && currentUserId == null)
-        {
-            return Result.Unauthorized("Authentication is required to complete this task.");
-        }
-
-        // Kontrola, či je to splnenie pre PRIRADENÉHO užívateľa (Typ 2)
-        if (instance.AssignedToUserId.HasValue)
-        {
-            if (currentUserId == null || instance.AssignedToUserId.Value != currentUserId.Value)
-            {
-                return Result.Forbidden("You are not authorized to complete this specific subtask instance.");
-            }
-        }
-
-        // Ak už je splnené, vrátime úspech
-        if (instance.IsCompleted)
-            return Result.Success();
-
-        // 4. Spracovanie splnenia
-        if (!instance.IsCompleted)
-        {
-            instance.IsCompleted = true;
-            instance.CompletedByUserId = currentUserId;
-            instance.CompletedAt = DateTime.UtcNow;
-
-            await dbContext.SaveChangesAsync();
-        }
-
-        try
-        {
-            await dbContext.SaveChangesAsync();
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            return Result.Failure(ErrorType.InternalError, $"Failed to complete subtask: {ex.Message}");
-        }
-    }
-
     public async Task<Result<int>> BulkCompleteAsync(BulkSubtaskCompleteModel model)
     {
         var currentUserId = OptionalUserId;
+        Guid? taskId = null;
 
         // Ak je zoznam prázdny, vrátime BadRequest (alebo 0)
         if (model.InstanceIds == null || !model.InstanceIds.Any())
@@ -110,6 +62,11 @@ public class SubtaskInstanceFacade(CheckInDbContext dbContext, IMapper mapper, I
             .ThenInclude(st => st.ParentTask)
             .Where(i => model.InstanceIds.Contains(i.Id))
             .ToListAsync();
+
+        Console.WriteLine($"[BULK] Začínam spracovanie pre {model.InstanceIds?.Count} inštancií");
+        if (existingInstances.Any())
+            taskId = existingInstances.First().TemplateSubtask?.ParentTaskId;
+
 
         int completedCount = 0;
 
@@ -151,6 +108,11 @@ public class SubtaskInstanceFacade(CheckInDbContext dbContext, IMapper mapper, I
                 .Where(t => remainingIds.Contains(t.Id))
                 .ToListAsync();
 
+
+            // !!! TOTO TU CHÝBALO !!!
+            if (taskId == null && templates.Any())
+                taskId = templates.First().ParentTaskId;
+
             var anonymousResponseGroupId = Guid.NewGuid();
 
             foreach (var template in templates)
@@ -188,8 +150,24 @@ public class SubtaskInstanceFacade(CheckInDbContext dbContext, IMapper mapper, I
         }
 
 
-        // 4. Uloženie VŠETKÝCH zmien v jednej transakcii
         await dbContext.SaveChangesAsync();
+        Console.WriteLine($"[BULK] Zmeny uložené do DB. TaskId: {taskId}");
+
+        //SignalR
+        if (taskId.HasValue)
+        {
+            var roomName = taskId.Value.ToString().ToLower().Trim();
+            Console.WriteLine($"[SIGNALR] Odosielam signál do ROOM: '{roomName}'");
+
+            await hubContext.Clients.Group(roomName).SendAsync("TaskInstancesChanged");
+
+            await hubContext.Clients.Group(taskId.Value.ToString()).SendAsync("TaskStatsChanged");
+        }
+        else
+        {
+            Console.WriteLine("[SIGNALR] VAROVANIE: Signál neodoslaný, taskId je NULL!");
+        }
+
 
         return Result<int>.Success(completedCount);
     }

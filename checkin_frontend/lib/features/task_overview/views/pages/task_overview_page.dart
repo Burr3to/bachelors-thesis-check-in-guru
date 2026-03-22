@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/models/task/task_update_model.dart';
+import '../../../../core/providers/signalr_provider.dart';
+import '../../../../core/services/signalr_service.dart';
 import '../../../../core/utils/app_snack_bar.dart';
 import '../../../../core/utils/quill_viewer.dart';
 import '../../../../core/providers/task_providers.dart';
@@ -14,11 +16,53 @@ import '../widgets/subtask_progress_list.dart';
 import '../widgets/task_action_buttons.dart';
 import '../widgets/task_info_header.dart';
 
-class TaskOverviewPage extends ConsumerWidget {
+class TaskOverviewPage extends ConsumerStatefulWidget {
   final String taskId;
   const TaskOverviewPage({super.key, required this.taskId});
 
-  void _updateTask(BuildContext context, WidgetRef ref, TaskDetailModel task, {String? title, String? notes}) async {
+  @override
+  ConsumerState<TaskOverviewPage> createState() => _TaskOverviewPageState();
+}
+
+class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
+  late SignalRService _signalRService;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _signalRService = ref.read(signalRProvider);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final signalR = ref.read(signalRProvider);
+
+      // Vždy posielaj ID v malých písmenách
+      final roomName = widget.taskId.toLowerCase().trim();
+      signalR.joinTaskRoom(roomName);
+
+      print("FLUTTER: Žiadam o vstup do room: '$roomName'");
+      signalR.connection?.on("TaskInstancesChanged", _handleInstancesChanged);
+    });
+  }
+
+  void _handleInstancesChanged(List<Object?>? arguments) {
+    if (!mounted) return;
+
+    print("SignalR: Prijatý signál na obnovu inštancií pre ${widget.taskId}");
+
+    ref.invalidate(taskInstancesProvider(widget.taskId));
+    ref.invalidate(allTaskStatsProvider);
+  }
+
+  @override
+  void dispose() {
+    // 3. V dispose použi lokálnu premennú _signalRService namiesto ref.read
+    _signalRService.connection?.off("TaskInstancesChanged", method: _handleInstancesChanged);
+    _signalRService.leaveTaskRoom(widget.taskId);
+    super.dispose();
+  }
+
+  void _updateTask(BuildContext context, TaskDetailModel task, {String? title, String? notes}) async {
     final model = TaskUpdateModel(
       id: task.id,
       title: title ?? task.title,
@@ -27,25 +71,24 @@ class TaskOverviewPage extends ConsumerWidget {
     );
 
     try {
-      // 1. Zavoláme API
       await ref.read(taskApiServiceProvider).updateTask(task.id, model);
-      if (!context.mounted) return;
+      if (!mounted) return;
 
-      ref.invalidate(taskDetailProvider(taskId));
+      ref.invalidate(taskDetailProvider(widget.taskId));
       AppSnackBar.showSuccess(context, "Task updated successfully");
-
     } catch (e) {
-      if (!context.mounted) return;
+      if (!mounted) return;
       AppSnackBar.showError(context, "Failed to update: $e");
     }
   }
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
 
-    final asyncTask = ref.watch(taskDetailProvider(taskId));
-    final asyncTemplates = ref.watch(taskTemplatesProvider(taskId));
-    final asyncInstances = ref.watch(taskInstancesProvider(taskId));
+  @override
+  Widget build(BuildContext context) {
+
+    final asyncTask = ref.watch(taskDetailProvider(widget.taskId));
+    final asyncTemplates = ref.watch(taskTemplatesProvider(widget.taskId));
+    final asyncInstances = ref.watch(taskInstancesProvider(widget.taskId));
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -73,18 +116,18 @@ class TaskOverviewPage extends ConsumerWidget {
                       //Basic info
                       EditableTaskTitle(
                         initialTitle: task.title,
-                        onSave: (newTitle) => _updateTask(context, ref, task, title: newTitle),
+                        onSave: (newTitle) => _updateTask(context, task, title: newTitle),
                       ),
                       const SizedBox(height: 16),
                       EditableTaskNotes(
                         initialNotes: task.notes,
-                        onSave: (newNotes) => _updateTask(context, ref, task, notes: newNotes),
+                        onSave: (newNotes) => _updateTask(context, task, notes: newNotes),
                       ),
                       const SizedBox(height: 16),
 
 
                       TaskActionButtons(
-                        taskId: taskId,
+                        taskId: widget.taskId,
                         taskLink: taskLink,
                         onDeleteSuccess: () {
                           context.go('/app/tasks');
@@ -175,7 +218,7 @@ class TaskOverviewPage extends ConsumerWidget {
           Text(error.toString(), style: const TextStyle(color: Colors.red)),
           const SizedBox(height: 10),
           ElevatedButton(
-            onPressed: () => ref.invalidate(taskDetailProvider(taskId)),
+            onPressed: () => ref.invalidate(taskDetailProvider(widget.taskId)),
             child: const Text("Skúsiť znova"),
           ),
         ],
