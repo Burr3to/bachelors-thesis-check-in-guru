@@ -21,22 +21,23 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
   }
 
   @override
-  @override
   Widget build(BuildContext context) {
+    // 1. SEM DAJ TENTO RIADOK
+    final colorScheme = Theme.of(context).colorScheme;
+
     final user = ref.watch(authProvider).user;
-    final meno = user?.name ?? 'hosť';
+    // final meno = user?.name ?? 'hosť'; // Ak nepotrebuješ, môžeš zmazať
 
     if (user == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    // 1. Sledujeme providera (dáta sa sťahujú samé)
     final asyncTasks = ref.watch(taskListProvider);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      // 2. ZMENA: Namiesto Colors.white
+      backgroundColor: colorScheme.surface,
       body: Padding(
-        // Pridal som Padding, nech to nie je nalepené na krajoch
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.end,
@@ -48,28 +49,32 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                 context.go('/app/create');
               },
             ),
-
             const SizedBox(height: 35),
-
-            // 2. TOTO JE TÁ ZMENA:
             Expanded(
-              // .when() sa postará o Loading, Error aj Data
               child: asyncTasks.when(
-                // A) Načítavanie
                 loading: () => const Center(child: CircularProgressIndicator()),
 
-                // B) Chyba
+                // 3. ZMENA: Farba chyby
                 error: (error, stack) {
-                  print("Detail chyby: $error"); // Pozri si toto v konzole prehliadača (F12)
-                  print("Stacktrace: $stack");
-                  return Center(child: Text("Chyba: $error"));
+                  return Center(
+                    child: Text(
+                      "Chyba: $error",
+                      style: TextStyle(color: colorScheme.error), // Použije červenú z témy
+                    ),
+                  );
                 },
-                // C) Dáta sú tu!
+
+                // 4. ZMENA: Farba pre prázdny stav
                 data: (queryResult) {
-                  final tasks = queryResult.items; // Vytiahneme zoznam z QueryResultu
+                  final tasks = queryResult.items;
 
                   if (tasks.isEmpty) {
-                    return const Center(child: Text("Žiadne úlohy"));
+                    return Center(
+                      child: Text(
+                        "Žiadne úlohy",
+                        style: TextStyle(color: colorScheme.onSurfaceVariant), // Jemná šedá/biela
+                      ),
+                    );
                   }
 
                   return GridView.builder(

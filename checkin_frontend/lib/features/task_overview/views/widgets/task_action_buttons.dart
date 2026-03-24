@@ -18,6 +18,7 @@ class TaskActionButtons extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Row(
       children: [
         OutlinedButton.icon(
@@ -25,7 +26,7 @@ class TaskActionButtons extends ConsumerWidget {
           label: const Text("Delete", style: TextStyle(color: Colors.red)),
           icon: const Icon(Icons.delete, color: Colors.red),
           style: OutlinedButton.styleFrom(
-            backgroundColor: Colors.white,
+            backgroundColor: colorScheme.surface,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             side: BorderSide(color: Colors.red, width: 1),
           ),
@@ -34,12 +35,12 @@ class TaskActionButtons extends ConsumerWidget {
         const Spacer(),
 
         OutlinedButton.icon(
-          icon: const Icon(Icons.copy, color: Colors.blueAccent),
-          label: const Text("Copy link", style: TextStyle(color: Colors.blueAccent)),
+          icon: Icon(Icons.copy, color: colorScheme.primary),
+          label: Text("Copy link", style: TextStyle(color: colorScheme.primary)),
           style: OutlinedButton.styleFrom(
-            backgroundColor: Colors.white,
+            backgroundColor: colorScheme.surface,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            side: BorderSide(color: Colors.blueAccent, width: 1),
+            side: BorderSide(color: colorScheme.primary, width: 1),
           ),
           onPressed: () async {
             await Clipboard.setData(ClipboardData(text: taskLink));

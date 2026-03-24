@@ -91,7 +91,7 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
     final asyncInstances = ref.watch(taskInstancesProvider(widget.taskId));
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: asyncTask.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => _buildErrorState(ref, error),
@@ -104,9 +104,9 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
                 constraints: const BoxConstraints(maxWidth: 1000),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: const Color.fromRGBO(240, 244, 248, 1),
+                    color: Theme.of(context).colorScheme.surfaceContainer,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.blueAccent),
+                    border: Border.all(color: Theme.of(context).colorScheme.primary),
                   ),
                   padding: const EdgeInsets.all(24),
                   child: Column(

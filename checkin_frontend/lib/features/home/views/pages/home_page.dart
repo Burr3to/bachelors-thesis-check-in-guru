@@ -7,25 +7,31 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Tvoja identita
-    const primaryBlue = Colors.blueAccent;
-    const backgroundGrey = Color(0xFFF8F9FA);
+    // Tieto farby teraz ťaháme z témy
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    final primaryBlue = colorScheme.primary;
+    // Použijeme surfaceContainer pre jemne sivé/tmavé sekcie
+    final secondaryBg = colorScheme.surfaceContainer;
     const double maxContentWidth = 1150;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: colorScheme.surface,
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // --- HERO SEKTCIA ---
+            // --- HERO SEKCIA ---
             Container(
               width: double.infinity,
-              // Jemný modrý prechod pre hĺbku
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [primaryBlue.withAlpha(12), Colors.white],
+                  colors: [
+                    primaryBlue.withAlpha(theme.brightness == Brightness.light ? 12 : 30),
+                    colorScheme.surface,
+                  ],
                 ),
               ),
               child: Center(
@@ -35,27 +41,24 @@ class HomePage extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(vertical: 110, horizontal: 40),
                     child: Column(
                       children: [
-                        // Chip s informáciou o módoch
+                        // Chip
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           decoration: BoxDecoration(
                             color: primaryBlue.withAlpha(25),
                             borderRadius: BorderRadius.circular(30),
                           ),
-                          child: const Text(
+                          child: Text(
                             "Independent • Collaborative • Public • Private",
                             style: TextStyle(
                               color: primaryBlue,
                               fontWeight: FontWeight.bold,
-                              fontSize: 13,
+                              fontSize: 16,
                             ),
                           ),
                         ),
                         const SizedBox(height: 32),
-                        const Text(
+                        Text(
                           "Smart Checklists.\nFrictionless Responses.",
                           textAlign: TextAlign.center,
                           style: TextStyle(
@@ -63,47 +66,31 @@ class HomePage extends StatelessWidget {
                             fontWeight: FontWeight.bold,
                             height: 1.05,
                             letterSpacing: -1.5,
-                            color: Color(0xFF1A1F36),
+                            color: colorScheme.onSurface, // Automaticky biela/čierna
                           ),
                         ),
                         const SizedBox(height: 32),
-                        const Text(
+                        Text(
                           "The professional way to collect data. You build the task,\nthey complete it in seconds—no registration required for respondents.",
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 22,
-                            color: Colors.black54,
+                            color: colorScheme.onSurfaceVariant, // Jemnejšia farba textu
                             height: 1.5,
                           ),
                         ),
                         const SizedBox(height: 48),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            ElevatedButton(
-                              onPressed: () => context.go('/login'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: primaryBlue,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 40,
-                                  vertical: 26,
-                                ),
-                                elevation: 8,
-                                shadowColor: primaryBlue.withAlpha(100),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                              ),
-                              child: const Text(
-                                "Create Your First Task",
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
+                        ElevatedButton(
+                          onPressed: () => context.go('/login'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryBlue,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 26),
+                            elevation: 8,
+                            shadowColor: primaryBlue.withAlpha(100),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          ),
+                          child: const Text("Create Your First Task", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                         ),
                       ],
                     ),
@@ -116,9 +103,9 @@ class HomePage extends StatelessWidget {
             _buildFeatureSection(
               context: context,
               maxWidth: maxContentWidth,
-              accentColor: primaryBlue,
               title: "Two Modes. Infinite Control.",
               description: _styledDescription(
+                context,
                 "Choose **Collaborative** for shared team goals where everyone works together, or **Independent** to give every respondent their own private copy of the checklist.",
                 primaryBlue,
               ),
@@ -126,14 +113,14 @@ class HomePage extends StatelessWidget {
               isReversed: false,
             ),
 
-            // SEKCIA 2
+            // SEKCIA 2 (so šedým/tmavým pozadím)
             _buildFeatureSection(
               context: context,
               maxWidth: maxContentWidth,
-              accentColor: primaryBlue,
-              backgroundColor: backgroundGrey,
+              backgroundColor: secondaryBg,
               title: "Participation Made Simple.",
               description: _styledDescription(
+                context,
                 "Respondents join via a simple URL. For public tasks, **no login is required**—they just type their name and start. Fast, direct, and effective.",
                 primaryBlue,
               ),
@@ -145,9 +132,9 @@ class HomePage extends StatelessWidget {
             _buildFeatureSection(
               context: context,
               maxWidth: maxContentWidth,
-              accentColor: primaryBlue,
               title: "Your Data, Your Rules.",
               description: _styledDescription(
+                context,
                 "Need verified responses? Switch to **Private Mode** to require authentication. Want maximum reach? Use **Public Mode** for instant access without barriers.",
                 primaryBlue,
               ),
@@ -156,21 +143,19 @@ class HomePage extends StatelessWidget {
             ),
 
             // --- FOOTER ---
+            // Footer býva často tmavý aj v light móde, ale v dark ho zladíme
             Container(
               padding: const EdgeInsets.symmetric(vertical: 80),
               width: double.infinity,
-              color: const Color(0xFF1A1F36),
+              color: theme.brightness == Brightness.light
+                  ? const Color(0xFF1A1F36)
+                  : Colors.black, // V dark móde úplne čierny
               child: Center(
                 child: Column(
                   children: [
                     const Text(
                       "CheckIn",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: -1,
-                      ),
+                      style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: -1),
                     ),
                     const SizedBox(height: 20),
                     Container(height: 2, width: 40, color: primaryBlue),
@@ -197,13 +182,15 @@ class HomePage extends StatelessWidget {
   Widget _buildFeatureSection({
     required BuildContext context,
     required double maxWidth,
-    required Color accentColor,
     required String title,
     required Widget description,
     required String videoAsset,
     required bool isReversed,
-    Color backgroundColor = Colors.white,
+    Color? backgroundColor,
   }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final primaryBlue = colorScheme.primary;
+
     final textColumn = Expanded(
       flex: 4,
       child: Column(
@@ -212,26 +199,24 @@ class HomePage extends StatelessWidget {
           SelectionArea(
             child: Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 44,
                 fontWeight: FontWeight.bold,
                 letterSpacing: -1.5,
-                color: Color(0xFF1A1F36),
+                color: colorScheme.onSurface,
               ),
             ),
           ),
           const SizedBox(height: 24),
-          // RichText na zvýraznenie kľúčových slov
           SelectionArea(child: description),
           const SizedBox(height: 32),
-          // Malý indikátor s modrou farbou
           Row(
             children: [
-              Icon(Icons.check_circle, color: accentColor, size: 20),
+              Icon(Icons.check_circle, color: primaryBlue, size: 20),
               const SizedBox(width: 10),
-              const Text(
+              Text(
                 "Ready in seconds",
-                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
+                style: TextStyle(fontWeight: FontWeight.bold, color: colorScheme.onSurface),
               ),
             ],
           ),
@@ -244,10 +229,10 @@ class HomePage extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: accentColor.withAlpha(25), width: 1),
+          border: Border.all(color: primaryBlue.withAlpha(25), width: 1),
           boxShadow: [
             BoxShadow(
-              color: accentColor.withAlpha(32),
+              color: primaryBlue.withAlpha(themeBrightness(context) == Brightness.light ? 32 : 10),
               blurRadius: 50,
               offset: const Offset(0, 25),
             ),
@@ -262,7 +247,7 @@ class HomePage extends StatelessWidget {
     );
 
     return Container(
-      color: backgroundColor,
+      color: backgroundColor ?? colorScheme.surface,
       width: double.infinity,
       child: Center(
         child: ConstrainedBox(
@@ -282,21 +267,23 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _styledDescription(String text, Color accentColor) {
+  Widget _styledDescription(BuildContext context, String text, Color accentColor) {
     final parts = text.split('**');
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Text.rich(
       TextSpan(
-        style: const TextStyle(fontSize: 20, color: Colors.black54, height: 1.6),
+        style: TextStyle(fontSize: 20, color: colorScheme.onSurfaceVariant, height: 1.6),
         children: parts.asMap().entries.map((entry) {
           final isBold = entry.key % 2 != 0;
           return TextSpan(
             text: entry.value,
-            style: isBold
-                ? TextStyle(color: accentColor, fontWeight: FontWeight.bold)
-                : null,
+            style: isBold ? TextStyle(color: accentColor, fontWeight: FontWeight.bold) : null,
           );
         }).toList(),
       ),
     );
   }
+
+  Brightness themeBrightness(BuildContext context) => Theme.of(context).brightness;
 }

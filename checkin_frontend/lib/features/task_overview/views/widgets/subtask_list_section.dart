@@ -10,6 +10,7 @@ class SubtaskListSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (subtasks.isEmpty) return const Text("This Task doesn't have any subtasks");
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -22,23 +23,23 @@ class SubtaskListSection extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        ...subtasks.map((subtask) => _buildSubtaskCard(subtask)),
+        ...subtasks.map((subtask) => _buildSubtaskCard(subtask, colorScheme)),
       ],
     );
   }
 
-  Widget _buildSubtaskCard(SubtaskCombinedListModel subtask) {
+  Widget _buildSubtaskCard(SubtaskCombinedListModel subtask, final colorScheme) {
     return Card(
-      color: Colors.white,
+      color: colorScheme.surface,
       elevation: 0,
       shape: RoundedRectangleBorder(
-        side: BorderSide(color: Colors.grey.shade200),
+        side: BorderSide(color: colorScheme.outlineVariant),
         borderRadius: BorderRadius.circular(8),
       ),
       child: ListTile(
         title: SelectionArea(child: Text(subtask.title)), // Now works!
         subtitle: subtask.description != null
-            ? SelectionArea(child: Text(subtask.description!, style: const TextStyle(fontWeight: FontWeight.w100)))
+            ? SelectionArea(child: Text(subtask.description!, style: TextStyle(fontWeight: colorScheme.onSurfaceVariant)))
             : null,
         contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
       ),

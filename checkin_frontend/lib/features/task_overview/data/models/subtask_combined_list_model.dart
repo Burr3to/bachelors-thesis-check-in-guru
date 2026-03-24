@@ -8,7 +8,7 @@ sealed class SubtaskCombinedListModel with _$SubtaskCombinedListModel {
   const factory SubtaskCombinedListModel({
     required String id,               // ID Inštancie
     @Default(false) bool isCompleted,
-    // Nové polia
+    required String responseGroupId,
     String? respondentName,
     String? comment,
     String? assignedToUserId,

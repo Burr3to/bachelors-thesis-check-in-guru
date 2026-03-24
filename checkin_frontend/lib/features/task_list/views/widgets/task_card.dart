@@ -17,16 +17,11 @@ class TaskCard extends StatelessWidget {
     final deadLineFriendly = DateFormatter.formatRelativeDeadline(task.deadLine);
     final now = DateTime.now();
     final isOverdue = task.deadLine.isBefore(now);
-    final deadlineColor = isOverdue ? Colors.red : Colors.black87;
-    final deadlineIconColor = isOverdue ? Colors.red : Colors.blueAccent;
+    final colorScheme = Theme.of(context).colorScheme;
+    final deadlineColor = isOverdue ? Colors.red : colorScheme.onSurfaceVariant;
+    final deadlineIconColor = isOverdue ? Colors.red : colorScheme.primary;
 
     return Card.outlined(
-      borderOnForeground: true,
-      color: Color.fromRGBO(240, 244, 248, 1),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-        side: const BorderSide(color: Color.fromRGBO(204, 223, 255, 1), width: 2),
-      ),
       child: InkWell(
         onTap: () => context.go('/app/tasks/details/${task.id}'),
         child: Container(
@@ -51,6 +46,7 @@ class TaskCard extends StatelessWidget {
                       task.title,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
+                        color: colorScheme.onSurface,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -61,7 +57,7 @@ class TaskCard extends StatelessWidget {
                       Text(
                         QuillUtils.toPlainText(task.notes),
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.black54,
+                          color: colorScheme.onSurfaceVariant,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,

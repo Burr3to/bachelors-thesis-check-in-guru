@@ -97,55 +97,53 @@ public class SubtaskInstanceFacade(
         }
 
         // --- 2. KROK: Spracovanie nových inštancií z ID šablón (pre anonymný Individual) ---
-        // Zistíme, ktoré ID z modelu neboli nájdené medzi existujúcimi inštanciami
         var processedInstanceIds = existingInstances.Select(i => i.Id).ToList();
         var remainingIds = model.InstanceIds.Except(processedInstanceIds).ToList();
 
         if (remainingIds.Any())
         {
-            var templates = await dbContext.Set<SubtaskTemplateEntity>()
-                .Include(t => t.ParentTask)
-                .Where(t => remainingIds.Contains(t.Id))
-                .ToListAsync();
+            // 1. Zistíme, ku ktorému Tasku patria tieto šablóny
+            var firstTemplate = await dbContext.Set<SubtaskTemplateEntity>()
+                .FirstOrDefaultAsync(t => t.Id == remainingIds.First());
 
-
-            // !!! TOTO TU CHÝBALO !!!
-            if (taskId == null && templates.Any())
-                taskId = templates.First().ParentTaskId;
-
-            var anonymousResponseGroupId = Guid.NewGuid();
-
-            foreach (var template in templates)
+            if (firstTemplate != null)
             {
-                var task = template.ParentTask;
-                if (task == null) continue;
+                var parentTaskId = firstTemplate.ParentTaskId;
 
-                // Logika: Ak je to Individual a anonym, vytvoríme novú inštanciu "on-the-fly"
-                if (task.SubtaskMode == SubtaskMode.Individual)
+                // !!! KĽÚČOVÁ ZMENA: Načítame VŠETKY šablóny tohto tasku !!!
+                var allTemplatesOfTask = await dbContext.Set<SubtaskTemplateEntity>()
+                    .Where(t => t.ParentTaskId == parentTaskId)
+                    .ToListAsync();
+
+                var anonymousResponseGroupId = Guid.NewGuid();
+
+                foreach (var template in allTemplatesOfTask)
                 {
-                    if (task.RequiresAuthenticationToComplete && currentUserId == null)
-                        return Result<int>.Unauthorized("Authentication is required to complete this task.");
+                    // Vytvoríme inštanciu pre KAŽDÚ šablónu tasku
+                    bool isActuallyCompletedInThisRequest = remainingIds.Contains(template.Id);
 
                     var newInstance = new SubtaskInstanceEntity
                     {
                         TemplateSubtaskId = template.Id,
                         ResponseGroupId = anonymousResponseGroupId,
-                        IsCompleted = true,
+
+                        // Ak je ID v liste od užívateľa, je splnená. Ak nie je, vytvoríme ju nesplnenú (IsCompleted = false).
+                        IsCompleted = isActuallyCompletedInThisRequest,
+
                         RespondentName = model.RespondentName,
-                        CompletedAt = DateTime.UtcNow,
-                        CompletedByUserId = OptionalUserId, // Guid? (null pre anonymov)
-                        //AssignedToUserId = currentUserId   // Guid? (null pre anonymov)
+                        CompletedAt = isActuallyCompletedInThisRequest ? DateTime.UtcNow : null,
+                        CompletedByUserId = currentUserId
                     };
 
                     await dbContext.Set<SubtaskInstanceEntity>().AddAsync(newInstance);
-                    completedCount++;
+
+                    if (isActuallyCompletedInThisRequest)
+                    {
+                        completedCount++;
+                    }
                 }
-                else
-                {
-                    // Ak je to Shared mód, ale inštancia nebola nájdená v 1. kroku, 
-                    // niečo je zle (inštancia mala byť vytvorená pri Tasku).
-                    // Môžeš to buď ignorovať, alebo vrátiť chybu.
-                }
+
+                taskId = parentTaskId; // Nastavíme taskId pre SignalR
             }
         }
 

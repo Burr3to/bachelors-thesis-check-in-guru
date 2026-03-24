@@ -25,6 +25,7 @@ class HoverEditableWrapper extends StatefulWidget {
 class _HoverEditableWrapperState extends State<HoverEditableWrapper> {
   bool _isHovering = false;
 
+
   @override
   Widget build(BuildContext context) {
     if (widget.isEditing) {

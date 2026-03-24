@@ -15,11 +15,12 @@ class TaskInfoHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: BoxBorder.all(color: Colors.blue.shade300, width: 1),
+          border: Border.all(color: colorScheme.primary.withAlpha(125))
       ),
       padding: EdgeInsets.only(left: 20, right: 20, top: 10, bottom: 10),
       child: SelectionArea(
@@ -30,7 +31,7 @@ class TaskInfoHeader extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Deadline", style: TextStyle(fontWeight: FontWeight.bold)),
+                Text("Deadline", style: TextStyle(fontWeight: FontWeight.bold, color: colorScheme.onSurface)),
                 const SizedBox(height: 6),
                 DateDisplay(dateTime: deadlineDate, icon: Icons.alarm),
               ],
@@ -38,7 +39,7 @@ class TaskInfoHeader extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Created On", style: TextStyle(fontWeight: FontWeight.bold)),
+                Text("Created On", style: TextStyle(fontWeight: FontWeight.bold, color: colorScheme.onSurface)),
                 const SizedBox(height: 6),
                 DateDisplay(
                   dateTime: createdDate,
@@ -78,7 +79,7 @@ class TaskInfoHeader extends StatelessWidget {
                           ? "Required"
                           : "Not Required", // "Required" znie lepšie ako "Enabled"
                       style: TextStyle(
-                        color: requiresAuth ? Colors.blue.shade700 : Colors.grey.shade600,
+                        color: requiresAuth ? colorScheme.primary : colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.w500,
                       ),
                     ),

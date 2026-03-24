@@ -1,89 +1,93 @@
 import 'package:checkin_frontend/core/models/enums/task_enums.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:collection/collection.dart'; // Pridaj do pubspec.yaml alebo použi manuálne zoskupenie
+import 'package:collection/collection.dart';
 import '../../data/models/subtask_combined_list_model.dart';
 
 class SubtaskProgressList extends StatelessWidget {
   final List<SubtaskCombinedListModel> subtasks;
-  final List<SubtaskCombinedListModel> templates; // PRIDANÉ
-  final SubtaskMode subtaskMode; // Pridaný parameter
+  final List<SubtaskCombinedListModel> templates;
+  final SubtaskMode subtaskMode;
 
   const SubtaskProgressList({
     super.key,
     required this.subtasks,
-    required this.templates, // Vyžadujeme šablóny
+    required this.templates,
     required this.subtaskMode,
   });
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     if (subtasks.isEmpty) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(20.0),
-          child: Text("No progress recorded yet.", style: TextStyle(fontStyle: FontStyle.italic)),
+          padding: const EdgeInsets.all(20.0),
+          child: Text(
+              "No progress recorded yet.",
+              style: TextStyle(fontStyle: FontStyle.italic, color: colorScheme.onSurfaceVariant)
+          ),
         ),
       );
     }
 
-    // ROZHODOVANIE PODĽA MÓDU
     if (subtaskMode == SubtaskMode.individual) {
-      return _buildIndividualGroupedList();
+      return _buildIndividualGroupedList(context, colorScheme);
     } else {
-      return _buildSharedList();
+      return _buildSharedList(context, colorScheme);
     }
   }
 
-  // --- 1. SHARED LIST (Pôvodné UI) ---
-  Widget _buildSharedList() {
+  Widget _buildSharedList(BuildContext context, ColorScheme colorScheme) {
     return Column(
-      children: subtasks.map((subtask) => _buildSubtaskCard(subtask)).toList(),
+      children: subtasks.map((subtask) => _buildSubtaskCard(context, colorScheme, subtask)).toList(),
     );
   }
 
-  // --- 2. INDIVIDUAL LIST (Zoskupené podľa užívateľa) ---
-  Widget _buildIndividualGroupedList() {
-    final grouped = groupBy(subtasks, (s) => s.respondentName ?? "Unknown");
-
-    // Celkový počet úloh, ktoré MALI BYŤ splnené
+  Widget _buildIndividualGroupedList(BuildContext context, ColorScheme colorScheme) {
+    final grouped = groupBy(subtasks, (s) => s.responseGroupId);
     final int totalTaskCount = templates.length;
 
     return Column(
       children: grouped.entries.map((entry) {
-        final respondentName = entry.key;
         final userInstances = entry.value;
+        final firstInstanceWithName = userInstances.firstWhereOrNull((s) => s.respondentName != null);
+        final respondentName = firstInstanceWithName?.respondentName ?? "Unknown / Not started";
         final bool isAuthenticatedUser = userInstances.any((s) => s.completedByUserId != null);
+        final completedCount = userInstances.where((s) => s.isCompleted).length;
 
         return Card(
           margin: const EdgeInsets.only(bottom: 16),
-          color: Colors.white,
+          color: colorScheme.surface,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+            side: BorderSide(color: colorScheme.outlineVariant),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // HEADER BOX (Modrastý nádych)
               Container(
                 padding: const EdgeInsets.all(12),
-                color: Colors.blueAccent.withAlpha(25),
+                decoration: BoxDecoration(
+                  color: colorScheme.primary.withOpacity(0.1),
+                  borderRadius: const BorderRadius.only(topLeft: Radius.circular(8), topRight: Radius.circular(8)),
+                ),
                 child: Row(
                   children: [
-                    const Icon(Icons.person, size: 18, color: Colors.blueAccent),
+                    Icon(Icons.person, size: 18, color: colorScheme.primary),
                     const SizedBox(width: 8),
-                    Text(respondentName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    Text(respondentName, style: TextStyle(fontWeight: FontWeight.bold, color: colorScheme.onSurface)),
                     if (isAuthenticatedUser) ...[
                       const SizedBox(width: 6),
-                      const Tooltip(
-                        message: "Authenticated User",
-                        child: Icon(
-                          Icons.verified_user_outlined,
-                          color: Colors.green,
-                          size: 18,
-                        ),
-                      ),
+                      Icon(Icons.verified_user_outlined, color: Colors.green.shade400, size: 18),
                     ],
                     const Spacer(),
                     Text(
-                      "${userInstances.length}/$totalTaskCount Completed",
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                      "$completedCount/$totalTaskCount Completed",
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: colorScheme.primary),
                     ),
                   ],
                 ),
@@ -91,7 +95,7 @@ class SubtaskProgressList extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: Column(
-                  children: userInstances.map((s) => _buildUserSubtaskRow(s)).toList(),
+                  children: userInstances.map((s) => _buildUserSubtaskRow(colorScheme, s)).toList(),
                 ),
               ),
             ],
@@ -101,77 +105,74 @@ class SubtaskProgressList extends StatelessWidget {
     );
   }
 
-  // Jeden riadok v rámci užívateľského bloku (Individual)
-  Widget _buildUserSubtaskRow(SubtaskCombinedListModel subtask) {
+  Widget _buildUserSubtaskRow(ColorScheme colorScheme, SubtaskCombinedListModel subtask) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
       child: Row(
         children: [
-          const Icon(Icons.check_circle, color: Colors.green, size: 20),
+          Icon(
+              Icons.check_circle,
+              color: subtask.isCompleted ? Colors.green.shade400 : colorScheme.outline,
+              size: 20
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               subtask.title,
-              style: const TextStyle(fontSize: 14),
+              style: TextStyle(fontSize: 14, color: colorScheme.onSurface),
             ),
           ),
-          const Spacer(),
           if (subtask.completedAt != null)
             Text(
               DateFormat('dd.MM HH:mm').format(subtask.completedAt!.toLocal()),
-              style: const TextStyle(fontSize: 12, color: Colors.black87),
+              style: TextStyle(fontSize: 11, color: colorScheme.onSurfaceVariant),
             ),
         ],
       ),
     );
   }
 
-  // Pôvodná karta pre Shared mód
-  Widget _buildSubtaskCard(SubtaskCombinedListModel subtask) {
+  Widget _buildSubtaskCard(BuildContext context, ColorScheme colorScheme, SubtaskCombinedListModel subtask) {
     return Card(
-      color: Colors.white,
+      color: colorScheme.surface,
       margin: const EdgeInsets.only(bottom: 8),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: colorScheme.outlineVariant),
+      ),
       child: ListTile(
         leading: Icon(
           subtask.isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
-          color: subtask.isCompleted ? Colors.green : Colors.grey,
+          color: subtask.isCompleted ? Colors.green.shade400 : colorScheme.outline,
         ),
-        title: SelectionArea(child: Text(subtask.title)),
-        subtitle: subtask.description != null ? SelectionArea(child: Text(subtask.description!)) : null,
-        trailing: subtask.isCompleted ? _buildCompletedTrailing(subtask) : null,
+        title: SelectionArea(
+            child: Text(subtask.title, style: TextStyle(color: colorScheme.onSurface, fontWeight: FontWeight.w500))
+        ),
+        subtitle: subtask.description != null
+            ? SelectionArea(child: Text(subtask.description!, style: TextStyle(color: colorScheme.onSurfaceVariant)))
+            : null,
+        trailing: subtask.isCompleted ? _buildCompletedTrailing(colorScheme, subtask) : null,
       ),
     );
   }
 
-  Widget _buildCompletedTrailing(SubtaskCombinedListModel subtask) {
+  Widget _buildCompletedTrailing(ColorScheme colorScheme, SubtaskCombinedListModel subtask) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 150),
-          child: Row(
-            children: [
-              if (subtask.completedByUserId != null)
-                const Icon(Icons.verified_user_outlined, color: Colors.green, size: 21),
-              const SizedBox(width: 4),
-              SelectionArea(
-                child: Text(
-                  subtask.respondentName ?? "Unknown",
-                  style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 15),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
+        if (subtask.completedByUserId != null)
+          Icon(Icons.verified_user_outlined, color: Colors.green.shade400, size: 21),
+        const SizedBox(width: 4),
+        Text(
+          subtask.respondentName ?? "Unknown",
+          style: TextStyle(color: Colors.green.shade400, fontWeight: FontWeight.bold, fontSize: 14),
         ),
         const SizedBox(width: 8),
         if (subtask.completedAt != null)
-          SelectionArea(
-            child: Text(
-              DateFormat('dd.MM HH:mm').format(subtask.completedAt!.toLocal()),
-              style: const TextStyle(fontSize: 12),
-            ),
+          Text(
+            DateFormat('dd.MM HH:mm').format(subtask.completedAt!.toLocal()),
+            style: TextStyle(fontSize: 11, color: colorScheme.onSurfaceVariant),
           ),
       ],
     );

@@ -17,8 +17,11 @@ class DateDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final isOverdue = dateTime.isBefore(DateTime.now());
-    final Color displayColor = color ?? (isOverdue ? Colors.red : Colors.black87);
+
+    final Color displayColor = color ?? (isOverdue ? Colors.red : colorScheme.onSurface);
+    final Color iconColor = color ?? (isOverdue ? Colors.red : colorScheme.primary);
 
     final String text = showRelative
         ? DateFormatter.formatRelativeDeadline(dateTime)
@@ -28,7 +31,7 @@ class DateDisplay extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (icon != null) ...[
-          Icon(icon, size: 16, color: color ?? (isOverdue ? Colors.red : Colors.blueAccent)),
+          Icon(icon, size: 16, color: iconColor),
           const SizedBox(width: 4),
         ],
         Text(

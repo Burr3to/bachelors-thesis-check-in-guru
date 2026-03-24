@@ -65,6 +65,7 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+  generate: true
   assets:
     - assets/videos/AutorCreate.mp4
     - assets/videos/AutorOverview.mp4

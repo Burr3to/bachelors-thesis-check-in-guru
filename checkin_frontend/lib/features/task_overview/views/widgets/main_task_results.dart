@@ -22,6 +22,7 @@ class MainTaskResults extends StatelessWidget {
   Widget build(BuildContext context) {
     // Filtrujeme len splnené podpisy
     final completedSignatures = allInstances.where((i) => i.isCompleted).toList();
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -41,9 +42,9 @@ class MainTaskResults extends StatelessWidget {
         else
           Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: colorScheme.surface,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.shade300),
+              border: Border.all(color: colorScheme.outlineVariant),
             ),
             child: ListView.separated(
               shrinkWrap: true,
@@ -54,13 +55,13 @@ class MainTaskResults extends StatelessWidget {
                 final sig = completedSignatures[index];
                 return ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  leading: const CircleAvatar(
-                    backgroundColor: Color.fromRGBO(240, 244, 248, 1),
-                    child: Icon(Icons.person, color: Colors.blueAccent),
+                  leading: CircleAvatar(
+                    backgroundColor: colorScheme.surfaceContainer,
+                    child: const Icon(Icons.person, color: Colors.blueAccent),
                   ),
-                  title: const Text(
+                  title: Text(
                     "Confirmed",
-                    style: TextStyle(fontSize: 14, color: Colors.grey),
+                    style: TextStyle(fontSize: 14, color: colorScheme.onSurfaceVariant),
                   ),
                   trailing: _buildCompletedTrailing(sig), // Použitie tvojho UI
                 );

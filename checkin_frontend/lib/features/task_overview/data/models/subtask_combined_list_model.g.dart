@@ -11,6 +11,7 @@ _SubtaskCombinedListModel _$SubtaskCombinedListModelFromJson(
 ) => _SubtaskCombinedListModel(
   id: json['id'] as String,
   isCompleted: json['isCompleted'] as bool? ?? false,
+  responseGroupId: json['responseGroupId'] as String,
   respondentName: json['respondentName'] as String?,
   comment: json['comment'] as String?,
   assignedToUserId: json['assignedToUserId'] as String?,
@@ -29,6 +30,7 @@ Map<String, dynamic> _$SubtaskCombinedListModelToJson(
 ) => <String, dynamic>{
   'id': instance.id,
   'isCompleted': instance.isCompleted,
+  'responseGroupId': instance.responseGroupId,
   'respondentName': instance.respondentName,
   'comment': instance.comment,
   'assignedToUserId': instance.assignedToUserId,

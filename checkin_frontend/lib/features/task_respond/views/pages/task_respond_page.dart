@@ -122,7 +122,7 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
                     const SizedBox(height: 24),
                     if (hasPendingTasks) ...[
                       // Ak je to main task only, môžeme tu pridať malý text "Please sign to complete this task"
-                      if (isMainTaskOnly)
+                      if (isMainTaskOnly && auth == null)
                         const Padding(
                           padding: EdgeInsets.only(bottom: 16),
                           child: Text("Please sign below to confirm completion:",
