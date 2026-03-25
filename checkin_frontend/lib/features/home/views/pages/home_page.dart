@@ -109,7 +109,7 @@ class HomePage extends StatelessWidget {
                 "Choose **Collaborative** for shared team goals where everyone works together, or **Independent** to give every respondent their own private copy of the checklist.",
                 primaryBlue,
               ),
-              videoAsset: 'assets/videos/AutorCreate.mp4',
+              videoAsset: 'assets/videos/AutorCreate.webm',
               isReversed: false,
             ),
 
@@ -124,7 +124,7 @@ class HomePage extends StatelessWidget {
                 "Respondents join via a simple URL. For public tasks, **no login is required**—they just type their name and start. Fast, direct, and effective.",
                 primaryBlue,
               ),
-              videoAsset: 'assets/videos/Respondent.mp4',
+              videoAsset: 'assets/videos/Respondent.webm',
               isReversed: true,
             ),
 
@@ -138,7 +138,7 @@ class HomePage extends StatelessWidget {
                 "Need verified responses? Switch to **Private Mode** to require authentication. Want maximum reach? Use **Public Mode** for instant access without barriers.",
                 primaryBlue,
               ),
-              videoAsset: 'assets/videos/AutorOverview.mp4',
+              videoAsset: 'assets/videos/AutorOverview.webm',
               isReversed: false,
             ),
 

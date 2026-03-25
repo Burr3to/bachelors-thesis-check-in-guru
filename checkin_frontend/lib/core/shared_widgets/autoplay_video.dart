@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
@@ -17,31 +18,47 @@ class _AutoplayVideoState extends State<AutoplayVideo> {
   @override
   void initState() {
     super.initState();
-    _controller = VideoPlayerController.asset(widget.assetPath)
-      ..initialize().then((_) {
-        // Keď je video pripravené
+    _initializeController();
+  }
+
+  void _initializeController() {
+    if (kIsWeb) {
+      final String fileName = widget.assetPath.split('/').last;
+      final String baseHref = Uri.base.path.split('/')[1]; // Získa "checkin"
+      final String fullUrl = "${Uri.base.origin}/$baseHref/videos/$fileName";
+
+      debugPrint("VIDEO LOAD: $fullUrl");
+      _controller = VideoPlayerController.networkUrl(Uri.parse(fullUrl));
+    } else {
+      _controller = VideoPlayerController.asset(widget.assetPath);
+    }
+
+    _controller.initialize().then((_) {
+      if (mounted) {
         setState(() {
           _isInitialized = true;
-          _controller.setVolume(0); // MUST BE MUTED for autoplay on web
+          _controller.setVolume(0); // autoplay policy
           _controller.setLooping(true);
           _controller.play();
         });
-      });
+      }
+    }).catchError((error) {
+      debugPrint("VIDEO ERROR: $error");
+    });
   }
 
   @override
   void dispose() {
-    _controller.dispose(); // Dôležité pre uvoľnenie RAM
+    _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     if (!_isInitialized) {
-      // Kým sa video načítava, ukážeme prázdny box s farbou pozadia
       return const AspectRatio(
         aspectRatio: 16 / 9,
-        child: Center(child: CircularProgressIndicator()),
+        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
       );
     }
 

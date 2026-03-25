@@ -1,7 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:firebase_performance_dio/firebase_performance_dio.dart';
 import 'package:flutter/foundation.dart';
-// import 'package:flutter_riverpod/flutter_riverpod.dart'; // Ak budeš chcieť provider
 
 class DioClient {
   // Singleton alebo len getter, záleží ako to chceš používať.
