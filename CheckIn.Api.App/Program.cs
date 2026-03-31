@@ -111,7 +111,6 @@ builder.Services.AddAuthentication(options =>
         };
     });
 
-
 builder.Services.AddIdentity<IdentityUser, IdentityRole>(options => { options.SignIn.RequireConfirmedAccount = false; })
     .AddEntityFrameworkStores<CheckInDbContext>()
     .AddDefaultTokenProviders();
