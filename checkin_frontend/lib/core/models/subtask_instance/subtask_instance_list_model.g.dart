@@ -15,6 +15,7 @@ _SubtaskInstanceListModel _$SubtaskInstanceListModelFromJson(
   assignedToUserId: json['assignedToUserId'] as String?,
   isCompleted: json['isCompleted'] as bool? ?? false,
   completedByUserId: json['completedByUserId'] as String?,
+  assignedToEmail: json['assignedToEmail'] as String?,
   completedAt: json['completedAt'] == null
       ? null
       : DateTime.parse(json['completedAt'] as String),
@@ -29,5 +30,6 @@ Map<String, dynamic> _$SubtaskInstanceListModelToJson(
   'assignedToUserId': instance.assignedToUserId,
   'isCompleted': instance.isCompleted,
   'completedByUserId': instance.completedByUserId,
+  'assignedToEmail': instance.assignedToEmail,
   'completedAt': instance.completedAt?.toIso8601String(),
 };

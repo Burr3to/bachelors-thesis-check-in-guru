@@ -20,6 +20,7 @@ _SubtaskCombinedListModel _$SubtaskCombinedListModelFromJson(
       ? null
       : DateTime.parse(json['completedAt'] as String),
   title: json['title'] as String,
+  assignedToEmail: json['assignedToEmail'] as String?,
   description: json['description'] as String?,
   templateSubtaskId: json['templateSubtaskId'] as String,
   isGeneratedFromTask: json['isGeneratedFromTask'] as bool? ?? false,
@@ -37,6 +38,7 @@ Map<String, dynamic> _$SubtaskCombinedListModelToJson(
   'completedByUserId': instance.completedByUserId,
   'completedAt': instance.completedAt?.toIso8601String(),
   'title': instance.title,
+  'assignedToEmail': instance.assignedToEmail,
   'description': instance.description,
   'templateSubtaskId': instance.templateSubtaskId,
   'isGeneratedFromTask': instance.isGeneratedFromTask,

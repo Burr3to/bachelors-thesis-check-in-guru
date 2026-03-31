@@ -16,7 +16,7 @@ T _$identity<T>(T value) => value;
 mixin _$SubtaskInstanceListModel {
 
  String get id; String get responseGroupId;// <--- PRIDAŤ SEM
- String get templateSubtaskId; String? get assignedToUserId; bool get isCompleted; String? get completedByUserId; DateTime? get completedAt;
+ String get templateSubtaskId; String? get assignedToUserId; bool get isCompleted; String? get completedByUserId; String? get assignedToEmail; DateTime? get completedAt;
 /// Create a copy of SubtaskInstanceListModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -29,16 +29,16 @@ $SubtaskInstanceListModelCopyWith<SubtaskInstanceListModel> get copyWith => _$Su
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SubtaskInstanceListModel&&(identical(other.id, id) || other.id == id)&&(identical(other.responseGroupId, responseGroupId) || other.responseGroupId == responseGroupId)&&(identical(other.templateSubtaskId, templateSubtaskId) || other.templateSubtaskId == templateSubtaskId)&&(identical(other.assignedToUserId, assignedToUserId) || other.assignedToUserId == assignedToUserId)&&(identical(other.isCompleted, isCompleted) || other.isCompleted == isCompleted)&&(identical(other.completedByUserId, completedByUserId) || other.completedByUserId == completedByUserId)&&(identical(other.completedAt, completedAt) || other.completedAt == completedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SubtaskInstanceListModel&&(identical(other.id, id) || other.id == id)&&(identical(other.responseGroupId, responseGroupId) || other.responseGroupId == responseGroupId)&&(identical(other.templateSubtaskId, templateSubtaskId) || other.templateSubtaskId == templateSubtaskId)&&(identical(other.assignedToUserId, assignedToUserId) || other.assignedToUserId == assignedToUserId)&&(identical(other.isCompleted, isCompleted) || other.isCompleted == isCompleted)&&(identical(other.completedByUserId, completedByUserId) || other.completedByUserId == completedByUserId)&&(identical(other.assignedToEmail, assignedToEmail) || other.assignedToEmail == assignedToEmail)&&(identical(other.completedAt, completedAt) || other.completedAt == completedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,responseGroupId,templateSubtaskId,assignedToUserId,isCompleted,completedByUserId,completedAt);
+int get hashCode => Object.hash(runtimeType,id,responseGroupId,templateSubtaskId,assignedToUserId,isCompleted,completedByUserId,assignedToEmail,completedAt);
 
 @override
 String toString() {
-  return 'SubtaskInstanceListModel(id: $id, responseGroupId: $responseGroupId, templateSubtaskId: $templateSubtaskId, assignedToUserId: $assignedToUserId, isCompleted: $isCompleted, completedByUserId: $completedByUserId, completedAt: $completedAt)';
+  return 'SubtaskInstanceListModel(id: $id, responseGroupId: $responseGroupId, templateSubtaskId: $templateSubtaskId, assignedToUserId: $assignedToUserId, isCompleted: $isCompleted, completedByUserId: $completedByUserId, assignedToEmail: $assignedToEmail, completedAt: $completedAt)';
 }
 
 
@@ -49,7 +49,7 @@ abstract mixin class $SubtaskInstanceListModelCopyWith<$Res>  {
   factory $SubtaskInstanceListModelCopyWith(SubtaskInstanceListModel value, $Res Function(SubtaskInstanceListModel) _then) = _$SubtaskInstanceListModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String responseGroupId, String templateSubtaskId, String? assignedToUserId, bool isCompleted, String? completedByUserId, DateTime? completedAt
+ String id, String responseGroupId, String templateSubtaskId, String? assignedToUserId, bool isCompleted, String? completedByUserId, String? assignedToEmail, DateTime? completedAt
 });
 
 
@@ -66,7 +66,7 @@ class _$SubtaskInstanceListModelCopyWithImpl<$Res>
 
 /// Create a copy of SubtaskInstanceListModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? responseGroupId = null,Object? templateSubtaskId = null,Object? assignedToUserId = freezed,Object? isCompleted = null,Object? completedByUserId = freezed,Object? completedAt = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? responseGroupId = null,Object? templateSubtaskId = null,Object? assignedToUserId = freezed,Object? isCompleted = null,Object? completedByUserId = freezed,Object? assignedToEmail = freezed,Object? completedAt = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,responseGroupId: null == responseGroupId ? _self.responseGroupId : responseGroupId // ignore: cast_nullable_to_non_nullable
@@ -74,6 +74,7 @@ as String,templateSubtaskId: null == templateSubtaskId ? _self.templateSubtaskId
 as String,assignedToUserId: freezed == assignedToUserId ? _self.assignedToUserId : assignedToUserId // ignore: cast_nullable_to_non_nullable
 as String?,isCompleted: null == isCompleted ? _self.isCompleted : isCompleted // ignore: cast_nullable_to_non_nullable
 as bool,completedByUserId: freezed == completedByUserId ? _self.completedByUserId : completedByUserId // ignore: cast_nullable_to_non_nullable
+as String?,assignedToEmail: freezed == assignedToEmail ? _self.assignedToEmail : assignedToEmail // ignore: cast_nullable_to_non_nullable
 as String?,completedAt: freezed == completedAt ? _self.completedAt : completedAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,
   ));
@@ -157,10 +158,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String responseGroupId,  String templateSubtaskId,  String? assignedToUserId,  bool isCompleted,  String? completedByUserId,  DateTime? completedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String responseGroupId,  String templateSubtaskId,  String? assignedToUserId,  bool isCompleted,  String? completedByUserId,  String? assignedToEmail,  DateTime? completedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _SubtaskInstanceListModel() when $default != null:
-return $default(_that.id,_that.responseGroupId,_that.templateSubtaskId,_that.assignedToUserId,_that.isCompleted,_that.completedByUserId,_that.completedAt);case _:
+return $default(_that.id,_that.responseGroupId,_that.templateSubtaskId,_that.assignedToUserId,_that.isCompleted,_that.completedByUserId,_that.assignedToEmail,_that.completedAt);case _:
   return orElse();
 
 }
@@ -178,10 +179,10 @@ return $default(_that.id,_that.responseGroupId,_that.templateSubtaskId,_that.ass
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String responseGroupId,  String templateSubtaskId,  String? assignedToUserId,  bool isCompleted,  String? completedByUserId,  DateTime? completedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String responseGroupId,  String templateSubtaskId,  String? assignedToUserId,  bool isCompleted,  String? completedByUserId,  String? assignedToEmail,  DateTime? completedAt)  $default,) {final _that = this;
 switch (_that) {
 case _SubtaskInstanceListModel():
-return $default(_that.id,_that.responseGroupId,_that.templateSubtaskId,_that.assignedToUserId,_that.isCompleted,_that.completedByUserId,_that.completedAt);}
+return $default(_that.id,_that.responseGroupId,_that.templateSubtaskId,_that.assignedToUserId,_that.isCompleted,_that.completedByUserId,_that.assignedToEmail,_that.completedAt);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -195,10 +196,10 @@ return $default(_that.id,_that.responseGroupId,_that.templateSubtaskId,_that.ass
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String responseGroupId,  String templateSubtaskId,  String? assignedToUserId,  bool isCompleted,  String? completedByUserId,  DateTime? completedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String responseGroupId,  String templateSubtaskId,  String? assignedToUserId,  bool isCompleted,  String? completedByUserId,  String? assignedToEmail,  DateTime? completedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _SubtaskInstanceListModel() when $default != null:
-return $default(_that.id,_that.responseGroupId,_that.templateSubtaskId,_that.assignedToUserId,_that.isCompleted,_that.completedByUserId,_that.completedAt);case _:
+return $default(_that.id,_that.responseGroupId,_that.templateSubtaskId,_that.assignedToUserId,_that.isCompleted,_that.completedByUserId,_that.assignedToEmail,_that.completedAt);case _:
   return null;
 
 }
@@ -210,7 +211,7 @@ return $default(_that.id,_that.responseGroupId,_that.templateSubtaskId,_that.ass
 @JsonSerializable()
 
 class _SubtaskInstanceListModel implements SubtaskInstanceListModel {
-  const _SubtaskInstanceListModel({required this.id, required this.responseGroupId, required this.templateSubtaskId, this.assignedToUserId, this.isCompleted = false, this.completedByUserId, this.completedAt});
+  const _SubtaskInstanceListModel({required this.id, required this.responseGroupId, required this.templateSubtaskId, this.assignedToUserId, this.isCompleted = false, this.completedByUserId, this.assignedToEmail, this.completedAt});
   factory _SubtaskInstanceListModel.fromJson(Map<String, dynamic> json) => _$SubtaskInstanceListModelFromJson(json);
 
 @override final  String id;
@@ -220,6 +221,7 @@ class _SubtaskInstanceListModel implements SubtaskInstanceListModel {
 @override final  String? assignedToUserId;
 @override@JsonKey() final  bool isCompleted;
 @override final  String? completedByUserId;
+@override final  String? assignedToEmail;
 @override final  DateTime? completedAt;
 
 /// Create a copy of SubtaskInstanceListModel
@@ -235,16 +237,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SubtaskInstanceListModel&&(identical(other.id, id) || other.id == id)&&(identical(other.responseGroupId, responseGroupId) || other.responseGroupId == responseGroupId)&&(identical(other.templateSubtaskId, templateSubtaskId) || other.templateSubtaskId == templateSubtaskId)&&(identical(other.assignedToUserId, assignedToUserId) || other.assignedToUserId == assignedToUserId)&&(identical(other.isCompleted, isCompleted) || other.isCompleted == isCompleted)&&(identical(other.completedByUserId, completedByUserId) || other.completedByUserId == completedByUserId)&&(identical(other.completedAt, completedAt) || other.completedAt == completedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SubtaskInstanceListModel&&(identical(other.id, id) || other.id == id)&&(identical(other.responseGroupId, responseGroupId) || other.responseGroupId == responseGroupId)&&(identical(other.templateSubtaskId, templateSubtaskId) || other.templateSubtaskId == templateSubtaskId)&&(identical(other.assignedToUserId, assignedToUserId) || other.assignedToUserId == assignedToUserId)&&(identical(other.isCompleted, isCompleted) || other.isCompleted == isCompleted)&&(identical(other.completedByUserId, completedByUserId) || other.completedByUserId == completedByUserId)&&(identical(other.assignedToEmail, assignedToEmail) || other.assignedToEmail == assignedToEmail)&&(identical(other.completedAt, completedAt) || other.completedAt == completedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,responseGroupId,templateSubtaskId,assignedToUserId,isCompleted,completedByUserId,completedAt);
+int get hashCode => Object.hash(runtimeType,id,responseGroupId,templateSubtaskId,assignedToUserId,isCompleted,completedByUserId,assignedToEmail,completedAt);
 
 @override
 String toString() {
-  return 'SubtaskInstanceListModel(id: $id, responseGroupId: $responseGroupId, templateSubtaskId: $templateSubtaskId, assignedToUserId: $assignedToUserId, isCompleted: $isCompleted, completedByUserId: $completedByUserId, completedAt: $completedAt)';
+  return 'SubtaskInstanceListModel(id: $id, responseGroupId: $responseGroupId, templateSubtaskId: $templateSubtaskId, assignedToUserId: $assignedToUserId, isCompleted: $isCompleted, completedByUserId: $completedByUserId, assignedToEmail: $assignedToEmail, completedAt: $completedAt)';
 }
 
 
@@ -255,7 +257,7 @@ abstract mixin class _$SubtaskInstanceListModelCopyWith<$Res> implements $Subtas
   factory _$SubtaskInstanceListModelCopyWith(_SubtaskInstanceListModel value, $Res Function(_SubtaskInstanceListModel) _then) = __$SubtaskInstanceListModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String responseGroupId, String templateSubtaskId, String? assignedToUserId, bool isCompleted, String? completedByUserId, DateTime? completedAt
+ String id, String responseGroupId, String templateSubtaskId, String? assignedToUserId, bool isCompleted, String? completedByUserId, String? assignedToEmail, DateTime? completedAt
 });
 
 
@@ -272,7 +274,7 @@ class __$SubtaskInstanceListModelCopyWithImpl<$Res>
 
 /// Create a copy of SubtaskInstanceListModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? responseGroupId = null,Object? templateSubtaskId = null,Object? assignedToUserId = freezed,Object? isCompleted = null,Object? completedByUserId = freezed,Object? completedAt = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? responseGroupId = null,Object? templateSubtaskId = null,Object? assignedToUserId = freezed,Object? isCompleted = null,Object? completedByUserId = freezed,Object? assignedToEmail = freezed,Object? completedAt = freezed,}) {
   return _then(_SubtaskInstanceListModel(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,responseGroupId: null == responseGroupId ? _self.responseGroupId : responseGroupId // ignore: cast_nullable_to_non_nullable
@@ -280,6 +282,7 @@ as String,templateSubtaskId: null == templateSubtaskId ? _self.templateSubtaskId
 as String,assignedToUserId: freezed == assignedToUserId ? _self.assignedToUserId : assignedToUserId // ignore: cast_nullable_to_non_nullable
 as String?,isCompleted: null == isCompleted ? _self.isCompleted : isCompleted // ignore: cast_nullable_to_non_nullable
 as bool,completedByUserId: freezed == completedByUserId ? _self.completedByUserId : completedByUserId // ignore: cast_nullable_to_non_nullable
+as String?,assignedToEmail: freezed == assignedToEmail ? _self.assignedToEmail : assignedToEmail // ignore: cast_nullable_to_non_nullable
 as String?,completedAt: freezed == completedAt ? _self.completedAt : completedAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,
   ));

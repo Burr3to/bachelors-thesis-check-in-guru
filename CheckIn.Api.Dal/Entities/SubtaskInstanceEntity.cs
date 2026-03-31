@@ -18,6 +18,7 @@ public class SubtaskInstanceEntity : IEntity
     // Kľúčové pre Individual/Shared režim: Kto má túto inštanciu splniť?
     // NULL, ak ide o zdieľanú inštanciu pre celú skupinu.
     public Guid? AssignedToUserId { get; set; }
+    [MaxLength(255)] public string? AssignedToEmail { get; set; }
 
     public bool IsCompleted { get; set; } = false;
 

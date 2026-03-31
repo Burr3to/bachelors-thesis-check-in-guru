@@ -10,6 +10,7 @@ _TaskPublicDetailModel _$TaskPublicDetailModelFromJson(
   Map<String, dynamic> json,
 ) => _TaskPublicDetailModel(
   id: json['id'] as String,
+  hash: json['hash'] as String,
   title: json['title'] as String,
   notes: json['notes'] as String?,
   deadLine: DateTime.parse(json['deadLine'] as String),
@@ -30,6 +31,7 @@ Map<String, dynamic> _$TaskPublicDetailModelToJson(
   _TaskPublicDetailModel instance,
 ) => <String, dynamic>{
   'id': instance.id,
+  'hash': instance.hash,
   'title': instance.title,
   'notes': instance.notes,
   'deadLine': instance.deadLine.toIso8601String(),

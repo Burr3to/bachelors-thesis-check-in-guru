@@ -1,7 +1,9 @@
 import 'package:checkin_frontend/core/shared_widgets/app_top_bar.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:checkin_frontend/core/providers/respond_providers.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/models/action/bulk_subtask_complete_model.dart';
 import '../../../../core/models/user/user_profile.dart';
 import '../../../../core/utils/app_snack_bar.dart';
@@ -69,7 +71,11 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
       backgroundColor: Colors.white,
       body: asyncData.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, s) => Center(child: Text("Error: $e")),
+        error: (e, s) {
+          // PRIDAJ TENTO PRINT PRE DEBUG:
+          print("FLUTTER ERROR CAUGHT: $e");
+          return _buildErrorState(ref, e);
+        },
         data: (publicTask) {
           if (publicTask.requiresAuthenticationToComplete && auth == null) {
             return const LoginRequiredView();
@@ -180,6 +186,68 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
             Icon(Icons.thumb_up, color: Colors.white),
             SizedBox(width: 8),
             Text("All Tasks are Completed!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState(WidgetRef ref, Object error) {
+    String title = "Prístup zamietnutý";
+    String message = "Došlo k chybe pri načítaní úlohy.";
+    IconData icon = Icons.error_outline;
+    bool showLoginButton = false;
+
+    if (error is DioException) {
+      final statusCode = error.response?.statusCode;
+      // Tu spracujeme ten 403, čo vidíš v Network tabe
+      if (statusCode == 403) {
+        title = "Nie ste na zozname";
+        message = "Bohužiaľ, tento zoznam úloh je prístupný len pre pozvaných hostí.";
+        icon = Icons.person_off_outlined;
+      } else if (statusCode == 401) {
+        title = "Súkromná úloha";
+        message = "Pre overenie vašej pozvánky sa musíte prihlásiť.";
+        icon = Icons.lock_person_outlined;
+        showLoginButton = true;
+      } else if (statusCode == 404) {
+        title = "Úloha neexistuje";
+        message = "Odkaz je neplatný alebo úloha bola zmazaná.";
+        icon = Icons.search_off;
+      }
+    }
+
+    return Center(
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 400),
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 64, color: Colors.blueAccent),
+            const SizedBox(height: 24),
+            Text(title,
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center
+            ),
+            const SizedBox(height: 12),
+            Text(message,
+                style: const TextStyle(fontSize: 16, color: Colors.grey),
+                textAlign: TextAlign.center
+            ),
+            const SizedBox(height: 32),
+            if (showLoginButton)
+              ElevatedButton.icon(
+                onPressed: () => context.push('/login'), // Predpokladám tvoju cestu
+                icon: const Icon(Icons.login),
+                label: const Text("Prihlásiť sa cez Google"),
+                style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 50)),
+              )
+            else
+              OutlinedButton(
+                onPressed: () => context.go('/'),
+                child: const Text("Späť na úvodnú stránku"),
+              ),
           ],
         ),
       ),

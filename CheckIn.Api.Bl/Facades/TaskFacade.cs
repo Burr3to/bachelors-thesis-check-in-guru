@@ -25,6 +25,7 @@ public class TaskFacade(
     CheckInDbContext dbContext,
     IMapper mapper,
     IUserContext userContext,
+    IInvitationFacade invitationFacade,
     IHubContext<TaskHub> hubContext)
     : FacadeBase<TaskEntity, TaskListModel, TaskDetailModel, TaskCreateModel,
             TaskUpdateModel, TaskListQuery>
@@ -90,6 +91,8 @@ public class TaskFacade(
             entity.CreatedById = CurrentUserId;
             entity.State = TaskState.Todo;
 
+            // Toto tu nechaj - ak používateľ nepridal žiadne subúlohy, 
+            // vytvoríme aspoň jednu "hlavnú", aby sa mal kam podpísať.
             if (entity.Subtasks is null || !entity.Subtasks.Any())
             {
                 entity.Subtasks.Add(new SubtaskTemplateEntity
@@ -98,26 +101,6 @@ public class TaskFacade(
                     Description = entity.Notes,
                     IsGeneratedFromTask = true
                 });
-            }
-
-            // var assignedUsers = taskCreateModel.AssignedUserIds;
-            var sharedGroupId = Guid.NewGuid();
-
-            foreach (var subtaskTemplate in entity.Subtasks)
-            {
-                if (entity.SubtaskMode == SubtaskMode.Shared)
-                {
-                    // Typ 1: Vytvoríme 1 zdieľanú inštanciu
-                    subtaskTemplate.Instances.Add(new SubtaskInstanceEntity
-                    {
-                        AssignedToUserId = null,
-                        IsCompleted = false,
-                        ResponseGroupId = sharedGroupId,
-                    });
-                }
-                else if (entity.SubtaskMode == SubtaskMode.Individual)
-                {
-                }
             }
         }
 
@@ -130,22 +113,66 @@ public class TaskFacade(
     public override async Task<Result<TaskDetailModel>> SaveCreateModelAsync(TaskCreateModel model)
     {
         var task = mapper.Map<TaskEntity>(model);
-
         AddContextualData(task, model, default);
+        if (task.Id == Guid.Empty) task.Id = Guid.NewGuid();
 
-        try
+        // 1. Pozvánky (Invitations) - Pridávame priamo do Tasku
+        foreach (var email in model.InvitedEmails)
         {
-            await dbContext.Tasks.AddAsync(task);
-            await dbContext.SaveChangesAsync();
+            task.Invitations.Add(new InvitationEntity
+            {
+                Id = Guid.NewGuid(),
+                Email = email,
+                SentAt = DateTime.UtcNow,
+                TaskId = task.Id
+            });
         }
-        catch (Exception ex)
+
+        //  Shared mode
+        if (task.SubtaskMode == SubtaskMode.Shared)
         {
-            return Result<TaskDetailModel>.Failure(ErrorType.InternalError, $"Failed to save task: {{ex.Message}}");
+            var sharedGroupId = Guid.NewGuid();
+            foreach (var subtaskTemplate in task.Subtasks)
+            {
+                // Pridávame inštanciu do kolekcie v šablóne
+                subtaskTemplate.Instances.Add(new SubtaskInstanceEntity
+                {
+                    Id = Guid.NewGuid(),
+                    ResponseGroupId = sharedGroupId,
+                    IsCompleted = false
+                    // AssignedToEmail NULL
+                });
+            }
+        }
+        else // Individual Mode
+        {
+            foreach (var email in model.InvitedEmails)
+            {
+                var userGroupId = Guid.NewGuid();
+                foreach (var subtaskTemplate in task.Subtasks)
+                {
+                    // Pre každého pozvaného vytvoríme inštanciu v každej šablóne
+                    subtaskTemplate.Instances.Add(new SubtaskInstanceEntity
+                    {
+                        Id = Guid.NewGuid(),
+                        ResponseGroupId = userGroupId,
+                        AssignedToEmail = email,
+                        IsCompleted = false
+                    });
+                }
+            }
         }
 
-        var createdTask = await GetByIdAsync(task.Id);
+        await dbContext.Tasks.AddAsync(task);
+        await dbContext.SaveChangesAsync();
 
-        return createdTask;
+        // Spustenie mailov na pozadí...
+        var author = await dbContext.Users.FindAsync(CurrentUserId);
+        var authorName = author?.Name ?? "Váš kolega";
+        invitationFacade.StartEmailSendingBackground(model.InvitedEmails, task.Hash, authorName, task.Title,
+            task.CreatedById);
+
+        return await GetByIdAsync(task.Id);
     }
 
     public override async Task<Result<TaskDetailModel>> SaveUpdateModelAsync(TaskUpdateModel model)
@@ -209,6 +236,7 @@ public class TaskFacade(
         var task = await dbContext.Set<TaskEntity>()
             .Include(t => t.Subtasks)
             .ThenInclude(st => st.Instances)
+            .Include(t => t.Invitations)
             .Where(t => t.Hash == hash) // FILTER JE PODĽA HASHU
             .FirstOrDefaultAsync();
 
@@ -221,6 +249,25 @@ public class TaskFacade(
         {
             return Result<TaskPublicDetailModel>.Failure(ErrorType.Unauthorized,
                 "Authentication is required to view the details of this task.");
+        }
+
+        if (task.Invitations.Any())
+        {
+            if (task.CreatedById == currentUserId)
+            {
+                // Autor má prístup vždy
+            }
+            else
+            {
+                var userEmail = UserContext.GetEmail();
+                var isInvited = task.Invitations.Any(i => i.Email == userEmail);
+
+                if (!isInvited)
+                {
+                    return Result<TaskPublicDetailModel>.Failure(ErrorType.Forbidden,
+                        "Bohužiaľ, váš email nie je na zozname pozvaných pre túto úlohu.");
+                }
+            }
         }
 
         IEnumerable<SubtaskInstanceEntity> instancesToShow;
@@ -249,7 +296,7 @@ public class TaskFacade(
         else if (task.SubtaskMode == SubtaskMode.Individual && currentUserId.HasValue)
         {
             // Individuálny režim a PRIHLÁSENÝ používateľ: Filtrujeme podľa ID
-            await EnsureIndividualInstancesExist(task, currentUserId.Value);
+            await EnsureIndividualInstancesExist(task, currentUserId.Value, UserContext.GetEmail());
 
             instancesToShow = await dbContext.Set<SubtaskInstanceEntity>()
                 .Include(i => i.TemplateSubtask) // Tu môžeme includnuť šablónu, lebo ideme smerom "hore"
@@ -275,19 +322,34 @@ public class TaskFacade(
         return Result<TaskPublicDetailModel>.Success(finalModel);
     }
 
-    public async Task EnsureIndividualInstancesExist(TaskEntity task, Guid userId)
+    public async Task EnsureIndividualInstancesExist(TaskEntity task, Guid userId, string userEmail)
     {
-        // 1. Zistíme, či už má užívateľ nejaké inštancie
-        bool instancesExist = task.Subtasks
-            .SelectMany(st => st.Instances)
+        // 1. Skontrolujeme, či už existujú inštancie priradené priamo tomuto UserId
+        var hasUserIdInstances = task.Subtasks.SelectMany(st => st.Instances)
             .Any(i => i.AssignedToUserId == userId);
 
-        if (instancesExist)
+        if (hasUserIdInstances) return;
+
+        // 2. Skontrolujeme, či existujú inštancie priradené tomuto EMAILU (pozvánky)
+        var emailInstances = await dbContext.Set<SubtaskInstanceEntity>()
+            .Where(i => i.TemplateSubtask.ParentTaskId == task.Id && i.AssignedToEmail == userEmail)
+            .ToListAsync();
+
+        if (emailInstances.Any())
+        {
+            // Ak existujú, "adoptujeme" ich – priradíme im UserId
+            foreach (var instance in emailInstances)
+            {
+                instance.AssignedToUserId = userId;
+            }
+
+            await dbContext.SaveChangesAsync();
             return;
+        }
 
+        // 3. Ak nie je ani jedno (náhodný prihlásený človek, čo nebol pozvaný), 
+        // vytvoríme mu nové (tvoja pôvodná logika)
         var userResponseGroupId = Guid.NewGuid();
-
-        // 2. Ak neexistujú, vytvoríme N inštancií
         foreach (var subtaskTemplate in task.Subtasks)
         {
             subtaskTemplate.Instances.Add(new SubtaskInstanceEntity

@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:checkin_frontend/core/api/api_providers.dart'; // Tu máš Dio
 import 'package:checkin_frontend/core/services/subtask_instance_api_service.dart';
@@ -21,12 +22,14 @@ final taskApiServiceProvider = Provider<TaskApiService>((ref) {
 });
 
 final publicTaskProvider = FutureProvider.family<TaskPublicDetailModel, String>((ref, hash) async {
-  // 1. Sledujeme auth stav. Ak sa zmení (login/logout), tento provider sa spustí znova.
-  final auth = ref.watch(authProvider);
   final apiService = ref.watch(taskApiServiceProvider);
 
-  // Voliteľné: Ak chceš Dio-u povedať, aby pri 401 nevyhadzoval chybu, ale vrátil response
-  // (to by úplne zastavilo tie "DioException" loopy), ale 401 je OK, ak ju vieme chytiť.
-
-  return apiService.getPublicSubtasks(hash);
+  try {
+    final response = await apiService.getPublicSubtasks(hash);
+    return response;
+  } on DioException catch (e) {
+    rethrow;
+  } catch (e) {
+    rethrow;
+  }
 });

@@ -1,4 +1,5 @@
 using CheckIn.Api.Bl.Facades.Interfaces;
+using CheckIn.Api.Bl.Services;
 using CheckIn.Api.Common.Enums;
 using CheckIn.Api.Common.Models.Create;
 using CheckIn.Api.Common.Models.Details;

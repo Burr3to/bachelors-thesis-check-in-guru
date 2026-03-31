@@ -10,6 +10,7 @@ part 'task_public_detail_model.g.dart';
 sealed class TaskPublicDetailModel with _$TaskPublicDetailModel {
   const factory TaskPublicDetailModel({
     required String id,
+    required String hash,
     required String title,
     String? notes,
     required DateTime deadLine,

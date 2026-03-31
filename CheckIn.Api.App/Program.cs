@@ -1,6 +1,8 @@
 using System.Reflection;
 using System.Text;
 using CheckIn.Api.App.Hubs;
+using CheckIn.Api.Bl.Facades.Interfaces;
+using CheckIn.Api.Bl.Hubs;
 using CheckIn.Api.Bl.Installers;
 using CheckIn.Api.Dal.Installers;
 using CheckIn.Api.Bl.Mappers;
@@ -224,6 +226,7 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.MapHub<TaskHub>("/hubs/tasks");
+app.MapHub<NotificationHub>("/notificationHub");
 
 app.Run();
 

@@ -14,7 +14,8 @@ sealed class SubtaskCombinedListModel with _$SubtaskCombinedListModel {
     String? assignedToUserId,
     String? completedByUserId,
     DateTime? completedAt,
-    required String title,            // Názov zo šablóny
+    required String title,
+    String? assignedToEmail,
     String? description,              // Popis zo šablóny
     required String templateSubtaskId,
     @Default(false) bool isGeneratedFromTask,

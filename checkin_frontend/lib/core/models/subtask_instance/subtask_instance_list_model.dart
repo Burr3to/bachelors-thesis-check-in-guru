@@ -12,6 +12,7 @@ sealed class SubtaskInstanceListModel with _$SubtaskInstanceListModel {
     String? assignedToUserId,
     @Default(false) bool isCompleted,
     String? completedByUserId,
+    String? assignedToEmail,
     DateTime? completedAt,
   }) = _SubtaskInstanceListModel;
 

@@ -13,6 +13,7 @@ import '../../data/models/task_create_model.dart';
 import '../../../../core/providers/task_providers.dart';
 import '../widgets/subtask_list.dart';
 import '../widgets/task_basic_info.dart';
+import '../widgets/task_invite_section.dart';
 import '../widgets/task_settings_section.dart';
 import '../widgets/subtask_input_section.dart';
 
@@ -27,6 +28,7 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
   // Stav formulára
   final _titleCtrl = TextEditingController();
   final QuillController _quillCtrl = QuillController.basic();
+  List<String> _invitedEmails = [];
 
   DateTime? _selectedDeadline;
   bool _requiresAuth = false;
@@ -86,6 +88,7 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
         subtaskMode: _subtaskMode,
         requiresAuthenticationToComplete: _requiresAuth,
         subtasks: _tempSubtasks,
+        invitedEmails: _invitedEmails
       );
 
       // 1. Získame vytvorený task z API
@@ -131,6 +134,13 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
                   // --- Basic Info ---
                   TaskBasicInfo(titleController: _titleCtrl, quillController: _quillCtrl),
                   const SizedBox(height: 8),
+
+                  TaskInviteSection(
+                    onEmailsChanged: (emails) {
+                      setState(() => _invitedEmails = emails);
+                    },
+                  ),
+                  const SizedBox(height: 16),
 
                   // --- Subtask Input ---
                   SubtaskInputSection(onSubtaskAdded: _addSubtask),

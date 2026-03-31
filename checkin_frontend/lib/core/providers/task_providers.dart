@@ -5,6 +5,7 @@ import '../../features/task_overview/data/models/subtask_combined_list_model.dar
 import '../../features/task_overview/data/models/task_detail_model.dart';
 import '../../features/task_list/data/models/query/query_result.dart';
 import '../../features/task_list/data/models/task_list_model.dart';
+import '../models/task/task_public_detail_model.dart';
 import '../services/task_api_service.dart';
 
 // Keď niekto bude chcieť používať API, zavolá tento provider

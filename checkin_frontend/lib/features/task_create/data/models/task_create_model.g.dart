@@ -23,6 +23,11 @@ _TaskCreateModel _$TaskCreateModelFromJson(Map<String, dynamic> json) =>
               )
               .toList() ??
           const [],
+      invitedEmails:
+          (json['invitedEmails'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
     );
 
 Map<String, dynamic> _$TaskCreateModelToJson(
@@ -34,6 +39,7 @@ Map<String, dynamic> _$TaskCreateModelToJson(
   'subtaskMode': _$SubtaskModeEnumMap[instance.subtaskMode]!,
   'requiresAuthenticationToComplete': instance.requiresAuthenticationToComplete,
   'subtasks': instance.subtasks,
+  'invitedEmails': instance.invitedEmails,
 };
 
 const _$SubtaskModeEnumMap = {SubtaskMode.shared: 1, SubtaskMode.individual: 2};

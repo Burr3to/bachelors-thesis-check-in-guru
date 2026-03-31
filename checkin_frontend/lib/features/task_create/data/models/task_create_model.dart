@@ -11,13 +11,10 @@ sealed class TaskCreateModel with _$TaskCreateModel {
     required String title,
     String? notes,
     required DateTime deadLine,
-
-    // Nové polia
     required SubtaskMode subtaskMode,
     @Default(true) bool requiresAuthenticationToComplete,
-
-    // Zoznam podúloh na vytvorenie
     @Default([]) List<SubtaskTemplateCreateModel> subtasks,
+    @Default([]) List<String> invitedEmails, // TU SÚ TIE MAILY
   }) = _TaskCreateModel;
 
   factory TaskCreateModel.fromJson(Map<String, dynamic> json) =>

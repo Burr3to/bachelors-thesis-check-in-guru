@@ -10,6 +10,7 @@ sealed class SubtaskInstanceCreateModel with _$SubtaskInstanceCreateModel {
     String? assignedToUserId, // Nullable Guid
   }) = _SubtaskInstanceCreateModel;
 
+
   factory SubtaskInstanceCreateModel.fromJson(Map<String, dynamic> json) =>
       _$SubtaskInstanceCreateModelFromJson(json);
 }

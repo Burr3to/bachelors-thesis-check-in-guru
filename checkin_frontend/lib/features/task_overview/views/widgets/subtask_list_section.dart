@@ -39,7 +39,7 @@ class SubtaskListSection extends StatelessWidget {
       child: ListTile(
         title: SelectionArea(child: Text(subtask.title)), // Now works!
         subtitle: subtask.description != null
-            ? SelectionArea(child: Text(subtask.description!, style: TextStyle(fontWeight: colorScheme.onSurfaceVariant)))
+            ? SelectionArea(child: Text(subtask.description!, style: TextStyle(color: colorScheme.onSurfaceVariant)))
             : null,
         contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
       ),
