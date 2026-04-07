@@ -15,6 +15,7 @@ import '../widgets/subtask_list_section.dart';
 import '../widgets/subtask_progress_list.dart';
 import '../widgets/task_action_buttons.dart';
 import '../widgets/task_info_header.dart';
+import '../widgets/task_invited_users.dart';
 
 class TaskOverviewPage extends ConsumerStatefulWidget {
   final String taskId;
@@ -57,12 +58,20 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
   @override
   void dispose() {
     // 3. V dispose použi lokálnu premennú _signalRService namiesto ref.read
-    _signalRService.connection?.off("TaskInstancesChanged", method: _handleInstancesChanged);
+    _signalRService.connection?.off(
+      "TaskInstancesChanged",
+      method: _handleInstancesChanged,
+    );
     _signalRService.leaveTaskRoom(widget.taskId);
     super.dispose();
   }
 
-  void _updateTask(BuildContext context, TaskDetailModel task, {String? title, String? notes}) async {
+  void _updateTask(
+    BuildContext context,
+    TaskDetailModel task, {
+    String? title,
+    String? notes,
+  }) async {
     final model = TaskUpdateModel(
       id: task.id,
       title: title ?? task.title,
@@ -82,10 +91,8 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
-
     final asyncTask = ref.watch(taskDetailProvider(widget.taskId));
     final asyncTemplates = ref.watch(taskTemplatesProvider(widget.taskId));
     final asyncInstances = ref.watch(taskInstancesProvider(widget.taskId));
@@ -112,7 +119,6 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-
                       //Basic info
                       EditableTaskTitle(
                         initialTitle: task.title,
@@ -124,7 +130,6 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
                         onSave: (newNotes) => _updateTask(context, task, notes: newNotes),
                       ),
                       const SizedBox(height: 16),
-
 
                       TaskActionButtons(
                         taskId: widget.taskId,
@@ -146,6 +151,9 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
                       ),
 
                       const SizedBox(height: 16),
+
+                      TaskInvitedUsersWidget(invitations: task.invitations),
+
 
                       asyncTemplates.when(
                         loading: () => const LinearProgressIndicator(),
@@ -190,7 +198,11 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
                                     ),
                                   ),
                                   const SizedBox(height: 10),
-                                  SubtaskProgressList(subtasks: instances, subtaskMode: task.subtaskMode, templates: templates,),
+                                  SubtaskProgressList(
+                                    subtasks: instances,
+                                    subtaskMode: task.subtaskMode,
+                                    templates: templates,
+                                  ),
                                 ],
                               );
                             },

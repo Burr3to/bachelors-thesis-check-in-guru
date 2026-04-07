@@ -13,6 +13,7 @@ class TaskHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final deadlineStr = DateFormat('dd.MM.yyyy').format(deadline.toLocal());
+    final cs = Theme.of(context).colorScheme;
 
     return Column(
       children: [
@@ -20,18 +21,18 @@ class TaskHeader extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.red[50],
+              color: cs.errorContainer.withAlpha(100),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.red[200]!),
+              border: Border.all(color: cs.error.withAlpha(125)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.alarm, size: 16, color: Colors.red),
+                Icon(Icons.alarm, size: 16, color: cs.error),
                 const SizedBox(width: 6),
                 Text(
                   "Deadline: $deadlineStr",
-                  style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: cs.error, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -41,16 +42,14 @@ class TaskHeader extends StatelessWidget {
 
         Text(
           title,
-          style: Theme.of(
-            context,
-          ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: cs.onSurface,
+          ),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 8),
-        if (notes != null) ...[
-          QuillViewer(jsonText: notes),
-          const SizedBox(height: 24),
-        ],
+        if (notes != null) ...[QuillViewer(jsonText: notes), const SizedBox(height: 24)],
       ],
     );
   }

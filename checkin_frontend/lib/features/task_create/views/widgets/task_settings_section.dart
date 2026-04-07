@@ -25,11 +25,15 @@ class TaskSettingsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
     return Column(
       children: [
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // 1. COLLABORATIVE / INDIVIDUAL TOGGLE
             Expanded(
               child: AppToggleButton(
                 isActive: currentMode == SubtaskMode.shared,
@@ -39,20 +43,21 @@ class TaskSettingsSection extends StatelessWidget {
                       : SubtaskMode.shared;
                   onModeChanged(newMode);
                 },
-                activeTooltip: "Collaborative: One list for everyone. Anyone can complete tasks for the whole group. Everyone sees shared progress and names.",
-                inactiveTooltip: "Independent: Each participant gets their own private copy. Progress is separate for every person who opens the link.",
+                activeTooltip: "Collaborative: One list for everyone. Anyone can complete tasks for the whole group.",
+                inactiveTooltip: "Independent: Each participant gets their own private copy.",
 
                 activeLabel: "Collaborative",
                 activeIcon: Icons.group_outlined,
-                activeColor: Colors.blue,
+                activeColor: cs.primary, // Použije tvoju modrú z témy
                 inactiveLabel: "Independent",
                 inactiveIcon: Icons.person_outline,
-                inactiveColor: Colors.orange,
+                inactiveColor: Colors.orange, // Ponecháme oranžovú pre vizuálne odlíšenie módov
               ),
             ),
 
             const SizedBox(width: 12),
 
+            // 2. DEADLINE PICKER
             Expanded(
               child: InkWell(
                 onTap: onDateTap,
@@ -60,28 +65,35 @@ class TaskSettingsSection extends StatelessWidget {
                 child: InputDecorator(
                   decoration: InputDecoration(
                     labelText: "Deadline",
-                    labelStyle: const TextStyle(color: Colors.blueAccent),
+                    labelStyle: TextStyle(color: cs.primary, fontWeight: FontWeight.bold),
                     isDense: true,
-
                     contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+
+                    // Pozadie pre deadline (voliteľné, aby ladilo s Buttonmi)
+                    filled: true,
+                    fillColor: cs.surfaceContainerLow,
 
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.blueAccent, width: 2),
+                      borderSide: BorderSide(color: cs.primary.withOpacity(0.5), width: 2),
                     ),
 
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.blueAccent, width: 2),
+                      borderSide: BorderSide(color: cs.primary, width: 2),
                     ),
 
-                    suffixIcon: const Icon(Icons.calendar_today, color: Colors.blueAccent, size: 20),
+                    suffixIcon: Icon(Icons.calendar_today, color: cs.primary, size: 20),
                   ),
                   child: Text(
                     selectedDeadline == null
                         ? "Set Deadline"
                         : DateFormat('dd.MM.yyyy').format(selectedDeadline!),
-                    style: const TextStyle(fontSize: 15), // Môžeš tiež upraviť veľkosť písma
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: cs.onSurface, // Zabezpečí čitateľnosť v dark/light
+                      fontWeight: selectedDeadline != null ? FontWeight.w500 : FontWeight.normal,
+                    ),
                   ),
                 ),
               ),
@@ -89,28 +101,25 @@ class TaskSettingsSection extends StatelessWidget {
 
             const SizedBox(width: 12),
 
-
-            // 2. AUTH TOGGLE (Teraz používa dynamický widget)
+            // 3. AUTH TOGGLE
             Expanded(
               child: AppToggleButton(
                 isActive: requiresAuth,
                 onTap: () => onAuthChanged(!requiresAuth),
                 activeLabel: "Verified Only",
                 activeIcon: Icons.lock,
-                activeColor: Colors.blue,
-                activeTooltip: "Only users signed in through Google can confirm sasks",
+                activeColor: cs.primary,
+                activeTooltip: "Only users signed in through Google can confirm tasks",
 
                 inactiveLabel: "Public",
                 inactiveIcon: Icons.lock_open,
-                inactiveColor: Colors.black54, // Pre Public dáme šedú
+                // Namiesto black54 použijeme onSurfaceVariant (v light sivá, v dark biela70)
+                inactiveColor: cs.onSurfaceVariant,
                 inactiveTooltip: "Everyone has access with a link, beware of duplicates from one person",
               ),
             ),
           ],
         ),
-
-
-
       ],
     );
   }

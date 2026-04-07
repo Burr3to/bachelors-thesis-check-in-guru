@@ -22,11 +22,9 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
 
   @override
   Widget build(BuildContext context) {
-    // 1. SEM DAJ TENTO RIADOK
     final colorScheme = Theme.of(context).colorScheme;
 
     final user = ref.watch(authProvider).user;
-    // final meno = user?.name ?? 'hosť'; // Ak nepotrebuješ, môžeš zmazať
 
     if (user == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));

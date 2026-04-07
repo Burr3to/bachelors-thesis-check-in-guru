@@ -40,13 +40,17 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
       });
       widget.onEmailsChanged(_detectedEmails);
     } on DioException catch (e) {
+      final colorScheme = Theme.of(context).colorScheme;
       String errorMsg = "Could not parse emails. Please check the format.";
       if (e.response?.statusCode == 400) {
         errorMsg = "Invalid input format. Try simpler text.";
       }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorMsg), backgroundColor: Colors.redAccent),
+          SnackBar(
+            content: Text(errorMsg, style: TextStyle(color: colorScheme.onError)),
+            backgroundColor: colorScheme.error,
+          ),
         );
       }
     } finally {
@@ -56,7 +60,9 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
 
     if (!_isExpanded) {
       return OutlinedButton.icon(
@@ -67,6 +73,7 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
           padding: const EdgeInsets.symmetric(vertical: 20),
           side: BorderSide(color: colorScheme.outlineVariant, width: 2),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          foregroundColor: colorScheme.primary, // Modrá farba textu/ikony
         ),
       );
     }
@@ -86,103 +93,140 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text("EMAIL INVITATIONS",
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: colorScheme.onSurfaceVariant)
+                    style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.onSurfaceVariant
+                    )
                 ),
                 IconButton(
                   onPressed: () => setState(() => _isExpanded = false),
-                  icon: const Icon(Icons.close, size: 18),
+                  icon: Icon(Icons.close, size: 18, color: colorScheme.onSurfaceVariant),
                 )
               ],
             ),
           ),
 
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start, // Dôležité: Zarovnaj na vrch
-              children: [
-                // LEFT SIDE: INPUT
-                Expanded(
-                  child: Container(
-                    // Fixujeme výšku kontajnera, aby ladil s 5 riadkami textu
-                    decoration: BoxDecoration(
-                      color: colorScheme.surface,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: colorScheme.outlineVariant),
-                    ),
-                    child: Stack(
-                      children: [
-                        TextField(
-                          controller: _emailInputController,
-                          maxLines: 5,
-                          minLines: 5,
-                          style: const TextStyle(fontSize: 13),
-                          decoration: const InputDecoration(
-                            hintText: "Paste emails here...",
-                            hintStyle: TextStyle(fontSize: 12),
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.fromLTRB(12, 12, 12, 45),
-                          ),
-                        ),
-                        Positioned(
-                          right: 4,
-                          bottom: 4,
-                          child: IconButton.filled(
-                            onPressed: _isChecking ? null : _handleCheck,
-                            icon: _isChecking
-                                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                : const Icon(Icons.person_search, size: 20),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-
-                // RIGHT SIDE: DETECTED
-                Expanded(
-                  child: Container(
-                    height: 155, // Fixná výška, aby lícovala s ľavou stranou (5 lines + padding)
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: colorScheme.surface.withOpacity(0.4),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: colorScheme.outlineVariant),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text("Detected Emails:", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 8),
-                        Expanded(
-                          child: SingleChildScrollView(
-                            child: _detectedEmails.isEmpty
-                                ? const Text("No emails found yet.", style: TextStyle(fontSize: 11, color: Colors.grey))
-                                : Wrap(
-                              spacing: 6,
-                              runSpacing: 0,
-                              children: _detectedEmails.map((email) {
-                                return Chip(
-                                  label: Text(email, style: const TextStyle(fontSize: 12)),
-                                  onDeleted: () {
-                                    setState(() {
-                                      _detectedEmails.remove(email);
-                                      widget.onEmailsChanged(_detectedEmails);
-                                    });
-                                  },
-                                  visualDensity: VisualDensity.compact,
-                                );
-                              }).toList(),
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // LEFT SIDE: INPUT
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: colorScheme.surface,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: colorScheme.outlineVariant),
+                      ),
+                      child: Stack(
+                        children: [
+                          TextField(
+                            controller: _emailInputController,
+                            maxLines: 5,
+                            minLines: 5,
+                            style: TextStyle(fontSize: 13, color: colorScheme.onSurface),
+                            decoration: InputDecoration(
+                              hintText: "Paste emails here...",
+                              hintStyle: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant.withOpacity(0.6)),
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.fromLTRB(12, 12, 12, 45),
                             ),
                           ),
-                        ),
-                      ],
+                          Positioned(
+                            right: 4,
+                            bottom: 4,
+                            child: IconButton.filled(
+                              onPressed: _isChecking ? null : _handleCheck,
+                              style: IconButton.styleFrom(
+                                backgroundColor: colorScheme.primary,
+                                foregroundColor: colorScheme.onPrimary,
+                              ),
+                              icon: _isChecking
+                                  ? SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                      color: colorScheme.onPrimary,
+                                      strokeWidth: 2
+                                  )
+                              )
+                                  : const Icon(Icons.person_search, size: 20),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
-            )
+                  const SizedBox(width: 12),
+
+                  // RIGHT SIDE: DETECTED
+                  Expanded(
+                    child: Container(
+                      height: 155,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        // V dark mode chceme o niečo výraznejšie pozadie pre kontrast
+                        color: isDark
+                            ? colorScheme.surfaceContainerHigh
+                            : colorScheme.surface.withOpacity(0.4),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: colorScheme.outlineVariant),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                              "Detected Emails:",
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: colorScheme.onSurface
+                              )
+                          ),
+                          const SizedBox(height: 8),
+                          Expanded(
+                            child: SingleChildScrollView(
+                              child: _detectedEmails.isEmpty
+                                  ? Text(
+                                  "No emails found yet.",
+                                  style: TextStyle(
+                                      fontSize: 11,
+                                      color: colorScheme.onSurfaceVariant.withOpacity(0.7)
+                                  )
+                              )
+                                  : Wrap(
+                                spacing: 6,
+                                runSpacing: 0,
+                                children: _detectedEmails.map((email) {
+                                  return Chip(
+                                    label: Text(
+                                        email,
+                                        style: const TextStyle(fontSize: 11)
+                                    ),
+                                    backgroundColor: isDark ? colorScheme.surface : null,
+                                    onDeleted: () {
+                                      setState(() {
+                                        _detectedEmails.remove(email);
+                                        widget.onEmailsChanged(_detectedEmails);
+                                      });
+                                    },
+                                    deleteIconColor: colorScheme.error,
+                                    visualDensity: VisualDensity.compact,
+                                    padding: EdgeInsets.zero,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              )
           ),
         ],
       ),

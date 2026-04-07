@@ -16,27 +16,38 @@ class RespondentSignatureField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     if (auth == null) {
       return TextField(
         controller: controller,
-        maxLength: 25,
-        decoration: const InputDecoration(
+        style: TextStyle(color: cs.onSurface),
+        decoration: InputDecoration(
           labelText: "Your name / signature",
-          hintText: "Sign yourself here",
-          border: OutlineInputBorder(),
-          prefixIcon: Icon(Icons.person),
+          labelStyle: TextStyle(color: cs.onSurfaceVariant),
+          filled: true,
+          fillColor: cs.surfaceContainer,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          prefixIcon: Icon(Icons.person_outline, color: cs.primary),
         ),
-        inputFormatters: [LengthLimitingTextInputFormatter(50)],
         onChanged: (_) => onChanged(),
       );
     }
 
     return Card(
-      color: Colors.blue.withAlpha(25),
+      color: cs.primary.withAlpha(25),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: cs.primary.withAlpha(75)),
+      ),
       child: ListTile(
-        leading: const Icon(Icons.verified_user, color: Colors.blue),
-        title: Text("Signed as: ${auth!.name}"),
-        subtitle: Text(auth!.email),
+        leading: Icon(Icons.verified, color: cs.primary),
+        title: Text(
+          "Signed as: ${auth!.name}",
+          style: TextStyle(fontWeight: FontWeight.bold, color: cs.onSurface),
+        ),
+        subtitle: Text(auth!.email, style: TextStyle(color: cs.onSurfaceVariant)),
       ),
     );
   }

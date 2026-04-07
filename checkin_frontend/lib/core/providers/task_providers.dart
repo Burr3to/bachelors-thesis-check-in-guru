@@ -19,7 +19,7 @@ final taskListProvider = FutureProvider.autoDispose<QueryResult<TaskListModel>>(
   ref,
 ) async {
   final api = ref.watch(taskApiServiceProvider);
-  return api.getTasks(pageNumber: 1, pageSize: 100);
+  return api.getTasks(pageNumber: 1, pageSize: 100, sortBy: "createdat", sortDesc: true);
 });
 
 final taskDetailProvider = FutureProvider.autoDispose.family<TaskDetailModel, String>((

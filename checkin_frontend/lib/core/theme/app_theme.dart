@@ -18,6 +18,10 @@ class AppTheme {
   static const Color myLightBorder = Color.fromRGBO(204, 223, 255, 1);
   static const Color myAccentBlue = Colors.blueAccent;
 
+  static const Color quillLightEditorBg = Color.fromRGBO(100, 130, 255, 0.1);
+  static const Color quillLightToolbarBg = Color(0xFFF5F5F5);
+  static const Color quillLightBorder = Color.fromRGBO(81, 119, 200, 0.5);
+
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
@@ -26,6 +30,9 @@ class AppTheme {
         seedColor: myAccentBlue,
         surface: Colors.white, // Hlavné pozadie (Scaffold)
         surfaceContainer: myLightBlueBg, // Pozadie tvojich Boxov/Kariet (M3 slot)
+        surfaceContainerHigh: quillLightToolbarBg, // Použijeme tento slot pre toolbar
+        surfaceContainerLow: quillLightEditorBg,  // Použijeme tento slot pre editor
+        outline: quillLightBorder,               // Pôvodný border
         outlineVariant: myLightBorder, // Jemné čiary/bordery
         primary: myAccentBlue, // Hlavná modrá
         onSurface: Colors.black87, // Hlavný text
@@ -45,10 +52,13 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      colorScheme: const ColorScheme.dark(
-        surface: Color(0xFF121212), // Skoro čierna (OLED friendly)
-        surfaceContainer: Color(0xFF1E1E1E), // Tmavosivá pre kontajnery
-        outlineVariant: Color(0xFF333333), // Tmavé bordery
+      colorScheme: ColorScheme.dark(
+        surface: const Color(0xFF121212), // Skoro čierna (OLED friendly)
+        surfaceContainer: const Color(0xFF1E1E1E), // Tmavosivá pre kontajnery
+        surfaceContainerHigh: const Color(0xFF252525), // Toolbar v dark
+        surfaceContainerLow: const Color(0xFF1A1A1A),  // Editor v dark
+        outline: Colors.blueAccent.withAlpha(75),   // Jemnejší border v dark
+        outlineVariant: const Color(0xFF333333), // Tmavé bordery
         primary: Colors.blueAccent, // Modrá zostáva ako accent
         onSurface: Colors.white,
         onSurfaceVariant: Colors.white70,
@@ -58,7 +68,7 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
-          side: BorderSide(color: Colors.blueAccent.withOpacity(0.3), width: 2),
+          side: BorderSide(color: Colors.blueAccent.withAlpha(75), width: 2),
         ),
       ),
     );

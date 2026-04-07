@@ -8,28 +8,29 @@ class LoginRequiredView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.lock, size: 80, color: Colors.orange),
+          Icon(Icons.lock_outline, size: 80, color: cs.primary),
           const SizedBox(height: 16),
-          const Text(
-            "Task requires to be logged in",
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          Text(
+            "Authentication Required",
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: cs.onSurface,
+            ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 8),
+          Text("This task is private.", style: TextStyle(color: cs.onSurfaceVariant)),
+          const SizedBox(height: 32),
           ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(minimumSize: const Size(200, 50)),
             icon: const Icon(Icons.login),
-            label: const Text("Google login"),
-            onPressed: () async {
-              try {
-                await ref.read(authProvider.notifier).signInWithGoogle();
-              } catch (e) {
-                if (!context.mounted) return;
-                AppSnackBar.showError(context, "Login Failed: $e");
-              }
-            },
+            label: const Text("Sign in with Google"),
+            onPressed: () => ref.read(authProvider.notifier).signInWithGoogle(),
           ),
         ],
       ),

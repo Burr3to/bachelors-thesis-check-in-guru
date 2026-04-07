@@ -6,6 +6,7 @@ import 'package:checkin_frontend/core/providers/respond_providers.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/models/action/bulk_subtask_complete_model.dart';
 import '../../../../core/models/user/user_profile.dart';
+import '../../../../core/shared_widgets/primary_button.dart';
 import '../../../../core/utils/app_snack_bar.dart';
 import '../../../auth/views/providers/auth_provider.dart';
 import '../widgets/login_required_view.dart';
@@ -65,10 +66,12 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
   Widget build(BuildContext context) {
     final asyncData = ref.watch(publicTaskProvider(widget.taskHash));
     final auth = ref.watch(authProvider).user;
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
 
     return Scaffold(
       appBar: AppTopBar(),
-      backgroundColor: Colors.white,
+      backgroundColor: cs.surface,
       body: asyncData.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, s) {
@@ -110,7 +113,7 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
                     ),
 
                     if (!isMainTaskOnly) ...[
-                      const Text("Tasks:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                      Text("Tasks:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: cs.onSurface)),
                       const SizedBox(height: 8),
                       SubtaskListCard(
                         subtasks: publicTask.subtasks,
@@ -129,10 +132,10 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
                     if (hasPendingTasks) ...[
                       // Ak je to main task only, môžeme tu pridať malý text "Please sign to complete this task"
                       if (isMainTaskOnly && auth == null)
-                        const Padding(
-                          padding: EdgeInsets.only(bottom: 16),
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
                           child: Text("Please sign below to confirm completion:",
-                              style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey)),
+                              style: TextStyle(fontStyle: FontStyle.italic, color: cs.onSurfaceVariant)),
                         ),
                       RespondentSignatureField(
                         auth: auth,
@@ -140,9 +143,9 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
                         onChanged: () => setState(() {}),
                       ),
                       const SizedBox(height: 24),
-                      _buildSubmitButton(auth, isMainTaskOnly), // Pridaný parameter
+                      _buildSubmitButton(auth, isMainTaskOnly, cs), // Pridaný parameter
                     ] else ...[
-                      _buildAllCompletedBadge(),
+                      _buildAllCompletedBadge(cs),
                     ],
                     const SizedBox(height: 40),
                   ],
@@ -155,37 +158,41 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
     );
   }
 
-  Widget _buildSubmitButton(UserProfile? auth, bool isMainTaskOnly) {
+  Widget _buildSubmitButton(UserProfile? auth, bool isMainTaskOnly, ColorScheme cs) {
     final bool isDisabled = _isLoading || _selectedIds.isEmpty || (auth == null && _nameCtrl.text.isEmpty);
-
-    String buttonText = "Submit (${_selectedIds.length})";
-    if (isMainTaskOnly) buttonText = "Sign & Send";
-    if (_selectedIds.isEmpty && !isMainTaskOnly) buttonText = "Check tasks you have completed";
+    String buttonText = isMainTaskOnly ? "Sign & Send" : "Submit (${_selectedIds.length})";
 
     return SizedBox(
-      height: 50,
-      width: double.infinity,
+      height: 52,
       child: ElevatedButton(
         onPressed: isDisabled ? null : () => _submit(auth),
-        style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.green[600], // Zelená je dobrá pre submit
+          foregroundColor: Colors.white,
+          disabledBackgroundColor: cs.onSurface.withAlpha(30),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
         child: _isLoading
             ? const CircularProgressIndicator(color: Colors.white)
-            : Text(buttonText, style: const TextStyle(fontWeight: FontWeight.bold)),
+            : Text(buttonText, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
       ),
     );
   }
 
-  Widget _buildAllCompletedBadge() {
-    return const Card(
-      color: Colors.greenAccent,
-      child: Padding(
+
+  Widget _buildAllCompletedBadge(ColorScheme cs) {
+    return Card(
+      color: Colors.green.withAlpha(50),
+      elevation: 0,
+      shape: RoundedRectangleBorder(side: const BorderSide(color: Colors.green), borderRadius: BorderRadius.circular(12)),
+      child: const Padding(
         padding: EdgeInsets.all(16.0),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.thumb_up, color: Colors.white),
+            Icon(Icons.check_circle, color: Colors.green),
             SizedBox(width: 8),
-            Text("All Tasks are Completed!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            Text("All Tasks are Completed!", style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
           ],
         ),
       ),
@@ -193,6 +200,9 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
   }
 
   Widget _buildErrorState(WidgetRef ref, Object error) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
     String title = "Prístup zamietnutý";
     String message = "Došlo k chybe pri načítaní úlohy.";
     IconData icon = Icons.error_outline;
@@ -218,36 +228,21 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
     }
 
     return Center(
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 400),
+      child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 64, color: Colors.blueAccent),
+            Icon(icon, size: 80, color: cs.primary),
             const SizedBox(height: 24),
-            Text(title,
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center
-            ),
+            Text(title, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: cs.onSurface)),
             const SizedBox(height: 12),
-            Text(message,
-                style: const TextStyle(fontSize: 16, color: Colors.grey),
-                textAlign: TextAlign.center
-            ),
+            Text(message, style: TextStyle(fontSize: 16, color: cs.onSurfaceVariant), textAlign: TextAlign.center),
             const SizedBox(height: 32),
             if (showLoginButton)
-              ElevatedButton.icon(
-                onPressed: () => context.push('/login'), // Predpokladám tvoju cestu
-                icon: const Icon(Icons.login),
-                label: const Text("Prihlásiť sa cez Google"),
-                style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 50)),
-              )
+              PrimaryButton(text: "Prihlásiť sa cez Google", onPressed: () => context.push('/login'))
             else
-              OutlinedButton(
-                onPressed: () => context.go('/'),
-                child: const Text("Späť na úvodnú stránku"),
-              ),
+              OutlinedButton(onPressed: () => context.go('/'), child: const Text("Späť na úvod")),
           ],
         ),
       ),

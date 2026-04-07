@@ -28,10 +28,11 @@ abstract class TaskApiService {
   Future<QueryResult<TaskListModel>> getTasks({
     @Query("pageNumber") int pageNumber = 1,
     @Query("pageSize") int pageSize = 10,
+    @Query("sortBy") String? sortBy,
+    @Query("sortDesc") bool? sortDesc,
+    @Query("nameContains") String? nameContains,
 
-    // (Voliteľné) Ak chceme implementovať filter z Query objektu:
-    // @Query("nameContains") String? nameContains,
-    // @Query("sortBy") String? sortBy,
+
   });
 
   @GET('api/Task/{id}')

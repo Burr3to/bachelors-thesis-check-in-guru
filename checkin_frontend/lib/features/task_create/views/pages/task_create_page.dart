@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-// Importuj tvoje modely a widgety
+
 import 'package:checkin_frontend/core/models/enums/task_enums.dart';
 import 'package:checkin_frontend/core/models/subtask_template/subtask_template_create_model.dart';
 import 'package:checkin_frontend/core/shared_widgets/primary_button.dart';
@@ -25,7 +25,6 @@ class TaskCreatePage extends ConsumerStatefulWidget {
 }
 
 class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
-  // Stav formulára
   final _titleCtrl = TextEditingController();
   final QuillController _quillCtrl = QuillController.basic();
   List<String> _invitedEmails = [];
@@ -43,8 +42,6 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
     _quillCtrl.dispose();
     super.dispose();
   }
-
-  // --- LOGIKA ---
 
   void _addSubtask(SubtaskTemplateCreateModel subtask) {
     setState(() {
@@ -65,6 +62,7 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
       initialDate: DateTime.now(),
       firstDate: DateTime.now(),
       lastDate: DateTime(2100),
+      // showDatePicker automaticky dedí farby z MaterialApp témy
     );
     if (picked != null) setState(() => _selectedDeadline = picked);
   }
@@ -82,16 +80,15 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
           _quillCtrl.document.toPlainText().trim().isEmpty;
 
       final newTask = TaskCreateModel(
-        title: _titleCtrl.text,
-        notes: !isEditorEmpty ? QuillUtils.controllerToString(_quillCtrl) : null,
-        deadLine: _selectedDeadline!.toUtc(),
-        subtaskMode: _subtaskMode,
-        requiresAuthenticationToComplete: _requiresAuth,
-        subtasks: _tempSubtasks,
-        invitedEmails: _invitedEmails
+          title: _titleCtrl.text,
+          notes: !isEditorEmpty ? QuillUtils.controllerToString(_quillCtrl) : null,
+          deadLine: _selectedDeadline!.toUtc(),
+          subtaskMode: _subtaskMode,
+          requiresAuthenticationToComplete: _requiresAuth,
+          subtasks: _tempSubtasks,
+          invitedEmails: _invitedEmails
       );
 
-      // 1. Získame vytvorený task z API
       final createdTask = await ref.read(taskApiServiceProvider).createTask(newTask);
 
       if (mounted) {
@@ -99,9 +96,14 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
         context.go('/app/tasks/details/${createdTask.id}');
       }
     } catch (e) {
-      print(e);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+        final cs = Theme.of(context).colorScheme;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Error: $e", style: TextStyle(color: cs.onError)),
+            backgroundColor: cs.error,
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -110,10 +112,14 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      // Použije surface (biela v Light / čierna v Dark)
+      backgroundColor: cs.surface,
       body: Align(
-        alignment: Alignment.topCenter, // Zarovnaj na vrch a stred
+        alignment: Alignment.topCenter,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
           child: SingleChildScrollView(
@@ -121,14 +127,22 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Color.fromRGBO(240, 244, 248, 1),
+                // surfaceContainer (tvoja myLightBlueBg v Light / tmavosivá v Dark)
+                color: cs.surfaceContainer,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey[300]!),
+                border: Border.all(color: cs.outlineVariant),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text("Create New Task", style: TextStyle(fontSize: 16)),
+                  Text(
+                      "Create New Task",
+                      style: TextStyle(
+                        fontSize: 18, // Mierne zväčšené
+                        fontWeight: FontWeight.bold,
+                        color: cs.onSurface,
+                      )
+                  ),
                   const SizedBox(height: 16),
 
                   // --- Basic Info ---
@@ -150,7 +164,7 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
                   TaskSettingsSection(
                     selectedDeadline: _selectedDeadline,
                     requiresAuth: _requiresAuth,
-                    currentMode: _subtaskMode, // Mód ide sem
+                    currentMode: _subtaskMode,
                     onDateTap: _selectDate,
                     onAuthChanged: (newVal) => setState(() => _requiresAuth = newVal),
                     onModeChanged: (newMode) => setState(() => _subtaskMode = newMode),

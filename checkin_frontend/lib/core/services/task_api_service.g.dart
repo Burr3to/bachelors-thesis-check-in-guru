@@ -77,12 +77,19 @@ class _TaskApiService implements TaskApiService {
   Future<QueryResult<TaskListModel>> getTasks({
     int pageNumber = 1,
     int pageSize = 10,
+    String? sortBy,
+    bool? sortDesc,
+    String? nameContains,
   }) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{
       r'pageNumber': pageNumber,
       r'pageSize': pageSize,
+      r'sortBy': sortBy,
+      r'sortDesc': sortDesc,
+      r'nameContains': nameContains,
     };
+    queryParameters.removeWhere((k, v) => v == null);
     final _headers = <String, dynamic>{};
     const Map<String, dynamic>? _data = null;
     final _options = _setStreamType<QueryResult<TaskListModel>>(
