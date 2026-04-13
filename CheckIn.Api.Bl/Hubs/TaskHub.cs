@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.SignalR;
 
-namespace CheckIn.Api.App.Hubs;
+namespace CheckIn.Api.Bl.Hubs;
 
 public class TaskHub : Hub
 {
@@ -18,5 +18,12 @@ public class TaskHub : Hub
     public async Task LeaveTaskRoom(string taskId)
     {
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, taskId);
+    }
+
+    public async Task JoinUserRoom(string userId)
+    {
+        var groupName = $"User_{userId.ToLower()}";
+        await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
+        Console.WriteLine($"[SIGNALR] Autor vstúpil do svojej USER ROOM: '{groupName}'");
     }
 }

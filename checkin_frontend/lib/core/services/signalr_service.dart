@@ -45,7 +45,6 @@ class SignalRService {
     }
   }
 
-// lib/core/services/signalr_service.dart
 
   Future<void> joinTaskRoom(String taskId) async {
     // Ak sa práve pripája, počkáme chvíľu (max 5 sekúnd)
@@ -67,6 +66,21 @@ class SignalRService {
   Future<void> leaveTaskRoom(String taskId) async {
     if (_hubConnection?.state == HubConnectionState.Connected) {
       await _hubConnection!.invoke("LeaveTaskRoom", args: [taskId]);
+    }
+  }
+
+  Future<void> joinUserRoom(String userId) async {
+    int attempts = 0;
+    while (_hubConnection?.state != HubConnectionState.Connected && attempts < 10) {
+      await Future.delayed(const Duration(milliseconds: 500));
+      attempts++;
+    }
+
+    if (_hubConnection?.state == HubConnectionState.Connected) {
+      // POSIELAME IBA ID! (Prefix "User_" pridá až Backend)
+      final cleanId = userId.toLowerCase().trim();
+      await _hubConnection!.invoke("JoinUserRoom", args: [cleanId]);
+      print("SIGNALR: Úspešne vyvolané JoinUserRoom pre ID: $cleanId");
     }
   }
 

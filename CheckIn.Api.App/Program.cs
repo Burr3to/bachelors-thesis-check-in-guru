@@ -1,6 +1,5 @@
 using System.Reflection;
 using System.Text;
-using CheckIn.Api.App.Hubs;
 using CheckIn.Api.Bl.Facades.Interfaces;
 using CheckIn.Api.Bl.Hubs;
 using CheckIn.Api.Bl.Installers;

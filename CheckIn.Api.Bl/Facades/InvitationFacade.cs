@@ -29,6 +29,7 @@ public class InvitationFacade(
     }
 
     public void StartEmailSendingBackground(List<string> emails, string taskHash, string authorName, string taskTitle,
+        string taskDescription,
         Guid authorId)
     {
         _ = Task.Run(async () =>
@@ -41,7 +42,7 @@ public class InvitationFacade(
             try
             {
                 // Táto metóda musí byť v IEmailService
-                await scopedEmailService.SendBulkEmailsAsync(emails, taskHash, authorName, taskTitle);
+                await scopedEmailService.SendBulkEmailsAsync(emails, taskHash, authorName, taskTitle, taskDescription);
 
                 await hubContext.Clients.User(authorId.ToString()).SendAsync("ReceiveNotification", "EMAILS_SENT");
             }

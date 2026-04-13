@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using CheckIn.Api.Bl.Services.Interfaces;
 using Microsoft.Extensions.Configuration;
@@ -37,7 +38,8 @@ public class EmailService(IConfiguration configuration) : IEmailService
         await smtp.DisconnectAsync(true);
     }
 
-    public async Task SendBulkEmailsAsync(List<string> emails, string taskHash, string authorName, string taskTitle)
+    public async Task SendBulkEmailsAsync(List<string> emails, string taskHash, string authorName, string taskTitle,
+        string? taskDescription)
     {
         var from = configuration["EmailSettings:Email"];
 
@@ -49,6 +51,9 @@ public class EmailService(IConfiguration configuration) : IEmailService
         var template = await File.ReadAllTextAsync(templatePath, Encoding.UTF8);
 
         using var smtp = await GetConnectedSmtpClientAsync();
+
+        var plainDescription = StripQuillDeltaToPlainText(taskDescription ?? "");
+        var htmlDescription = plainDescription.Replace("\r\n", "<br>").Replace("\n", "<br>");
 
         foreach (var toEmail in emails)
         {
@@ -66,6 +71,9 @@ public class EmailService(IConfiguration configuration) : IEmailService
                 HtmlBody = template
                     .Replace("{AuthorName}", authorName)
                     .Replace("{TaskTitle}", taskTitle)
+                    .Replace("{TaskDescription}", string.IsNullOrWhiteSpace(htmlDescription)
+                        ? ""
+                        : $"<p style='color: #666;'>{htmlDescription}</p>")
                     .Replace("{Link}", inviteLink)
             };
             email.Body = bodyBuilder.ToMessageBody();
@@ -96,5 +104,56 @@ public class EmailService(IConfiguration configuration) : IEmailService
             .Select(m => m.Value.ToLower().Trim())
             .Distinct()
             .ToList();
+    }
+
+    public string StripQuillDeltaToPlainText(string deltaJson)
+    {
+        if (string.IsNullOrWhiteSpace(deltaJson)) return string.Empty;
+
+        // Ak to nie je JSON (nezačína [ alebo {), vráť to ako čistý text
+        if (!deltaJson.Trim().StartsWith("[") && !deltaJson.Trim().StartsWith("{"))
+            return deltaJson;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(deltaJson);
+            JsonElement opsElement;
+
+            // Prípad 1: Dáta sú priamo pole [ {"insert":...}, ... ] -> toto je tvoj prípad
+            if (doc.RootElement.ValueKind == JsonValueKind.Array)
+            {
+                opsElement = doc.RootElement;
+            }
+            // Prípad 2: Dáta sú objekt { "ops": [ ... ] }
+            else if (doc.RootElement.ValueKind == JsonValueKind.Object &&
+                     doc.RootElement.TryGetProperty("ops", out var opsProp))
+            {
+                opsElement = opsProp;
+            }
+            else
+            {
+                return deltaJson; // Neznámy formát, vráť surové
+            }
+
+            var textBuilder = new StringBuilder();
+            foreach (var op in opsElement.EnumerateArray())
+            {
+                if (op.TryGetProperty("insert", out var insertProp))
+                {
+                    // Quill v 'insert' môže mať string (text) alebo objekt (obrázok/video)
+                    if (insertProp.ValueKind == JsonValueKind.String)
+                    {
+                        textBuilder.Append(insertProp.GetString());
+                    }
+                }
+            }
+
+            return textBuilder.ToString().Trim();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Chyba pri parsovaní Quill Delta: {ex.Message}");
+            return deltaJson;
+        }
     }
 }

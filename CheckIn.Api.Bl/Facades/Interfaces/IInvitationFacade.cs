@@ -14,6 +14,6 @@ public interface IInvitationFacade :
 {
     List<string> ParseEmails(string rawText);
 
-    void StartEmailSendingBackground(List<string> emails, string taskHash, string authorName, string taskTitle,
-        Guid authorId);
+    void StartEmailSendingBackground(List<string> emails, string taskHash, string authorName, string taskTitle
+        , string taskDescription, Guid authorId);
 }

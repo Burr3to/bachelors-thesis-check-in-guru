@@ -1,8 +1,8 @@
 using System.Linq.Expressions;
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
-using CheckIn.Api.App.Hubs;
 using CheckIn.Api.Bl.Facades.Interfaces;
+using CheckIn.Api.Bl.Hubs;
 using CheckIn.Api.Bl.Services.Interfaces;
 using CheckIn.Api.Common.Enums;
 using CheckIn.Api.Common.Models.Create;
@@ -170,7 +170,7 @@ public class TaskFacade(
         var author = await dbContext.Users.FindAsync(CurrentUserId);
         var authorName = author?.Name ?? "Váš kolega";
         invitationFacade.StartEmailSendingBackground(model.InvitedEmails, task.Hash, authorName, task.Title,
-            task.CreatedById);
+            task.Notes, task.CreatedById);
 
         return await GetByIdAsync(task.Id);
     }

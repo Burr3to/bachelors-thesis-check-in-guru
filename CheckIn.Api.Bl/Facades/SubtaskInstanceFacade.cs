@@ -1,8 +1,8 @@
 using System.Linq.Expressions;
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
-using CheckIn.Api.App.Hubs;
 using CheckIn.Api.Bl.Facades.Interfaces;
+using CheckIn.Api.Bl.Hubs;
 using CheckIn.Api.Bl.Services.Interfaces;
 using CheckIn.Api.Common.Enums;
 using CheckIn.Api.Common.Models.Action;
@@ -62,6 +62,7 @@ public class SubtaskInstanceFacade(
             .ThenInclude(st => st.ParentTask)
             .Where(i => model.InstanceIds.Contains(i.Id))
             .ToListAsync();
+
 
         Console.WriteLine($"[BULK] Začínam spracovanie pre {model.InstanceIds?.Count} inštancií");
         if (existingInstances.Any())
@@ -154,12 +155,22 @@ public class SubtaskInstanceFacade(
         //SignalR
         if (taskId.HasValue)
         {
+            var taskAuthorId = await dbContext.Set<TaskEntity>()
+                .Where(t => t.Id == taskId.Value)
+                .Select(t => t.CreatedById)
+                .FirstOrDefaultAsync();
+
             var roomName = taskId.Value.ToString().ToLower().Trim();
             Console.WriteLine($"[SIGNALR] Odosielam signál do ROOM: '{roomName}'");
 
             await hubContext.Clients.Group(roomName).SendAsync("TaskInstancesChanged");
 
-            await hubContext.Clients.Group(taskId.Value.ToString()).SendAsync("TaskStatsChanged");
+            if (taskAuthorId != Guid.Empty)
+            {
+                var userGroupName = $"User_{taskAuthorId.ToString().ToLower()}";
+                await hubContext.Clients.Group(userGroupName).SendAsync("AuthorTaskUpdated", taskId.Value.ToString());
+                Console.WriteLine($"[SIGNALR] Odoslaný signál pre LIST autorovi v grupe: {userGroupName}");
+            }
         }
         else
         {

@@ -35,6 +35,7 @@ public class InvitationController(IInvitationFacade facade)
                 "testovaci-hash-123",
                 "Jakub (Test)",
                 "Cervene paradajky",
+                "Toto je testovací email s popisom úlohy. Neodpovedaj naň.",
                 Guid.Empty
             );
             return Ok("Pokus o odoslanie bol spustený. Skontroluj konzolu a svoj mail.");
