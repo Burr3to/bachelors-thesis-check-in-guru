@@ -1,146 +1,154 @@
-// ignore_for_file: unused_import
-
-import 'package:checkin_frontend/features/task_create/views/widgets/app_toggle_button.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/providers/task_create/task_create_provider.dart';
 
-import '../../../../core/models/enums/task_enums.dart';
-import '../../../../core/models/subtask_template/subtask_template_create_model.dart';
+class SubtaskInputSection extends ConsumerStatefulWidget {
+  final VoidCallback onRemoveSection;
 
-class SubtaskInputSection extends StatefulWidget {
-  final Function(SubtaskTemplateCreateModel) onSubtaskAdded;
-
-  const SubtaskInputSection({
-    super.key,
-    required this.onSubtaskAdded,
-  });
+  const SubtaskInputSection({super.key, required this.onRemoveSection});
 
   @override
-  State<SubtaskInputSection> createState() => _SubtaskInputSectionState();
+  ConsumerState<SubtaskInputSection> createState() => _SubtaskInputSectionState();
 }
 
-class _SubtaskInputSectionState extends State<SubtaskInputSection> {
-  final _titleCtrl = TextEditingController();
-  final _descCtrl = TextEditingController();
+class _SubtaskInputSectionState extends ConsumerState<SubtaskInputSection> {
+  final _inputController = TextEditingController();
+  final Set<int> _expandedIndices = {}; // Track which subtasks show description
 
-  void _handleAdd() {
-    if (_titleCtrl.text.isEmpty) return;
-    final subtask = SubtaskTemplateCreateModel(
-      title: _titleCtrl.text,
-      description: _descCtrl.text.isNotEmpty ? _descCtrl.text : null,
-    );
-    widget.onSubtaskAdded(subtask);
-    _titleCtrl.clear();
-    _descCtrl.clear();
+  void _submitSubtask() {
+    if (_inputController.text.trim().isEmpty) return;
+    ref.read(taskCreateProvider.notifier).addSubtask(_inputController.text.trim());
+    _inputController.clear();
   }
 
   @override
   void dispose() {
-    _titleCtrl.dispose();
-    _descCtrl.dispose();
+    _inputController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final cs = Theme.of(context).colorScheme;
+    final subtasks = ref.watch(taskCreateProvider.select((s) => s.subtasks));
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 16),
-        const Divider(),
-        const SizedBox(height: 16),
-
-        Text(
-            "Subtask",
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              color: theme.colorScheme.onSurface, // Dynamická farba textu
-            )
-        ),
-        const SizedBox(height: 10),
-
-        // Title TextField
-        TextField(
-          controller: _titleCtrl,
-          style: TextStyle(color: theme.colorScheme.onSurface),
-          decoration: _buildInputDecoration(context, "Title", "Enter subtask title.."),
-        ),
-
-        const SizedBox(height: 12),
-
-        // Description TextField
-        TextField(
-          controller: _descCtrl,
-          style: TextStyle(color: theme.colorScheme.onSurface),
-          minLines: 2,
-          maxLines: 4,
-          decoration: _buildInputDecoration(context, "Description", "Enter subtask description.."),
-        ),
-
-        const SizedBox(height: 16),
-
-        // Add Button
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: _handleAdd,
-            icon: Icon(Icons.add, color: theme.colorScheme.primary),
-            label: Text(
-                "Add to List",
-                style: TextStyle(
-                  color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.w600,
-                )
-            ),
-            style: OutlinedButton.styleFrom(
-              // V light mode biela, v dark mode tmavá 'surface'
-              backgroundColor: theme.colorScheme.surface,
-              minimumSize: const Size(0, 52),
-              side: BorderSide(color: theme.colorScheme.primary, width: 2),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              foregroundColor: theme.colorScheme.primary, // efekt vlny pri stlačení
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        const Divider(),
-      ],
-    );
-  }
-
-  // Pomocná metóda prerobená na podporu témy
-  InputDecoration _buildInputDecoration(BuildContext context, String label, String hint) {
-    final theme = Theme.of(context);
-
-    return InputDecoration(
-      labelText: label,
-      // 'onSurfaceVariant' je v light móde black54 a v dark white70
-      labelStyle: TextStyle(color: theme.colorScheme.onSurfaceVariant),
-      floatingLabelStyle: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.w600),
-      hintText: hint,
-      hintStyle: TextStyle(color: theme.colorScheme.onSurfaceVariant.withOpacity(0.6)),
-      filled: true,
-      // 'surfaceContainer' zabezpečí, že inputy budú jemne odlíšené od pozadia
-      fillColor: theme.colorScheme.surfaceContainer,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-
-      // Neaktívny border
-      enabledBorder: OutlineInputBorder(
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(
-          color: theme.colorScheme.outlineVariant,
-          width: 2,
-        ),
+        border: Border.all(color: cs.outlineVariant),
       ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // HEADER
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text("Subtasks", style: TextStyle(fontWeight: FontWeight.bold, color: cs.onSurface)),
+              TextButton(
+                onPressed: widget.onRemoveSection,
+                child: Text("Remove section", style: TextStyle(color: cs.error, fontSize: 12)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
 
-      // Aktívny (zaostrený) border
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(
-          color: theme.colorScheme.primary,
-          width: 2,
-        ),
+          // INPUT FIELD + PLUS BUTTON
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _inputController,
+                  onSubmitted: (_) => _submitSubtask(),
+                  decoration: InputDecoration(
+                    hintText: "Add subtask title...",
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton.filled(
+                onPressed: _submitSubtask,
+                icon: const Icon(Icons.add),
+                style: IconButton.styleFrom(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+            ],
+          ),
+
+          if (subtasks.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            const Divider(),
+            const SizedBox(height: 8),
+
+            // LIST OF ADDED SUBTASKS
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: subtasks.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (context, index) {
+                final subtask = subtasks[index];
+                final isExpanded = _expandedIndices.contains(index);
+
+                return Column(
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        color: cs.surface,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: cs.outlineVariant.withOpacity(0.5)),
+                      ),
+                      child: Column(
+                        children: [
+                          ListTile(
+                            visualDensity: VisualDensity.compact,
+                            leading: IconButton(
+                              icon: Icon(
+                                isExpanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_right,
+                                color: cs.primary,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  if (isExpanded) _expandedIndices.remove(index);
+                                  else _expandedIndices.add(index);
+                                });
+                              },
+                            ),
+                            title: Text(subtask.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                            trailing: TextButton(
+                              onPressed: () => ref.read(taskCreateProvider.notifier).removeSubtask(index),
+                              child: Text("Remove", style: TextStyle(color: cs.error, fontSize: 12)),
+                            ),
+                          ),
+                          if (isExpanded)
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                              child: TextField(
+                                maxLines: 2,
+                                decoration: const InputDecoration(
+                                  hintText: "Add description (optional)...",
+                                  hintStyle: TextStyle(fontSize: 12),
+                                  border: UnderlineInputBorder(),
+                                ),
+                                style: const TextStyle(fontSize: 13),
+                                onChanged: (val) => ref.read(taskCreateProvider.notifier).updateSubtaskDescription(index, val),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ],
+        ],
       ),
     );
   }

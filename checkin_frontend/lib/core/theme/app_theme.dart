@@ -26,6 +26,11 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
+      textSelectionTheme: TextSelectionThemeData(
+        cursorColor: myAccentBlue, // Farba blikajúcej paličky
+        selectionColor: myAccentBlue.withAlpha(75), // Farba podfarbenia textu pri výbere
+        selectionHandleColor: myAccentBlue, // Farba bublín na konci výberu
+      ),
       colorScheme: ColorScheme.fromSeed(
         seedColor: myAccentBlue,
         surface: Colors.white, // Hlavné pozadie (Scaffold)
@@ -52,6 +57,11 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
+      textSelectionTheme: const TextSelectionThemeData(
+        cursorColor: Colors.blueAccent,
+        selectionColor: Color.fromRGBO(68, 138, 255, 0.4),
+        selectionHandleColor: Colors.blueAccent,
+      ),
       colorScheme: ColorScheme.dark(
         surface: const Color(0xFF121212), // Skoro čierna (OLED friendly)
         surfaceContainer: const Color(0xFF1E1E1E), // Tmavosivá pre kontajnery
