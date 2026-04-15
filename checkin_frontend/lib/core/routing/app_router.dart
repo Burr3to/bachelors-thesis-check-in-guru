@@ -18,7 +18,6 @@ final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 final routerProvider = Provider<GoRouter>((ref) {
   final refreshListenable = ValueNotifier<bool>(false);
 
-  // Sledujeme zmeny authProvidera, aby sme spustili redirect
   ref.listen(authProvider, (_, __) {
     refreshListenable.value = !refreshListenable.value;
   });
@@ -27,11 +26,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/',
     refreshListenable: refreshListenable,
-    debugLogDiagnostics: true,
-
-    observers: [
-      FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
-    ],
+    debugLogDiagnostics: true, // GoRouter sám bude vypisovať detaily do konzoly
 
     redirect: (context, state) {
       final auth = ref.read(authProvider);
@@ -40,23 +35,41 @@ final routerProvider = Provider<GoRouter>((ref) {
       final bool isLoggedIn = auth.user != null;
       final String path = state.uri.path;
 
-      // 1. Ak je prihlásený a ide na login, pošli ho do appky (predvolene na tasks)
-      if (path == '/login' && isLoggedIn) {
-        final String? redirectTo = state.uri.queryParameters['redirect'];
-        return (redirectTo != null && redirectTo.isNotEmpty) ? redirectTo : '/app/tasks';
+      // DEBUG VÝPISY
+      debugPrint('--- [ROUTER REDIRECT] ---');
+      debugPrint('Current Path: $path');
+      debugPrint('Logged In: $isLoggedIn');
+      debugPrint('Redirect Query Param: ${state.uri.queryParameters['redirect']}');
+
+      // --- LOGIKA PRE ROOT "/" ---
+      if (path == '/') {
+        final target = isLoggedIn ? '/tasks' : '/welcome';
+        debugPrint('Root path "/" detected. Sending to: $target');
+        return target;
       }
 
-      // 2. Ochrana súkromných ciest
-      // POZOR: Povolíme cestu '/app/home' aj pre neprihlásených
-      if (path.startsWith('/app') && path != '/app/home') {
-        if (!isLoggedIn) {
-          return '/login?redirect=${Uri.encodeComponent(state.uri.toString())}';
+      // --- FIX: LOGIKA PRE PRIHLÁSENÉHO NA LOGIN STRÁNKE ---
+      if (isLoggedIn && path == '/login') {
+        final String? from = state.uri.queryParameters['redirect'];
+        if (from != null && from.isNotEmpty) {
+          debugPrint('User logged in. Found redirect parameter. Sending to: $from');
+          return from; // Vráti ho tam, odkiaľ prišiel (napr. /tasks/create)
         }
+        debugPrint('User logged in. No redirect param. Sending to default: /tasks');
+        return '/tasks';
       }
 
-      // 3. Ak niekto príde na čisté "/" alebo "/app", pošleme ho na home
-      if (path == '/' || path == '/app') return '/app/home';
+      // --- OCHRANA SÚKROMNÝCH CIEST ---
+      final publicPaths = ['/welcome', '/login'];
+      final isPublicPath = publicPaths.contains(path) || path.startsWith('/p/');
 
+      if (!isPublicPath && !isLoggedIn) {
+        final encodedRedirect = Uri.encodeComponent(state.uri.toString());
+        debugPrint('Unauthorized access to $path. Redirecting to login with return path.');
+        return '/login?redirect=$encodedRedirect';
+      }
+
+      debugPrint('No redirect needed for: $path');
       return null;
     },
 
@@ -68,7 +81,6 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       ShellRoute(
         builder: (context, state, child) {
-          // 2. OPRAVA authState: Použijeme Consumer, aby sme sledovali loading
           return Consumer(
             builder: (context, ref, _) {
               final auth = ref.watch(authProvider);
@@ -81,37 +93,33 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
         routes: [
           GoRoute(
-              path: '/app/home',
-              builder: (context, state) => const HomePage()
+            path: '/welcome',
+            builder: (context, state) => const HomePage(),
           ),
           GoRoute(
-            path: '/app/tasks',
+            path: '/tasks',
             builder: (context, state) => const TaskListPage(),
             routes: [
               GoRoute(
-                path: 'details/:taskId',
+                path: 'create',
+                builder: (context, state) => const TaskCreatePage(),
+              ),
+              GoRoute(
+                path: ':taskId',
                 builder: (context, state) => TaskOverviewPage(taskId: state.pathParameters['taskId']!),
               ),
             ],
           ),
-          GoRoute(path: '/app/create', builder: (context, state) => const TaskCreatePage()),
+          GoRoute(
+            path: '/shared',
+            builder: (context, state) => const Scaffold(body: Center(child: Text("Shared Tasks coming soon"))),
+          ),
         ],
       ),
 
       GoRoute(
         path: '/p/:hash',
-        builder: (context, state) {
-          // 3. OPRAVA authState aj tu (pre verejnú stránku)
-          return Consumer(
-            builder: (context, ref, _) {
-              final auth = ref.watch(authProvider);
-              if (auth.isInitializing) {
-                return const Scaffold(body: Center(child: CircularProgressIndicator()));
-              }
-              return TaskRespondPage(taskHash: state.pathParameters['hash']!);
-            },
-          );
-        },
+        builder: (context, state) => TaskRespondPage(taskHash: state.pathParameters['hash']!),
       ),
     ],
   );

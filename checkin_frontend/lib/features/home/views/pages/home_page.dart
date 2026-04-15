@@ -81,7 +81,7 @@ class HomePage extends StatelessWidget {
                         ),
                         const SizedBox(height: 48),
                         ElevatedButton(
-                          onPressed: () => context.go('/login'),
+                          onPressed: () => context.go('/tasks/create'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: primaryBlue,
                             foregroundColor: Colors.white,
@@ -90,7 +90,7 @@ class HomePage extends StatelessWidget {
                             shadowColor: primaryBlue.withAlpha(100),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           ),
-                          child: const Text("Create Your First Task", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          child: const Text("Create Your Task", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                         ),
                       ],
                     ),
@@ -241,7 +241,7 @@ class HomePage extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: Transform.scale(
           scale: 1.03,
-          child: AutoplayVideo(assetPath: videoAsset),
+          child: HoverVideoPlayer(assetPath: videoAsset),
         ),
       ),
     );

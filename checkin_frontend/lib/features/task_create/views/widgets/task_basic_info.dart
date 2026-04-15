@@ -88,6 +88,25 @@ class TaskBasicInfo extends StatelessWidget {
             controller: quillController,
             config: QuillEditorConfig(
               placeholder: 'Enter task description',
+              customStyles: DefaultStyles(
+                // Paragraph
+                paragraph: DefaultTextBlockStyle(
+                  TextStyle(fontSize: 17, color: Theme.of(context).colorScheme.onSurface),
+                  const HorizontalSpacing(0, 0),
+                  const VerticalSpacing(0, 0),
+                  const VerticalSpacing(0,0),
+                  const BoxDecoration(),
+                ),
+                // Placeholder
+                placeHolder: DefaultTextBlockStyle(
+                  TextStyle(fontSize: 17, color: Theme.of(context).colorScheme.onSurface.withAlpha(150)),
+                  const HorizontalSpacing(0, 0),
+                  const VerticalSpacing(0, 0),
+                  const VerticalSpacing(0,0),
+                  const BoxDecoration(),
+
+                ),
+              ),
               autoFocus: false,
               expands: false,
               padding: EdgeInsets.zero,

@@ -23,8 +23,12 @@ abstract class InvitationApiService {
     @Query("pageSize") int pageSize = 10,
   });
 
+  @POST('api/Invitation/send-pending/{taskId}')
+  Future<void> sendPendingInvitations(@Path("taskId") String taskId);
+
   @POST('api/Invitation')
   Future<void> createInvitation(@Body() InvitationCreateModel body);
+
 
   @DELETE('api/Invitation/{id}')
   Future<void> deleteInvitation(@Path("id") String id);

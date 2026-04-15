@@ -23,7 +23,7 @@ class TaskCard extends StatelessWidget {
 
     return Card.outlined(
       child: InkWell(
-        onTap: () => context.go('/app/tasks/details/${task.id}'),
+        onTap: () => context.go('/tasks/${task.id}'),
         child: Container(
           // 1. Nastavíme fixnú alebo minimálnu výšku karty
           constraints: const BoxConstraints(minHeight: 160),

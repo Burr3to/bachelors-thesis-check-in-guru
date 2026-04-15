@@ -135,7 +135,7 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
                         taskId: widget.taskId,
                         taskLink: taskLink,
                         onDeleteSuccess: () {
-                          context.go('/app/tasks');
+                          context.go('/tasks');
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text("Task was deleted")),
                           );
@@ -152,7 +152,9 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
 
                       const SizedBox(height: 16),
 
-                      TaskInvitedUsersWidget(invitations: task.invitations),
+                      TaskInvitedUsersWidget(
+                          taskId: task.id,
+                          invitations: task.invitations),
 
 
                       asyncTemplates.when(

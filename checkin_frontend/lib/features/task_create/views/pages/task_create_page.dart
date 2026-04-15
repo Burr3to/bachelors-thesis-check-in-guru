@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
 import '../../../../core/providers/task_create/task_create_provider.dart';
+import '../../../../core/providers/task_providers.dart';
 import '../../../../core/shared_widgets/primary_button.dart';
+import '../../../../core/utils/app_snack_bar.dart';
 import '../../../../core/utils/quill_utils.dart';
 import '../widgets/subtask_input_section.dart';
 import '../widgets/task_basic_info.dart';
@@ -17,12 +21,10 @@ class TaskCreatePage extends ConsumerStatefulWidget {
 }
 
 class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
-  // UI State: Controls visibility of optional sections
   bool _inviteExpanded = false;
   bool _subtasksExpanded = false;
   bool _isLoading = false;
 
-  // Controllers: Controllers stay in the State for lifecycle management
   late final TextEditingController _titleCtrl;
   late final QuillController _quillCtrl;
 
@@ -32,12 +34,10 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
     _titleCtrl = TextEditingController();
     _quillCtrl = QuillController.basic();
 
-    // Sync Title Controller with Provider
     _titleCtrl.addListener(() {
       ref.read(taskCreateProvider.notifier).updateTitle(_titleCtrl.text);
     });
 
-    // Sync Quill with Provider (Notes)
     _quillCtrl.changes.listen((_) {
       final isEditorEmpty = _quillCtrl.document.isEmpty() ||
           _quillCtrl.document.toPlainText().trim().isEmpty;
@@ -56,13 +56,48 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
     super.dispose();
   }
 
+  // --- SUBMIT LOGIKA ---
+  Future<void> _handleCreateTask() async {
+    final taskData = ref.read(taskCreateProvider);
+
+    if (taskData.title.isEmpty || taskData.deadLine == null) {
+      AppSnackBar.showInfo(context, "Deadline and Title are required");
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final createdTask = await ref.read(taskApiServiceProvider).createTask(taskData);
+
+      if (mounted) {
+        ref.invalidate(taskListProvider);
+        // Reset provideru po úspechu (ak máš metódu reset)
+        context.go('/tasks/${createdTask.id}');
+      }
+    } catch (e) {
+      if (mounted) {
+        AppSnackBar.showError(context, "Error creating task: $e");
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
+    final cs = Theme.of(context).colorScheme;
 
-    // Watch data from provider
-    final taskData = ref.watch(taskCreateProvider);
+    // Sledujeme len to, čo potrebujeme pre UI zmeny v tomto widgete
+    // Týmto sme odstránili "final taskData = ref.watch(taskCreateProvider)" -> už to nebude skákať!
+    final deadline = ref.watch(taskCreateProvider.select((s) => s.deadLine));
+    final requiresAuth = ref.watch(taskCreateProvider.select((s) => s.requiresAuthenticationToComplete));
+    final mode = ref.watch(taskCreateProvider.select((s) => s.subtaskMode));
+
+    // Tieto premenné sledujeme, aby sme vedeli, či sú sekcie prázdne/využívané
+    final hasEmails = ref.watch(taskCreateProvider.select((s) => s.invitedEmails.isNotEmpty));
+    final hasSubtasks = ref.watch(taskCreateProvider.select((s) => s.subtasks.isNotEmpty));
+
     final notifier = ref.read(taskCreateProvider.notifier);
 
     return Scaffold(
@@ -78,7 +113,6 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
                 _buildHeader(cs),
                 const SizedBox(height: 24),
 
-                // MAIN FORM CARD
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -89,7 +123,6 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // SECTION 1: REQUIRED
                       TaskBasicInfo(
                         titleController: _titleCtrl,
                         quillController: _quillCtrl,
@@ -97,7 +130,7 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
 
                       const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Divider()),
 
-                      // SECTION 2: OPTIONAL COLLAPSIBLE SECTIONS
+                      // SECTION 2: OPTIONAL
                       if (!_inviteExpanded || !_subtasksExpanded)
                         Row(
                           children: [
@@ -110,46 +143,48 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
                             if (!_inviteExpanded && !_subtasksExpanded) const SizedBox(width: 12),
                             if (!_subtasksExpanded)
                               _CollapsedButton(
-                                icon: Icons.calendar_today_outlined,
+                                icon: Icons.list_alt, // Opravená ikona podľa Figmy
                                 label: "Add Subtasks",
                                 onTap: () => setState(() => _subtasksExpanded = true),
                               ),
                           ],
                         ),
 
-                      const SizedBox(height: 24),
-
-                      if (_inviteExpanded)
+                      if (_inviteExpanded) ...[
+                        const SizedBox(height: 12),
                         TaskInviteSection(
                           isExpanded: true,
-                          onExpand: () {}, // Already expanded
+                          onExpand: () {},
                           onCollapse: () => setState(() => _inviteExpanded = false),
                           onEmailsChanged: notifier.setEmails,
                         ),
+                      ],
 
-                      // Sub-divider if both are visible
                       if (_inviteExpanded && _subtasksExpanded)
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 12),
                           child: Center(child: Icon(Icons.more_horiz, size: 16, color: Colors.grey)),
                         ),
 
-                      if (_subtasksExpanded)
+                      if (_subtasksExpanded) ...[
+                        const SizedBox(height: 12),
                         SubtaskInputSection(
-                          onRemoveSection: () {
-                            setState(() => _subtasksExpanded = false);
-                          },
+                          key: const ValueKey('subtask_section'),
+                          onRemoveSection: () => setState(() => _subtasksExpanded = false),
                         ),
+                      ],
 
-                      // Divider appears only if at least one optional section is expanded
                       if (_inviteExpanded || _subtasksExpanded)
                         const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Divider()),
 
+
+                      const SizedBox(height: 24),
+
                       // SECTION 3: SETTINGS
                       TaskSettingsSection(
-                        selectedDeadline: taskData.deadLine,
-                        requiresAuth: taskData.requiresAuthenticationToComplete,
-                        currentMode: taskData.subtaskMode,
+                        selectedDeadline: deadline,
+                        requiresAuth: requiresAuth,
+                        currentMode: mode,
                         onDateTap: () async {
                           final picked = await showDatePicker(
                             context: context,
@@ -161,6 +196,9 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
                         },
                         onAuthChanged: notifier.toggleAuth,
                         onModeChanged: notifier.setSubtaskMode,
+                          onDateQuickSelect: (date) {
+                            notifier.setDeadline(date.toUtc());
+                          },
                       ),
 
                       const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Divider()),
@@ -169,13 +207,10 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
                       PrimaryButton(
                         text: "Create Task",
                         isLoading: _isLoading,
-                        onPressed: () {
-                          // TODO: Implement Submit using taskData
-                        },
+                        onPressed: _handleCreateTask,
                       ),
 
                       const SizedBox(height: 24),
-                      _buildKeyboardHint(cs),
                     ],
                   ),
                 ),
@@ -192,32 +227,12 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-            height: 4,
-            width: 60,
-            decoration: BoxDecoration(
-                color: cs.primary,
-                borderRadius: BorderRadius.circular(2)
-            )
+          height: 4, width: 60,
+          decoration: BoxDecoration(color: cs.primary, borderRadius: BorderRadius.circular(2)),
         ),
         const SizedBox(height: 12),
-        Text("Create New Task",
-            style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: cs.onSurface)),
-        Text("Build collaborative workflows with precision",
-            style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant)),
-      ],
-    );
-  }
-
-  Widget _buildKeyboardHint(ColorScheme cs) {
-    return Row(
-      children: [
-        Expanded(child: Divider(color: cs.outlineVariant)),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text("Press ⌘ + Enter to create",
-              style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant, letterSpacing: 0.5)),
-        ),
-        Expanded(child: Divider(color: cs.outlineVariant)),
+        Text("Create New Task", style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: cs.onSurface)),
+        Text("Build collaborative workflows with precision", style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant)),
       ],
     );
   }

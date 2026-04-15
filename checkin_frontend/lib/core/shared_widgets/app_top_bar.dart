@@ -100,10 +100,14 @@ class _NavigationSection extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           _verticalDivider(),
-          _navButton(context, "Home", '/app/home'),
+          _navButton(context, "Introduction", '/welcome'),
           _verticalDivider(),
-          _navButton(context, "Tasks", '/app/tasks'),
+          _navButton(context, "My Tasks", '/tasks'),
           _verticalDivider(),
+          _navButton(context, "Shared with me", '/shared'),
+          _verticalDivider(),
+          //_navButton(context, "Create", '/tasks/create'),
+          //_verticalDivider(),
         ],
       ),
     );
@@ -121,7 +125,7 @@ class _NavigationSection extends StatelessWidget {
         style: TextStyle(
           // Kľúčové: onSurface namiesto Colors.black
           color: Theme.of(context).colorScheme.onSurface,
-          fontSize: 21,
+          fontSize: 20,
           fontWeight: FontWeight.normal,
         ),
       ),
@@ -142,7 +146,7 @@ class _UserAccountSection extends ConsumerWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
         // Požiadavka: Modrý border
-        border: Border.all(color: Colors.blueAccent.withOpacity(0.5), width: 2),
+        border: Border.all(color: Colors.blueAccent.withAlpha(125), width: 2),
       ),
       padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
       child: Row(

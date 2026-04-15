@@ -14,7 +14,7 @@ class TaskCreateNotifier extends _$TaskCreateNotifier {
     // Return initial empty state
     return TaskCreateModel(
       title: '',
-      deadLine: DateTime.now().add(const Duration(days: 1)),
+      deadLine: DateTime.now().add(const Duration(days: 1)).toUtc(),
       subtaskMode: SubtaskMode.shared,
       requiresAuthenticationToComplete: false,
       invitedEmails: [],
@@ -27,11 +27,15 @@ class TaskCreateNotifier extends _$TaskCreateNotifier {
 
   void updateDescription(String? notes) => state = state.copyWith(notes: notes);
 
-  void setDeadline(DateTime date) => state = state.copyWith(deadLine: date);
+  void setDeadline(DateTime date) => state = state.copyWith(deadLine: date.toUtc());
 
   void toggleAuth(bool value) => state = state.copyWith(requiresAuthenticationToComplete: value);
 
   void setSubtaskMode(SubtaskMode mode) => state = state.copyWith(subtaskMode: mode);
+
+  void setSendImmediately(bool value) {
+    state = state.copyWith(sendInvitesImmediately: value);
+  }
 
   void addEmail(String email) {
     if (!state.invitedEmails.contains(email)) {

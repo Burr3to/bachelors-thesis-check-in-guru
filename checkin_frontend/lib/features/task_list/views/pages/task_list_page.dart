@@ -86,7 +86,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
               text: "Create Task",
               icon: Icons.add,
               onPressed: () {
-                context.go('/app/create');
+                context.go('/tasks/create');
               },
             ),
             const SizedBox(height: 35),

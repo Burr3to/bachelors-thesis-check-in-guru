@@ -8,9 +8,12 @@ using CheckIn.Api.Common.Models.Details;
 using CheckIn.Api.Common.Models.Lists;
 using CheckIn.Api.Common.Models.Query;
 using CheckIn.Api.Common.Models.Update;
+using CheckIn.Api.Common.Results;
 using CheckIn.Api.Dal;
 using CheckIn.Api.Dal.Entities;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 public class InvitationFacade(
@@ -51,6 +54,58 @@ public class InvitationFacade(
                 await hubContext.Clients.User(authorId.ToString()).SendAsync("ReceiveNotification", "EMAILS_FAILED");
             }
         });
+    }
+
+
+    public async Task<Result<bool>> SendInvitationsForTaskAsync(Guid taskId)
+    {
+        Console.WriteLine($"---> FACADE START: TaskId={taskId}");
+
+        try
+        {
+            var currentUserId = CurrentUserId;
+            Console.WriteLine($"---> CURRENT USER ID: {currentUserId}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"---> ERROR GETTING USER ID: {ex.Message}");
+        }
+
+        var task = await dbContext.Tasks
+            .Include(t => t.Invitations)
+            .FirstOrDefaultAsync(t => t.Id == taskId);
+
+        if (task == null)
+        {
+            Console.WriteLine("---> TASK NOT FOUND IN DB");
+            return Result<bool>.NotFound("Úloha nebola nájdená.");
+        }
+
+        Console.WriteLine($"---> TASK OWNER ID: {task.CreatedById}");
+
+        if (task.CreatedById != CurrentUserId)
+            return Result<bool>.Forbidden("Nemáte oprávnenie odosielať pozvánky pre túto úlohu.");
+
+        var emails = task.Invitations.Select(i => i.Email).ToList();
+
+        if (!emails.Any())
+            return Result<bool>.ValidationFailure("Zoznam pozvánok je prázdny.");
+
+        // 4. Získanie mena autora pre email
+        var author = await dbContext.Users.FindAsync(CurrentUserId);
+        var authorName = author?.Name ?? "Váš kolega";
+
+        // 5. Spustenie existujúcej background úlohy
+        StartEmailSendingBackground(
+            emails,
+            task.Hash,
+            authorName,
+            task.Title,
+            task.Notes,
+            task.CreatedById
+        );
+
+        return Result<bool>.Success(true);
     }
 
     protected override Func<IQueryable<InvitationEntity>, IOrderedQueryable<InvitationEntity>> CreateOrderBy(

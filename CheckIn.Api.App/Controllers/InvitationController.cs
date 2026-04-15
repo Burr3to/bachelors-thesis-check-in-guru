@@ -4,11 +4,14 @@ using CheckIn.Api.Common.Models.Details;
 using CheckIn.Api.Common.Models.Lists;
 using CheckIn.Api.Common.Models.Query;
 using CheckIn.Api.Common.Models.Update;
+using CheckIn.Api.Common.Results;
 using CheckIn.Api.Dal.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CheckIn.Api.App.Controllers;
 
+[Authorize(AuthenticationSchemes = "Bearer")]
 [ApiController]
 [Route("api/[controller]")]
 public class InvitationController(IInvitationFacade facade)
@@ -22,6 +25,31 @@ public class InvitationController(IInvitationFacade facade)
     {
         var result = _invitationFacade.ParseEmails(rawText);
         return Ok(result);
+    }
+
+    [HttpPost("send-pending/{taskId}")]
+    public async Task<ActionResult<Result<bool>>> SendPendingInvitations(Guid taskId)
+    {
+        Console.WriteLine($"---> REQUEST RECEIVED: SendPendingInvitations pre TaskId: {taskId}");
+        Console.WriteLine($"---> USER AUTHENTICATED: {User.Identity?.IsAuthenticated}");
+
+        // Vypíšeme všetky claims, ktoré prišli v tokene
+        foreach (var claim in User.Claims)
+        {
+            Console.WriteLine($"---> CLAIM: {claim.Type} = {claim.Value}");
+        }
+
+
+        var result = await _invitationFacade.SendInvitationsForTaskAsync(taskId);
+
+        return result.ErrorType switch
+        {
+            ErrorType.None => Ok(result),
+            ErrorType.NotFound => NotFound(result),
+            ErrorType.Forbidden => Forbid(),
+            ErrorType.Unauthorized => Unauthorized(result),
+            _ => BadRequest(result)
+        };
     }
 
     [HttpPost("test-send")]

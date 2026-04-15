@@ -12,6 +12,7 @@ public record TaskCreateModel
     public required SubtaskMode SubtaskMode { get; init; }
     public List<SubtaskTemplateCreateModel> Subtasks { get; init; } = new();
     public bool RequiresAuthenticationToComplete { get; init; } = true;
+    public bool SendInvitesImmediately { get; init; } = false;
 
     public List<string> InvitedEmails { get; set; } = new();
 }

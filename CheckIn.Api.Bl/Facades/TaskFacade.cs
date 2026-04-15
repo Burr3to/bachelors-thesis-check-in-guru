@@ -93,7 +93,7 @@ public class TaskFacade(
 
             // Toto tu nechaj - ak používateľ nepridal žiadne subúlohy, 
             // vytvoríme aspoň jednu "hlavnú", aby sa mal kam podpísať.
-            if (entity.Subtasks is null || !entity.Subtasks.Any())
+            if (entity.Subtasks is null || entity.Subtasks.Count == 0)
             {
                 entity.Subtasks.Add(new SubtaskTemplateEntity
                 {
@@ -167,10 +167,20 @@ public class TaskFacade(
         await dbContext.SaveChangesAsync();
 
         // Spustenie mailov na pozadí...
-        var author = await dbContext.Users.FindAsync(CurrentUserId);
-        var authorName = author?.Name ?? "Váš kolega";
-        invitationFacade.StartEmailSendingBackground(model.InvitedEmails, task.Hash, authorName, task.Title,
-            task.Notes, task.CreatedById);
+        if (model.SendInvitesImmediately && model.InvitedEmails.Count != 0)
+        {
+            var author = await dbContext.Users.FindAsync(CurrentUserId);
+            var authorName = author?.Name ?? "Váš kolega";
+
+            invitationFacade.StartEmailSendingBackground(
+                model.InvitedEmails,
+                task.Hash,
+                authorName,
+                task.Title,
+                task.Notes,
+                task.CreatedById
+            );
+        }
 
         return await GetByIdAsync(task.Id);
     }
@@ -251,7 +261,7 @@ public class TaskFacade(
                 "Authentication is required to view the details of this task.");
         }
 
-        if (task.Invitations.Any())
+        if (task.Invitations.Count != 0)
         {
             if (task.CreatedById == currentUserId)
             {
@@ -335,7 +345,7 @@ public class TaskFacade(
             .Where(i => i.TemplateSubtask.ParentTaskId == task.Id && i.AssignedToEmail == userEmail)
             .ToListAsync();
 
-        if (emailInstances.Any())
+        if (emailInstances.Count != 0)
         {
             // Ak existujú, "adoptujeme" ich – priradíme im UserId
             foreach (var instance in emailInstances)

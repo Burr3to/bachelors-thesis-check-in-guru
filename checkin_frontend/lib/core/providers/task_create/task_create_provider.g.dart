@@ -42,7 +42,7 @@ final class TaskCreateNotifierProvider
 }
 
 String _$taskCreateNotifierHash() =>
-    r'062c497e10bb545b2ff517941e046ed1fc6ad388';
+    r'd37db897f9f41cd914a94fc62c92b25fa03f9482';
 
 abstract class _$TaskCreateNotifier extends $Notifier<TaskCreateModel> {
   TaskCreateModel build();

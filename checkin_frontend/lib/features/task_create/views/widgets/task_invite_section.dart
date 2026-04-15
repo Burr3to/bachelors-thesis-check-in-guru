@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/invitation_providers.dart';
+import '../../../../core/providers/task_create/task_create_provider.dart';
 
 enum InviteTiming { immediately, later }
 
@@ -27,7 +28,7 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
   final _emailInputController = TextEditingController();
   bool _isChecking = false;
   List<String> _detectedEmails = [];
-  InviteTiming _selectedTiming = InviteTiming.immediately;
+  InviteTiming _selectedTiming = InviteTiming.later;
 
   @override
   void dispose() {
@@ -147,7 +148,7 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
                 child: TextField(
                   controller: _emailInputController,
                   decoration: InputDecoration(
-                    hintText: "Enter or paste emails...",
+                    hintText: "Enter or paste emails in any format",
                     prefixIcon: const Icon(Icons.mail_outline, size: 20),
                     isDense: true,
                     contentPadding: const EdgeInsets.all(12),
@@ -196,24 +197,82 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
           const SizedBox(height: 8),
 
           // Send Timing Selector
-          Text("Send invites:",
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: cs.onSurfaceVariant)),
-          const SizedBox(height: 8),
-          SegmentedButton<InviteTiming>(
-            segments: const [
-              ButtonSegment(value: InviteTiming.immediately, label: Text("Immediately"), icon: Icon(Icons.bolt, size: 16)),
-              ButtonSegment(value: InviteTiming.later, label: Text("Later"), icon: Icon(Icons.timer_outlined, size: 16)),
+          // Send Timing Selector
+          Text(
+            "Send invites:",
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: cs.onSurfaceVariant),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              _buildTimingOption(
+                timing: InviteTiming.immediately,
+                label: "Immediately",
+                icon: Icons.bolt,
+                cs: cs,
+              ),
+              const SizedBox(width: 12),
+              _buildTimingOption(
+                timing: InviteTiming.later,
+                label: "Later",
+                icon: Icons.timer_outlined,
+                cs: cs,
+              ),
             ],
-            selected: {_selectedTiming},
-            onSelectionChanged: (val) => setState(() => _selectedTiming = val.first),
-            showSelectedIcon: false,
-            style: SegmentedButton.styleFrom(
-              visualDensity: VisualDensity.compact,
-              selectedBackgroundColor: cs.primaryContainer,
-              selectedForegroundColor: cs.onPrimaryContainer,
-            ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildTimingOption({
+    required InviteTiming timing,
+    required String label,
+    required IconData icon,
+    required ColorScheme cs,
+  }) {
+    final isSelected = _selectedTiming == timing;
+
+    return Expanded(
+      child: InkWell(
+        onTap: () {
+          setState(() => _selectedTiming = timing);
+          // PREPOJENIE S PROVIDEROM:
+          ref.read(taskCreateProvider.notifier).setSendImmediately(timing == InviteTiming.immediately);
+        },
+        borderRadius: BorderRadius.circular(10),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            //isSelected ? cs.primary.withAlpha(40) : Colors.transparent,
+            color: isSelected ? cs.primary.withAlpha(35) : cs.surfaceContainerHigh.withAlpha(100),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isSelected ? cs.primary : cs.outlineVariant,
+              width: isSelected ? 1.5 : 1.0,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 18,
+                color: isSelected ? cs.primary : cs.onSurfaceVariant,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  color: isSelected ? cs.primary : cs.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

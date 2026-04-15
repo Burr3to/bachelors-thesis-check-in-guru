@@ -13,7 +13,7 @@ class SubtaskInputSection extends ConsumerStatefulWidget {
 
 class _SubtaskInputSectionState extends ConsumerState<SubtaskInputSection> {
   final _inputController = TextEditingController();
-  final Set<int> _expandedIndices = {}; // Track which subtasks show description
+  final Set<int> _expandedIndices = {};
 
   void _submitSubtask() {
     if (_inputController.text.trim().isEmpty) return;
@@ -42,7 +42,6 @@ class _SubtaskInputSectionState extends ConsumerState<SubtaskInputSection> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // HEADER
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -55,7 +54,6 @@ class _SubtaskInputSectionState extends ConsumerState<SubtaskInputSection> {
           ),
           const SizedBox(height: 8),
 
-          // INPUT FIELD + PLUS BUTTON
           Row(
             children: [
               Expanded(
@@ -86,7 +84,6 @@ class _SubtaskInputSectionState extends ConsumerState<SubtaskInputSection> {
             const Divider(),
             const SizedBox(height: 8),
 
-            // LIST OF ADDED SUBTASKS
             ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -95,55 +92,80 @@ class _SubtaskInputSectionState extends ConsumerState<SubtaskInputSection> {
               itemBuilder: (context, index) {
                 final subtask = subtasks[index];
                 final isExpanded = _expandedIndices.contains(index);
+                final hasDescription = subtask.description != null && subtask.description!.isNotEmpty;
 
-                return Column(
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        color: cs.surface,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: cs.outlineVariant.withOpacity(0.5)),
-                      ),
-                      child: Column(
-                        children: [
-                          ListTile(
-                            visualDensity: VisualDensity.compact,
-                            leading: IconButton(
-                              icon: Icon(
-                                isExpanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_right,
-                                color: cs.primary,
+                return Container(
+                  decoration: BoxDecoration(
+                    color: cs.surface,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: cs.outlineVariant.withAlpha(125)),
+                  ),
+                  child: Column(
+                    children: [
+                      ListTile(
+                        visualDensity: VisualDensity.compact,
+                        leading: IconButton(
+                          icon: Icon(
+                            isExpanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_right,
+                            color: cs.primary,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              if (isExpanded) {
+                                _expandedIndices.remove(index);
+                              } else {
+                                _expandedIndices.add(index);
+                              }
+                            });
+                          },
+                        ),
+                        // TITUL + NÁHĽAD POPISU
+                        title: Row(
+                          children: [
+                            Text(subtask.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                            if (!isExpanded && hasDescription)
+                              Expanded(
+                                child: Text(
+                                  " • ${subtask.description}",
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      color: cs.onSurfaceVariant.withOpacity(0.5),
+                                      fontStyle: FontStyle.italic
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
                               ),
-                              onPressed: () {
-                                setState(() {
-                                  if (isExpanded) _expandedIndices.remove(index);
-                                  else _expandedIndices.add(index);
-                                });
-                              },
-                            ),
-                            title: Text(subtask.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-                            trailing: TextButton(
-                              onPressed: () => ref.read(taskCreateProvider.notifier).removeSubtask(index),
-                              child: Text("Remove", style: TextStyle(color: cs.error, fontSize: 12)),
+                          ],
+                        ),
+                        trailing: TextButton(
+                          onPressed: () => ref.read(taskCreateProvider.notifier).removeSubtask(index),
+                          child: Text("Remove", style: TextStyle(color: cs.error, fontSize: 12)),
+                        ),
+                      ),
+
+                      // EDITÁCIA POPISU
+                      if (isExpanded)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(48, 0, 16, 12), // Zarovnané pod text titulu
+                          child: TextFormField(
+                            initialValue: subtask.description,
+                            maxLines: null, // Umožní rásť podľa textu
+                            keyboardType: TextInputType.multiline,
+                            style: const TextStyle(fontSize: 13),
+                            onChanged: (val) => ref.read(taskCreateProvider.notifier).updateSubtaskDescription(index, val),
+                            decoration: InputDecoration(
+                              hintText: "Add description...",
+                              hintStyle: TextStyle(fontSize: 12, color: cs.onSurfaceVariant.withAlpha(160)),
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(vertical: 4),
+                              border: UnderlineInputBorder(borderSide: BorderSide(color: cs.primary.withAlpha(160))),
+                              focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: cs.primary)),
                             ),
                           ),
-                          if (isExpanded)
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                              child: TextField(
-                                maxLines: 2,
-                                decoration: const InputDecoration(
-                                  hintText: "Add description (optional)...",
-                                  hintStyle: TextStyle(fontSize: 12),
-                                  border: UnderlineInputBorder(),
-                                ),
-                                style: const TextStyle(fontSize: 13),
-                                onChanged: (val) => ref.read(taskCreateProvider.notifier).updateSubtaskDescription(index, val),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
+                        ),
+                    ],
+                  ),
                 );
               },
             ),
