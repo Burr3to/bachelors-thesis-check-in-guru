@@ -21,35 +21,29 @@ public class InvitationController(IInvitationFacade facade)
     private readonly IInvitationFacade _invitationFacade = facade;
 
     [HttpPost("parse")]
-    public ActionResult<List<string>> Parse([FromBody] string rawText)
+    public async Task<ActionResult<List<string>>> Parse([FromBody] string rawText)
     {
-        var result = _invitationFacade.ParseEmails(rawText);
+        // Nezabudni pridať 'await' a volať novú metódu
+        var result = await _invitationFacade.ParseEmailsAsync(rawText);
         return Ok(result);
     }
 
-    [HttpPost("send-pending/{taskId}")]
-    public async Task<ActionResult<Result<bool>>> SendPendingInvitations(Guid taskId)
+    [HttpPost("send/{taskId}")]
+    public async Task<ActionResult<Result<bool>>> SendInvitations(Guid taskId, [FromBody] List<string>? emails = null)
     {
-        Console.WriteLine($"---> REQUEST RECEIVED: SendPendingInvitations pre TaskId: {taskId}");
-        Console.WriteLine($"---> USER AUTHENTICATED: {User.Identity?.IsAuthenticated}");
+        // Ak 'emails' je null, facade pošle len tým, čo majú IsSent = false
+        // Ak 'emails' obsahuje zoznam, prepošle to konkrétnym ľuďom (napr. vybraným čipom)
+        var result = await _invitationFacade.SendInvitationsForTaskAsync(taskId, emails);
+        return Ok(result);
+    }
 
-        // Vypíšeme všetky claims, ktoré prišli v tokene
-        foreach (var claim in User.Claims)
-        {
-            Console.WriteLine($"---> CLAIM: {claim.Type} = {claim.Value}");
-        }
-
-
-        var result = await _invitationFacade.SendInvitationsForTaskAsync(taskId);
-
-        return result.ErrorType switch
-        {
-            ErrorType.None => Ok(result),
-            ErrorType.NotFound => NotFound(result),
-            ErrorType.Forbidden => Forbid(),
-            ErrorType.Unauthorized => Unauthorized(result),
-            _ => BadRequest(result)
-        };
+    [HttpPost("remind-pending/{taskId}")]
+    public async Task<ActionResult<Result<bool>>> SendReminders(Guid taskId)
+    {
+        // Toto je pre scenár: Poslať všetkým, čo ešte neakceptovali (IsAccepted = false)
+        // Implementácia vo Facade by bola podobná, len filter by bol na IsAccepted
+        var result = await _invitationFacade.SendRemindersForTaskAsync(taskId);
+        return Ok(result);
     }
 
     [HttpPost("test-send")]
@@ -64,6 +58,7 @@ public class InvitationController(IInvitationFacade facade)
                 "Jakub (Test)",
                 "Cervene paradajky",
                 "Toto je testovací email s popisom úlohy. Neodpovedaj naň.",
+                Guid.Empty,
                 Guid.Empty
             );
             return Ok("Pokus o odoslanie bol spustený. Skontroluj konzolu a svoj mail.");

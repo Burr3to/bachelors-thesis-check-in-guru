@@ -17,7 +17,9 @@ public interface IInvitationFacade :
     List<string> ParseEmails(string rawText);
 
     void StartEmailSendingBackground(List<string> emails, string taskHash, string authorName, string taskTitle
-        , string taskDescription, Guid authorId);
+        , string taskDescription, Guid authorId, Guid taskId);
 
-    Task<Result<bool>> SendInvitationsForTaskAsync(Guid taskId);
+    Task<Result<bool>> SendInvitationsForTaskAsync(Guid taskId, List<string>? specificEmails = null);
+    Task<Result<bool>> SendRemindersForTaskAsync(Guid taskId);
+    Task<List<string>> ParseEmailsAsync(string rawText);
 }

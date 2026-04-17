@@ -12,7 +12,10 @@ _InvitationListModel _$InvitationListModelFromJson(Map<String, dynamic> json) =>
       email: json['email'] as String,
       taskId: json['taskId'] as String,
       isAccepted: json['isAccepted'] as bool,
-      sentAt: DateTime.parse(json['sentAt'] as String),
+      isSent: json['isSent'] as bool,
+      sentAt: json['sentAt'] == null
+          ? null
+          : DateTime.parse(json['sentAt'] as String),
     );
 
 Map<String, dynamic> _$InvitationListModelToJson(
@@ -22,5 +25,6 @@ Map<String, dynamic> _$InvitationListModelToJson(
   'email': instance.email,
   'taskId': instance.taskId,
   'isAccepted': instance.isAccepted,
-  'sentAt': instance.sentAt.toIso8601String(),
+  'isSent': instance.isSent,
+  'sentAt': instance.sentAt?.toIso8601String(),
 };

@@ -10,7 +10,8 @@ sealed class InvitationListModel with _$InvitationListModel {
     required String email,
     required String taskId,
     required bool isAccepted,
-    required DateTime sentAt,
+    required bool isSent,
+    DateTime? sentAt
   }) = _InvitationListModel;
 
   factory InvitationListModel.fromJson(Map<String, dynamic> json) =>

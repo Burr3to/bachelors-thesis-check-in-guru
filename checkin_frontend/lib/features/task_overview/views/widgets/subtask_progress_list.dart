@@ -125,7 +125,7 @@ class SubtaskProgressList extends StatelessWidget {
           if (subtask.completedAt != null)
             Text(
               DateFormat('dd.MM HH:mm').format(subtask.completedAt!.toLocal()),
-              style: TextStyle(fontSize: 11, color: colorScheme.onSurfaceVariant),
+              style: TextStyle(fontSize: 14, color: colorScheme.onSurfaceVariant),
             ),
         ],
       ),

@@ -1,10 +1,14 @@
+import 'package:checkin_frontend/features/auth/views/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/providers/signalr_provider.dart';
 import '../../../../core/providers/task_create/task_create_provider.dart';
 import '../../../../core/providers/task_providers.dart';
+import '../../../../core/services/signalr_service.dart';
+import '../../../../core/shared_widgets/invalid_emails_dialog.dart';
 import '../../../../core/shared_widgets/primary_button.dart';
 import '../../../../core/utils/app_snack_bar.dart';
 import '../../../../core/utils/quill_utils.dart';
@@ -24,6 +28,7 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
   bool _inviteExpanded = false;
   bool _subtasksExpanded = false;
   bool _isLoading = false;
+  late SignalRService _signalRService;
 
   late final TextEditingController _titleCtrl;
   late final QuillController _quillCtrl;
@@ -33,6 +38,10 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
     super.initState();
     _titleCtrl = TextEditingController();
     _quillCtrl = QuillController.basic();
+    _signalRService = ref.read(signalRProvider);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _setupSignalR();
+    });
 
     _titleCtrl.addListener(() {
       ref.read(taskCreateProvider.notifier).updateTitle(_titleCtrl.text);
@@ -47,12 +56,56 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
           : null;
       ref.read(taskCreateProvider.notifier).updateDescription(notes);
     });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final signalR = ref.read(signalRProvider);
+      final userId = ref.read(authProvider).user?.userId;
+
+      if (userId != null) {
+        signalR.joinUserRoom(userId); // Aby backend vedel, komu poslať "InvalidEmailsFound"
+        signalR.connection?.on("InvalidEmailsFound", _handleInvalidEmails);
+      }
+    });
   }
+
+  void _setupSignalR() async {
+    final user = ref.read(authProvider).user;
+    if (user == null) return;
+
+    print("DEBUG: SignalR - Pripájam sa do UserRoom pre: ${user.userId}");
+
+    // 1. Vstúpime do User Room
+    await _signalRService.joinUserRoom(user.userId);
+
+    // 2. Začneme počúvať na event "InvalidEmailsFound"
+    _signalRService.connection?.on("InvalidEmailsFound", _handleInvalidEmails);
+  }
+
+
+  void _handleInvalidEmails(List<Object?>? arguments) {
+    // V SignalR prichádza zoznam emailov ako prvý argument (arguments[0])
+    final rawList = arguments?[0] as List?;
+    if (rawList == null) return;
+
+    final invalidEmails = rawList.map((e) => e.toString()).toList();
+    print("DEBUG: SignalR - PRIJATÉ neplatné maily: $invalidEmails");
+
+    if (invalidEmails.isNotEmpty) {
+      // KĽÚČOVÁ OPRAVA: Spustíme to v ďalšom mikro-tasku, aby layout stihol "vydýchnuť"
+      Future.microtask(() {
+        if (mounted) {
+          InvalidEmailsDialog.show(context, invalidEmails);
+        }
+      });
+    }
+  }
+
 
   @override
   void dispose() {
     _titleCtrl.dispose();
     _quillCtrl.dispose();
+    _signalRService.connection?.off("InvalidEmailsFound", method: _handleInvalidEmails);
     super.dispose();
   }
 

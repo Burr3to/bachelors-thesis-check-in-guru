@@ -116,55 +116,24 @@ public class TaskFacade(
         AddContextualData(task, model, default);
         if (task.Id == Guid.Empty) task.Id = Guid.NewGuid();
 
-        // 1. Pozvánky (Invitations) - Pridávame priamo do Tasku
-        foreach (var email in model.InvitedEmails)
-        {
-            task.Invitations.Add(new InvitationEntity
-            {
-                Id = Guid.NewGuid(),
-                Email = email,
-                SentAt = DateTime.UtcNow,
-                TaskId = task.Id
-            });
-        }
-
-        //  Shared mode
+        // A. Ak je Shared mode, vytvoríme JEDNU spoločnú skupinu inštancií
         if (task.SubtaskMode == SubtaskMode.Shared)
         {
             var sharedGroupId = Guid.NewGuid();
             foreach (var subtaskTemplate in task.Subtasks)
             {
-                // Pridávame inštanciu do kolekcie v šablóne
                 subtaskTemplate.Instances.Add(new SubtaskInstanceEntity
                 {
                     Id = Guid.NewGuid(),
                     ResponseGroupId = sharedGroupId,
                     IsCompleted = false
-                    // AssignedToEmail NULL
                 });
             }
         }
-        else // Individual Mode
-        {
-            foreach (var email in model.InvitedEmails)
-            {
-                var userGroupId = Guid.NewGuid();
-                foreach (var subtaskTemplate in task.Subtasks)
-                {
-                    // Pre každého pozvaného vytvoríme inštanciu v každej šablóne
-                    subtaskTemplate.Instances.Add(new SubtaskInstanceEntity
-                    {
-                        Id = Guid.NewGuid(),
-                        ResponseGroupId = userGroupId,
-                        AssignedToEmail = email,
-                        IsCompleted = false
-                    });
-                }
-            }
-        }
 
-        await dbContext.Tasks.AddAsync(task);
-        await dbContext.SaveChangesAsync();
+        // B. Spracujeme pozvánky (a individuálne inštancie, ak je mode Individual)
+        // Táto metóda pridá InvitationEntity pre oba módy
+        await ProcessNewInvitations(task, model.InvitedEmails);
 
         // Spustenie mailov na pozadí...
         if (model.SendInvitesImmediately && model.InvitedEmails.Count != 0)
@@ -178,23 +147,30 @@ public class TaskFacade(
                 authorName,
                 task.Title,
                 task.Notes,
-                task.CreatedById
+                task.CreatedById,
+                task.Id
             );
         }
 
         return await GetByIdAsync(task.Id);
     }
 
+
     public override async Task<Result<TaskDetailModel>> SaveUpdateModelAsync(TaskUpdateModel model)
     {
-        var task = await dbContext.Tasks.FindAsync(model.Id);
+        // 1. Načítame IBA čistý Task (bez Include kolekcií, aby sme neplnili Tracker)
+        var task = await dbContext.Tasks.FirstOrDefaultAsync(t => t.Id == model.Id);
 
         if (task is null)
-            return Result<TaskDetailModel>.NotFound($"Task with ID {model.Id} not found for update.");
+            return Result<TaskDetailModel>.NotFound($"Task with ID {model.Id} not found.");
 
+        // 2. Aktualizácia skalárnych polí
         mapper.Map(model, task);
 
-        AddContextualData(task, null, model);
+        task.LastModifiedAt = DateTime.UtcNow;
+
+        // 3. Spracovanie nových pozvánok a inštancií
+        await ProcessNewInvitations(task, model.InvitedEmails);
 
         try
         {
@@ -202,12 +178,105 @@ public class TaskFacade(
         }
         catch (Exception e)
         {
-            return Result<TaskDetailModel>.Failure(ErrorType.InternalError, $"Failed to update task: {{e.Message}}");
+            Console.WriteLine($"DB ERROR: {e.Message}");
+            return Result<TaskDetailModel>.Failure(ErrorType.InternalError, "Chyba pri zápise do databázy.");
         }
 
-        var updatedTask = await GetByIdAsync(task.Id);
+        // Vrátime čerstvé dáta (GetByIdAsync si načíta všetko potrebné vrátane nových pozvánok)
+        return await GetByIdAsync(task.Id);
+    }
 
-        return updatedTask;
+    private async Task ProcessNewInvitations(TaskEntity task, List<string> emailsToInvite)
+    {
+        // A. Zistíme, kto už je pozvaný (rýchly query bez trackingu)
+        var existingEmails = await dbContext.Invitations
+            .Where(i => i.TaskId == task.Id)
+            .Select(i => i.Email.ToLower().Trim())
+            .ToListAsync();
+
+        var newEmails = emailsToInvite
+            .Select(e => e.ToLower().Trim())
+            .Except(existingEmails)
+            .Distinct()
+            .ToList();
+
+        if (!newEmails.Any()) return;
+
+        // B. Ak je mód Individual, načítame šablóny pre tvorbu inštancií
+        List<SubtaskTemplateEntity> templates = new();
+        if (task.SubtaskMode == SubtaskMode.Individual)
+        {
+            templates = await dbContext.Subtasks
+                .Where(s => s.ParentTaskId == task.Id)
+                .ToListAsync();
+        }
+
+        foreach (var email in newEmails)
+        {
+            // C. Pridáme pozvánku priamo do DbSetu
+            dbContext.Invitations.Add(new InvitationEntity
+            {
+                Id = Guid.NewGuid(),
+                Email = email,
+                IsSent = false,
+                SentAt = null,
+                TaskId = task.Id
+            });
+
+            // D. Vytvoríme inštancie (len pre Individual mód)
+            if (task.SubtaskMode == SubtaskMode.Individual)
+            {
+                var userGroupId = Guid.NewGuid();
+                foreach (var template in templates)
+                {
+                    dbContext.SubtaskInstances.Add(new SubtaskInstanceEntity
+                    {
+                        Id = Guid.NewGuid(),
+                        ResponseGroupId = userGroupId,
+                        AssignedToEmail = email,
+                        IsCompleted = false,
+                        TemplateSubtaskId = template.Id
+                    });
+                }
+            }
+        }
+    }
+
+    public async Task<Result<bool>> RemoveInvitationsAsync(Guid taskId, List<string> emails)
+    {
+        var normalizedEmails = emails.Select(e => e.ToLower().Trim()).ToList();
+
+        // 1. Nájdeme pozvánky, ktoré chceme vymazať
+        var invitationsToRemove = await dbContext.Invitations
+            .Where(i => i.TaskId == taskId && normalizedEmails.Contains(i.Email.ToLower()))
+            .ToListAsync();
+
+        if (!invitationsToRemove.Any())
+            return Result<bool>.Success(true); // Nič sa nenašlo, považujeme za vybavené
+
+        // 2. Nájdeme všetky inštancie (SubtaskInstance), ktoré patria k tomuto tasku 
+        // a sú priradené k daným emailom
+        var instancesToRemove = await dbContext.SubtaskInstances
+            .Where(si => si.TemplateSubtask.ParentTaskId == taskId &&
+                         si.AssignedToEmail != null &&
+                         normalizedEmails.Contains(si.AssignedToEmail.ToLower()))
+            .ToListAsync();
+
+        try
+        {
+            // 3. Odstránime záznamy z kontextu
+            dbContext.Invitations.RemoveRange(invitationsToRemove);
+            dbContext.SubtaskInstances.RemoveRange(instancesToRemove);
+
+            // 4. Uložíme zmeny
+            await dbContext.SaveChangesAsync();
+            return Result<bool>.Success(true);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"REMOVE ERROR: {e.Message}");
+            return Result<bool>.Failure(ErrorType.InternalError, "Nepodarilo sa odstrániť používateľov.");
+        }
     }
 
     public async Task<Result<List<SubtaskCombinedListModel>>> GetTaskTemplatesAsync(Guid taskId)
@@ -269,13 +338,14 @@ public class TaskFacade(
             }
             else
             {
-                var userEmail = UserContext.GetEmail();
-                var isInvited = task.Invitations.Any(i => i.Email == userEmail);
+                var userEmail = UserContext.GetEmail()?.ToLower().Trim();
+                var invitation = task.Invitations.FirstOrDefault(i => i.Email.ToLower().Trim() == userEmail);
 
-                if (!isInvited)
+                if (!invitation.IsAccepted)
                 {
-                    return Result<TaskPublicDetailModel>.Failure(ErrorType.Forbidden,
-                        "Bohužiaľ, váš email nie je na zozname pozvaných pre túto úlohu.");
+                    invitation.IsAccepted = true;
+                    await dbContext.SaveChangesAsync();
+                    await hubContext.Clients.Group(task.Id.ToString()).SendAsync("TaskUpdated");
                 }
             }
         }

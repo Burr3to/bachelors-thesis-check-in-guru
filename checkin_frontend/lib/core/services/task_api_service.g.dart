@@ -117,6 +117,25 @@ class _TaskApiService implements TaskApiService {
   }
 
   @override
+  Future<void> removeInvitations(String id, List<String> emails) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    final _headers = <String, dynamic>{};
+    final _data = emails;
+    final _options = _setStreamType<void>(
+      Options(method: 'DELETE', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            'api/Task/${id}/invitations',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    await _dio.fetch<void>(_options);
+  }
+
+  @override
   Future<TaskDetailModel> getTask(String id) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};

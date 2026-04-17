@@ -35,6 +35,9 @@ abstract class TaskApiService {
 
   });
 
+  @DELETE('api/Task/{id}/invitations')
+  Future<void> removeInvitations(@Path("id") String id, @Body() List<String> emails);
+
   @GET('api/Task/{id}')
   Future<TaskDetailModel> getTask(@Path("id") String id);
 

@@ -23,8 +23,15 @@ abstract class InvitationApiService {
     @Query("pageSize") int pageSize = 10,
   });
 
-  @POST('api/Invitation/send-pending/{taskId}')
-  Future<void> sendPendingInvitations(@Path("taskId") String taskId);
+  // NOVÝ: Univerzálny endpoint pre odosielanie (novým alebo vybraným)
+  @POST('api/Invitation/send/{taskId}')
+  Future<void> sendInvitations(
+      @Path("taskId") String taskId,
+      @Body() List<String>? emails
+      );
+
+  @POST('api/Invitation/remind-pending/{taskId}')
+  Future<void> sendReminders(@Path("taskId") String taskId);
 
   @POST('api/Invitation')
   Future<void> createInvitation(@Body() InvitationCreateModel body);

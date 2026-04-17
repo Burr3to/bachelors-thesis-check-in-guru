@@ -8,6 +8,7 @@ public record InvitationListModel : IEntityModel
     public string Email { get; init; } = null!;
     public Guid TaskId { get; init; }
     public string? TaskTitle { get; init; }
+    public bool IsSent { get; init; }
     public bool IsAccepted { get; init; }
-    public DateTime SentAt { get; init; }
+    public DateTime? SentAt { get; init; }
 }

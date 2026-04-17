@@ -229,7 +229,6 @@ app.MapHub<NotificationHub>("/notificationHub");
 
 app.Run();
 
-// PRIDAJTE TÚTO METÓDU NA KONIEC Program.cs
 void MigrateDatabase(IHost host)
 {
     using (var scope = host.Services.CreateScope())

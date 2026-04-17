@@ -16,6 +16,7 @@ sealed class TaskDetailModel with _$TaskDetailModel {
     required String hash,
     required DateTime createdAt,
     required DateTime deadLine,
+    required DateTime lastModifiedAt,
     required String createdById,
     required TaskState state,
     required SubtaskMode subtaskMode,

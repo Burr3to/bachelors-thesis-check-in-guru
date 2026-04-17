@@ -147,6 +147,7 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
               Expanded(
                 child: TextField(
                   controller: _emailInputController,
+                  onSubmitted: (_) => _isChecking ? null : _handleParse(),
                   decoration: InputDecoration(
                     hintText: "Enter or paste emails in any format",
                     prefixIcon: const Icon(Icons.mail_outline, size: 20),

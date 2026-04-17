@@ -9,6 +9,7 @@ public class InvitationEntity : IEntity
     public Guid TaskId { get; set; }
     public TaskEntity? Task { get; set; }
 
-    public bool IsAccepted { get; set; } = false;
-    public DateTime SentAt { get; set; }
+    public bool IsSent { get; set; }
+    public bool IsAccepted { get; set; }
+    public DateTime? SentAt { get; set; }
 }

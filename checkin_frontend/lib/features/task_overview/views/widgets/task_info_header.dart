@@ -4,13 +4,17 @@ import 'package:flutter/material.dart';
 class TaskInfoHeader extends StatelessWidget {
   final DateTime createdDate;
   final DateTime deadlineDate;
+  final DateTime lastModified;
   final bool requiresAuth;
+  final VoidCallback? onDeadlineTap;
 
   const TaskInfoHeader({
     super.key,
     required this.createdDate,
     required this.deadlineDate,
     required this.requiresAuth,
+    required this.lastModified,
+    this.onDeadlineTap,
   });
 
   @override
@@ -28,13 +32,32 @@ class TaskInfoHeader extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("Deadline", style: TextStyle(fontWeight: FontWeight.bold, color: colorScheme.onSurface)),
-                const SizedBox(height: 6),
-                DateDisplay(dateTime: deadlineDate, icon: Icons.alarm),
-              ],
+            InkWell(
+              onTap: onDeadlineTap,
+              mouseCursor: SystemMouseCursors.click,
+              borderRadius: BorderRadius.circular(8),
+              hoverColor: colorScheme.primary.withAlpha(20),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text("Deadline",
+                            style: TextStyle(fontWeight: FontWeight.bold, color: colorScheme.onSurface)
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(Icons.edit, size: 12, color: colorScheme.primary.withAlpha(150)),
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                    DateDisplay(dateTime: deadlineDate, icon: Icons.alarm),
+                  ],
+                ),
+              ),
             ),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -54,8 +77,12 @@ class TaskInfoHeader extends StatelessWidget {
               children: [
                 Text("Last Modified", style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 6),
-        
-                Text("TODO"),
+                DateDisplay(
+                  dateTime: lastModified,
+                  icon: Icons.edit,
+                  color: Colors.grey,
+                  showRelative: false,
+                )
               ],
             ),
             Column(

@@ -74,6 +74,17 @@ public class TaskController(ITaskFacade taskFacade)
         return HandleResultFailure(result);
     }
 
+    [HttpDelete("{id}/invitations")]
+    public async Task<ActionResult<Result<bool>>> RemoveInvitations(Guid id, [FromBody] List<string> emails)
+    {
+        var result = await taskFacade.RemoveInvitationsAsync(id, emails);
+
+        if (result.IsSuccess)
+            return Ok(result);
+
+        return HandleResultFailure(result);
+    }
+
     [HttpGet("{taskId}/templates")]
     public async Task<ActionResult<List<SubtaskCombinedListModel>>> GetTemplates([FromRoute] Guid taskId)
     {

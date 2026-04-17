@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using MimeKit;
 using MailKit.Net.Smtp;
 using MailKit.Security;
+using DnsClient;
 
 namespace CheckIn.Api.Bl.Services;
 
@@ -104,6 +105,23 @@ public class EmailService(IConfiguration configuration) : IEmailService
             .Select(m => m.Value.ToLower().Trim())
             .Distinct()
             .ToList();
+    }
+
+    public async Task<bool> IsDomainValidAsync(string email)
+    {
+        try
+        {
+            var host = email.Split('@').Last();
+            var lookup = new LookupClient();
+            var result = await lookup.QueryAsync(host, QueryType.MX);
+
+            // Musí existovať aspoň jeden MX záznam a nesmie tam byť DNS chyba
+            return !result.HasError && result.Answers.MxRecords().Any();
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     public string StripQuillDeltaToPlainText(string deltaJson)

@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$InvitationListModel {
 
- String get id; String get email; String get taskId; bool get isAccepted; DateTime get sentAt;
+ String get id; String get email; String get taskId; bool get isAccepted; bool get isSent; DateTime? get sentAt;
 /// Create a copy of InvitationListModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $InvitationListModelCopyWith<InvitationListModel> get copyWith => _$InvitationLi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is InvitationListModel&&(identical(other.id, id) || other.id == id)&&(identical(other.email, email) || other.email == email)&&(identical(other.taskId, taskId) || other.taskId == taskId)&&(identical(other.isAccepted, isAccepted) || other.isAccepted == isAccepted)&&(identical(other.sentAt, sentAt) || other.sentAt == sentAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is InvitationListModel&&(identical(other.id, id) || other.id == id)&&(identical(other.email, email) || other.email == email)&&(identical(other.taskId, taskId) || other.taskId == taskId)&&(identical(other.isAccepted, isAccepted) || other.isAccepted == isAccepted)&&(identical(other.isSent, isSent) || other.isSent == isSent)&&(identical(other.sentAt, sentAt) || other.sentAt == sentAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,email,taskId,isAccepted,sentAt);
+int get hashCode => Object.hash(runtimeType,id,email,taskId,isAccepted,isSent,sentAt);
 
 @override
 String toString() {
-  return 'InvitationListModel(id: $id, email: $email, taskId: $taskId, isAccepted: $isAccepted, sentAt: $sentAt)';
+  return 'InvitationListModel(id: $id, email: $email, taskId: $taskId, isAccepted: $isAccepted, isSent: $isSent, sentAt: $sentAt)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $InvitationListModelCopyWith<$Res>  {
   factory $InvitationListModelCopyWith(InvitationListModel value, $Res Function(InvitationListModel) _then) = _$InvitationListModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String email, String taskId, bool isAccepted, DateTime sentAt
+ String id, String email, String taskId, bool isAccepted, bool isSent, DateTime? sentAt
 });
 
 
@@ -65,14 +65,15 @@ class _$InvitationListModelCopyWithImpl<$Res>
 
 /// Create a copy of InvitationListModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? email = null,Object? taskId = null,Object? isAccepted = null,Object? sentAt = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? email = null,Object? taskId = null,Object? isAccepted = null,Object? isSent = null,Object? sentAt = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String,taskId: null == taskId ? _self.taskId : taskId // ignore: cast_nullable_to_non_nullable
 as String,isAccepted: null == isAccepted ? _self.isAccepted : isAccepted // ignore: cast_nullable_to_non_nullable
-as bool,sentAt: null == sentAt ? _self.sentAt : sentAt // ignore: cast_nullable_to_non_nullable
-as DateTime,
+as bool,isSent: null == isSent ? _self.isSent : isSent // ignore: cast_nullable_to_non_nullable
+as bool,sentAt: freezed == sentAt ? _self.sentAt : sentAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,
   ));
 }
 
@@ -154,10 +155,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String email,  String taskId,  bool isAccepted,  DateTime sentAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String email,  String taskId,  bool isAccepted,  bool isSent,  DateTime? sentAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _InvitationListModel() when $default != null:
-return $default(_that.id,_that.email,_that.taskId,_that.isAccepted,_that.sentAt);case _:
+return $default(_that.id,_that.email,_that.taskId,_that.isAccepted,_that.isSent,_that.sentAt);case _:
   return orElse();
 
 }
@@ -175,10 +176,10 @@ return $default(_that.id,_that.email,_that.taskId,_that.isAccepted,_that.sentAt)
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String email,  String taskId,  bool isAccepted,  DateTime sentAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String email,  String taskId,  bool isAccepted,  bool isSent,  DateTime? sentAt)  $default,) {final _that = this;
 switch (_that) {
 case _InvitationListModel():
-return $default(_that.id,_that.email,_that.taskId,_that.isAccepted,_that.sentAt);}
+return $default(_that.id,_that.email,_that.taskId,_that.isAccepted,_that.isSent,_that.sentAt);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -192,10 +193,10 @@ return $default(_that.id,_that.email,_that.taskId,_that.isAccepted,_that.sentAt)
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String email,  String taskId,  bool isAccepted,  DateTime sentAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String email,  String taskId,  bool isAccepted,  bool isSent,  DateTime? sentAt)?  $default,) {final _that = this;
 switch (_that) {
 case _InvitationListModel() when $default != null:
-return $default(_that.id,_that.email,_that.taskId,_that.isAccepted,_that.sentAt);case _:
+return $default(_that.id,_that.email,_that.taskId,_that.isAccepted,_that.isSent,_that.sentAt);case _:
   return null;
 
 }
@@ -207,14 +208,15 @@ return $default(_that.id,_that.email,_that.taskId,_that.isAccepted,_that.sentAt)
 @JsonSerializable()
 
 class _InvitationListModel implements InvitationListModel {
-  const _InvitationListModel({required this.id, required this.email, required this.taskId, required this.isAccepted, required this.sentAt});
+  const _InvitationListModel({required this.id, required this.email, required this.taskId, required this.isAccepted, required this.isSent, this.sentAt});
   factory _InvitationListModel.fromJson(Map<String, dynamic> json) => _$InvitationListModelFromJson(json);
 
 @override final  String id;
 @override final  String email;
 @override final  String taskId;
 @override final  bool isAccepted;
-@override final  DateTime sentAt;
+@override final  bool isSent;
+@override final  DateTime? sentAt;
 
 /// Create a copy of InvitationListModel
 /// with the given fields replaced by the non-null parameter values.
@@ -229,16 +231,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _InvitationListModel&&(identical(other.id, id) || other.id == id)&&(identical(other.email, email) || other.email == email)&&(identical(other.taskId, taskId) || other.taskId == taskId)&&(identical(other.isAccepted, isAccepted) || other.isAccepted == isAccepted)&&(identical(other.sentAt, sentAt) || other.sentAt == sentAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _InvitationListModel&&(identical(other.id, id) || other.id == id)&&(identical(other.email, email) || other.email == email)&&(identical(other.taskId, taskId) || other.taskId == taskId)&&(identical(other.isAccepted, isAccepted) || other.isAccepted == isAccepted)&&(identical(other.isSent, isSent) || other.isSent == isSent)&&(identical(other.sentAt, sentAt) || other.sentAt == sentAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,email,taskId,isAccepted,sentAt);
+int get hashCode => Object.hash(runtimeType,id,email,taskId,isAccepted,isSent,sentAt);
 
 @override
 String toString() {
-  return 'InvitationListModel(id: $id, email: $email, taskId: $taskId, isAccepted: $isAccepted, sentAt: $sentAt)';
+  return 'InvitationListModel(id: $id, email: $email, taskId: $taskId, isAccepted: $isAccepted, isSent: $isSent, sentAt: $sentAt)';
 }
 
 
@@ -249,7 +251,7 @@ abstract mixin class _$InvitationListModelCopyWith<$Res> implements $InvitationL
   factory _$InvitationListModelCopyWith(_InvitationListModel value, $Res Function(_InvitationListModel) _then) = __$InvitationListModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String email, String taskId, bool isAccepted, DateTime sentAt
+ String id, String email, String taskId, bool isAccepted, bool isSent, DateTime? sentAt
 });
 
 
@@ -266,14 +268,15 @@ class __$InvitationListModelCopyWithImpl<$Res>
 
 /// Create a copy of InvitationListModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? email = null,Object? taskId = null,Object? isAccepted = null,Object? sentAt = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? email = null,Object? taskId = null,Object? isAccepted = null,Object? isSent = null,Object? sentAt = freezed,}) {
   return _then(_InvitationListModel(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String,taskId: null == taskId ? _self.taskId : taskId // ignore: cast_nullable_to_non_nullable
 as String,isAccepted: null == isAccepted ? _self.isAccepted : isAccepted // ignore: cast_nullable_to_non_nullable
-as bool,sentAt: null == sentAt ? _self.sentAt : sentAt // ignore: cast_nullable_to_non_nullable
-as DateTime,
+as bool,isSent: null == isSent ? _self.isSent : isSent // ignore: cast_nullable_to_non_nullable
+as bool,sentAt: freezed == sentAt ? _self.sentAt : sentAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,
   ));
 }
 

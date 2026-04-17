@@ -16,6 +16,10 @@ class DateFormatter {
     final dateToCompare = DateTime(localDateTime.year, localDateTime.month, localDateTime.day);
     final dayDiff = dateToCompare.difference(today).inDays;
 
+    if (dayDiff < 0) {
+      if (dayDiff == -1) return "Expired yesterday";
+      return "Overdue ${dayDiff.abs()} days ago";
+    }
     // 2. Today
     if (dayDiff == 0) {
       return "Today at ${DateFormat('HH:mm').format(localDateTime)}";

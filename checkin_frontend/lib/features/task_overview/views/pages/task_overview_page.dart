@@ -3,11 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/models/task/task_update_model.dart';
+import '../../../../core/providers/invitation_providers.dart';
 import '../../../../core/providers/signalr_provider.dart';
 import '../../../../core/services/signalr_service.dart';
+import '../../../../core/shared_widgets/invalid_emails_dialog.dart';
 import '../../../../core/utils/app_snack_bar.dart';
 import '../../../../core/utils/quill_viewer.dart';
 import '../../../../core/providers/task_providers.dart';
+import '../../../auth/views/providers/auth_provider.dart';
 import '../../data/models/task_detail_model.dart';
 import '../widgets/editable_task_notes.dart';
 import '../widgets/editable_task_title.dart';
@@ -33,17 +36,16 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
     super.initState();
 
     _signalRService = ref.read(signalRProvider);
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final signalR = ref.read(signalRProvider);
-
-      // Vždy posielaj ID v malých písmenách
-      final roomName = widget.taskId.toLowerCase().trim();
-      signalR.joinTaskRoom(roomName);
-
-      print("FLUTTER: Žiadam o vstup do room: '$roomName'");
-      signalR.connection?.on("TaskInstancesChanged", _handleInstancesChanged);
+      _setupSignalR();
     });
+  }
+
+  void _handleInvitationsChanged(List<Object?>? arguments) {
+    if (!mounted) return;
+    print("SignalR: Prijatý signál na obnovu pozvánok pre ${widget.taskId}");
+    ref.invalidate(taskDetailProvider(widget.taskId));
+    ref.invalidate(taskInvitationsProvider(widget.taskId));
   }
 
   void _handleInstancesChanged(List<Object?>? arguments) {
@@ -55,14 +57,46 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
     ref.invalidate(allTaskStatsProvider);
   }
 
+  void _handleInvalidEmails(List<Object?>? arguments) {
+    final rawList = arguments?[0] as List?;
+    if (rawList == null) return;
+
+    final invalidEmails = rawList.map((e) => e.toString()).toList();
+    if (invalidEmails.isNotEmpty) {
+      // KĽÚČOVÁ OPRAVA: Spustíme to v ďalšom mikro-tasku, aby layout stihol "vydýchnuť"
+      Future.microtask(() {
+        if (mounted) {
+          InvalidEmailsDialog.show(context, invalidEmails);
+        }
+      });
+    }
+  }
+
+  void _setupSignalR() async {
+    final user = ref.read(authProvider).user;
+
+    // 1. Task Room (pre zmeny v tasku)
+    final roomName = widget.taskId.toLowerCase().trim();
+    await _signalRService.joinTaskRoom(roomName);
+
+    // 2. User Room (pre chybové dialógy)
+    if (user != null) {
+      await _signalRService.joinUserRoom(user.userId);
+    }
+
+    // 3. Listenery
+    _signalRService.connection?.on("TaskInstancesChanged", _handleInstancesChanged);
+    _signalRService.connection?.on("TaskInvitationsChanged", _handleInvitationsChanged);
+    _signalRService.connection?.on("InvalidEmailsFound", _handleInvalidEmails);
+  }
+
   @override
   void dispose() {
     // 3. V dispose použi lokálnu premennú _signalRService namiesto ref.read
-    _signalRService.connection?.off(
-      "TaskInstancesChanged",
-      method: _handleInstancesChanged,
-    );
+    _signalRService.connection?.off("TaskInstancesChanged", method: _handleInstancesChanged);
     _signalRService.leaveTaskRoom(widget.taskId);
+    _signalRService.connection?.off("TaskInvitationsChanged", method: _handleInvitationsChanged);
+    _signalRService.connection?.off("InvalidEmailsFound", method: _handleInvalidEmails);
     super.dispose();
   }
 
@@ -71,12 +105,13 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
     TaskDetailModel task, {
     String? title,
     String? notes,
+        DateTime? deadline,
   }) async {
     final model = TaskUpdateModel(
       id: task.id,
       title: title ?? task.title,
       notes: notes ?? task.notes,
-      deadLine: task.deadLine,
+        deadLine: deadline ?? task.deadLine
     );
 
     try {
@@ -88,6 +123,24 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
     } catch (e) {
       if (!mounted) return;
       AppSnackBar.showError(context, "Failed to update: $e");
+    }
+  }
+
+  Future<void> _selectDeadline(BuildContext context, TaskDetailModel task) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: task.deadLine.toLocal(), // Zobrazujeme v lokálnom čase
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+    );
+
+    if (picked != null) {
+      // KĽÚČOVÁ ZMENA:
+      final localDeadline = DateTime(picked.year, picked.month, picked.day, 23, 59, 59);
+      // Ak je v Brne 23:59, do DB sa uloží 21:59 UTC.
+      final utcDeadline = localDeadline.toUtc();
+
+      _updateTask(context, task, deadline: utcDeadline);
     }
   }
 
@@ -136,9 +189,9 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
                         taskLink: taskLink,
                         onDeleteSuccess: () {
                           context.go('/tasks');
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Task was deleted")),
-                          );
+                          ScaffoldMessenger.of(
+                            context,
+                          ).showSnackBar(const SnackBar(content: Text("Task was deleted")));
                         },
                       ),
 
@@ -148,14 +201,18 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
                         createdDate: task.createdAt,
                         deadlineDate: task.deadLine,
                         requiresAuth: task.requiresAuthenticationToComplete,
-                      ),
+                        lastModified: task.lastModifiedAt,
+                          onDeadlineTap: () => _selectDeadline(context, task),
+              ),
 
                       const SizedBox(height: 16),
 
                       TaskInvitedUsersWidget(
-                          taskId: task.id,
-                          invitations: task.invitations),
-
+                        taskId: task.id,
+                        taskTitle: task.title,
+                        taskDeadline: task.deadLine,
+                        invitations: task.invitations,
+                      ),
 
                       asyncTemplates.when(
                         loading: () => const LinearProgressIndicator(),
@@ -163,8 +220,7 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
                         data: (templates) {
                           // Zistíme, či ide o "Hlavný Task" podľa šablón
                           final bool isMainTaskOnly =
-                              templates.isNotEmpty &&
-                              templates.every((t) => t.isGeneratedFromTask);
+                              templates.isNotEmpty && templates.every((t) => t.isGeneratedFromTask);
 
                           return asyncInstances.when(
                             loading: () => const LinearProgressIndicator(),
@@ -182,10 +238,8 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
                               // Scenár 3 & 4: Zobrazíme Checklist (Templates) a Progress (Instances)
                               return Column(
                                 children: [
-                                  SubtaskListSection(
-                                    title: "Task Checklist",
-                                    subtasks: templates,
-                                  ),
+                                  const SizedBox(height: 24),
+                                  SubtaskListSection(title: "Task Checklist", subtasks: templates),
                                   const SizedBox(height: 24),
                                   const Divider(color: Colors.blueAccent),
                                   const SizedBox(height: 24),
@@ -193,10 +247,7 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
                                     alignment: Alignment.centerLeft,
                                     child: Text(
                                       "Subtasks Progress",
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 18,
-                                      ),
+                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                                     ),
                                   ),
                                   const SizedBox(height: 10),
@@ -228,7 +279,7 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text("Nepodarilo sa načítať úlohu 😢"),
+          const Text("Nepodarilo sa načítať úlohu"),
           Text(error.toString(), style: const TextStyle(color: Colors.red)),
           const SizedBox(height: 10),
           ElevatedButton(

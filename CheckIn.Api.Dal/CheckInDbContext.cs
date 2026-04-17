@@ -14,6 +14,8 @@ public class CheckInDbContext(DbContextOptions<CheckInDbContext> options)
     public new DbSet<UserEntity> Users { get; set; }
     public DbSet<RefreshToken> RefreshTokens { get; set; }
 
+    public DbSet<InvitationEntity> Invitations { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // VŽDY volajte základnú metódu pre konfiguráciu Identity tabuliek
@@ -61,6 +63,12 @@ public class CheckInDbContext(DbContextOptions<CheckInDbContext> options)
             .WithMany()
             .HasForeignKey(si => si.AssignedToUserId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<InvitationEntity>()
+            .HasOne(i => i.Task)
+            .WithMany(t => t.Invitations)
+            .HasForeignKey(i => i.TaskId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         // --- INDEXY PRE RÝCHLE ŠTATISTIKY ---
 
