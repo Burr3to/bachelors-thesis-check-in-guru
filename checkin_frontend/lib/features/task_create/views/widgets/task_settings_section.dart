@@ -75,7 +75,7 @@ class TaskSettingsSection extends StatelessWidget {
                         fillColor: cs.surfaceContainerLow,
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: cs.primary.withOpacity(0.3), width: 1.5),
+                          borderSide: BorderSide(color: cs.primary.withAlpha(75), width: 1.5),
                         ),
                       ),
                       child: Center( // Vycentrovanie textu dátumu

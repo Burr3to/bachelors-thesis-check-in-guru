@@ -90,7 +90,7 @@ class TaskProgressBar extends ConsumerWidget {
 
   Widget _buildRightLabel(ColorScheme colorScheme, TaskSummaryStats stats) {
     final textStyle = TextStyle(
-      fontSize: 11,
+      fontSize: 13,
       fontWeight: FontWeight.w600,
       color: colorScheme.onSurfaceVariant,
     );

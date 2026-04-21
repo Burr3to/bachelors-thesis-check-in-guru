@@ -135,6 +135,9 @@ public class TaskFacade(
         // Táto metóda pridá InvitationEntity pre oba módy
         await ProcessNewInvitations(task, model.InvitedEmails);
 
+        await dbContext.Tasks.AddAsync(task);
+        await dbContext.SaveChangesAsync();
+
         // Spustenie mailov na pozadí...
         if (model.SendInvitesImmediately && model.InvitedEmails.Count != 0)
         {

@@ -230,7 +230,7 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
                     TextButton.icon(
                       onPressed: _handleRemindPending,
                       icon: const Icon(Icons.notification_important_outlined, size: 14),
-                      label: const Text("Remind Pending", style: TextStyle(fontSize: 13)),
+                      label: const Text("Remind Unfinished", style: TextStyle(fontSize: 13)),
                     ),
                 ] else if (_cooldownActive)
                   const Text("Wait 30s...", style: TextStyle(fontSize: 12, color: Colors.grey)),

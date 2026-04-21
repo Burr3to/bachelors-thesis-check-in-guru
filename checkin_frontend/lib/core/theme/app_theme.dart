@@ -15,7 +15,7 @@ final themeProvider = NotifierProvider<ThemeNotifier, ThemeMode>(ThemeNotifier.n
 class AppTheme {
   static const blueLineColor = Color(0xFF448AFF);
   static const Color myLightBlueBg = Color.fromRGBO(240, 244, 248, 1);
-  static const Color myLightBorder = Color.fromRGBO(204, 223, 255, 1);
+  static const Color myLightBorder = Color.fromRGBO(147, 184, 248, 1.0);
   static const Color myAccentBlue = Colors.blueAccent;
 
   static const Color quillLightEditorBg = Color.fromRGBO(100, 130, 255, 0.1);

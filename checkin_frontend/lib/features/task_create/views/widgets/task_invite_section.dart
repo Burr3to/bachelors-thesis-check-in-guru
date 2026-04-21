@@ -215,7 +215,7 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
               const SizedBox(width: 12),
               _buildTimingOption(
                 timing: InviteTiming.later,
-                label: "Later",
+                label: "Later (manually)",
                 icon: Icons.timer_outlined,
                 cs: cs,
               ),

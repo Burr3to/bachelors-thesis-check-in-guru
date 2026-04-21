@@ -119,10 +119,10 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
 
                   return GridView.builder(
                     gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 900,
-                      crossAxisSpacing: 10,
-                      mainAxisSpacing: 10,
-                      mainAxisExtent: 180,
+                      maxCrossAxisExtent: 700,
+                      mainAxisExtent: 290,
+                      crossAxisSpacing: 20,
+                      mainAxisSpacing: 20,
                     ),
                     itemCount: tasks.length,
                     itemBuilder: (context, index) {

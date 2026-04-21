@@ -1,5 +1,4 @@
 using AutoMapper;
-using CheckIn.Api.Bl.Facades;
 using CheckIn.Api.Bl.Facades.Interfaces;
 using CheckIn.Api.Bl.Hubs;
 using CheckIn.Api.Bl.Services.Interfaces;
@@ -11,11 +10,11 @@ using CheckIn.Api.Common.Models.Update;
 using CheckIn.Api.Common.Results;
 using CheckIn.Api.Dal;
 using CheckIn.Api.Dal.Entities;
-using DnsClient;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+
+namespace CheckIn.Api.Bl.Facades;
 
 public class InvitationFacade(
     CheckInDbContext dbContext,

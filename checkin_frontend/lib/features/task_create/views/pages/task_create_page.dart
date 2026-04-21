@@ -140,17 +140,17 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final screenWidth = MediaQuery.of(context).size.width;
+    double responsiveMaxWidth = screenWidth < 600
+        ? screenWidth
+        : (screenWidth * 0.35).clamp(625.0, 1000.0);
 
-    // Sledujeme len to, čo potrebujeme pre UI zmeny v tomto widgete
-    // Týmto sme odstránili "final taskData = ref.watch(taskCreateProvider)" -> už to nebude skákať!
     final deadline = ref.watch(taskCreateProvider.select((s) => s.deadLine));
     final requiresAuth = ref.watch(taskCreateProvider.select((s) => s.requiresAuthenticationToComplete));
     final mode = ref.watch(taskCreateProvider.select((s) => s.subtaskMode));
-
     // Tieto premenné sledujeme, aby sme vedeli, či sú sekcie prázdne/využívané
     final hasEmails = ref.watch(taskCreateProvider.select((s) => s.invitedEmails.isNotEmpty));
     final hasSubtasks = ref.watch(taskCreateProvider.select((s) => s.subtasks.isNotEmpty));
-
     final notifier = ref.read(taskCreateProvider.notifier);
 
     return Scaffold(
@@ -159,7 +159,7 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
         padding: const EdgeInsets.only(top: 40, bottom: 20, left: 16, right: 16),
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 800),
+            constraints: BoxConstraints(maxWidth: responsiveMaxWidth),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -171,7 +171,7 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
                   decoration: BoxDecoration(
                     color: cs.surfaceContainerLow,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: cs.outlineVariant.withOpacity(0.5)),
+                    border: Border.all(color: cs.outlineVariant.withAlpha(125)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -309,7 +309,7 @@ class _CollapsedButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: cs.outlineVariant),
+            border: Border.all(color: cs.outlineVariant, width: 1),
           ),
           child: Row(
             children: [
@@ -318,8 +318,8 @@ class _CollapsedButton extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: cs.onSurface)),
-                  Text("Optional", style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant)),
+                  Text(label, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: cs.onSurface)),
+                  Text("Optional", style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
                 ],
               ),
             ],

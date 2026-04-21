@@ -4,6 +4,7 @@ import 'package:checkin_frontend/features/task_list/views/widgets/task_progress_
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/models/enums/task_enums.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../../core/utils/quill_utils.dart';
 
@@ -14,87 +15,75 @@ class TaskCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final deadLineFriendly = DateFormatter.formatRelativeDeadline(task.deadLine);
-    final now = DateTime.now();
-    final isOverdue = task.deadLine.isBefore(now);
-    final colorScheme = Theme.of(context).colorScheme;
-    final deadlineColor = isOverdue ? Colors.red : colorScheme.onSurfaceVariant;
-    final deadlineIconColor = isOverdue ? Colors.red : colorScheme.primary;
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final isOverdue = task.deadLine.isBefore(DateTime.now());
 
-    return Card.outlined(
+    return Container(
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cs.outlineVariant, width: 1),
+      ),
       child: InkWell(
         onTap: () => context.go('/tasks/${task.id}'),
-        child: Container(
-          // 1. Nastavíme fixnú alebo minimálnu výšku karty
-          constraints: const BoxConstraints(minHeight: 160),
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start, // Zarovná status tag hore
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildDateRow(
-                      Icons.alarm,
-                      deadlineIconColor,
-                      deadLineFriendly,
-                      deadlineColor,
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      task.title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: colorScheme.onSurface,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 6),
-                    // 2. Poznámky s maxLines: 2
-                    if (task.notes != null && task.notes!.isNotEmpty)
-                      Text(
-                        QuillUtils.toPlainText(task.notes),
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-
-                    // 3. Tento Spacer odtlačí všetko pod ním nadol
-                    const Spacer(),
-
-                    const SizedBox(height: 12),
-                    TaskProgressBar(taskId: task.id),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 32),
-              // Pravý stĺpec so statusom
-              Column(
+              // HORNÝ RIADOK: Deadline + Ikona Módu
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: task.state.color,
-                        width: 1,
-                      ),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    child: Text(
-                      task.state.label,
-                      style: TextStyle(
-                          color: task.state.color,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 12
-                      ),
-                    ),
+                  _buildDeadlineBadge(cs, isOverdue),
+                  Icon(
+                    task.subtaskMode == SubtaskMode.shared ? Icons.groups : Icons.person,
+                    size: 19,
+                    color: cs.onSurfaceVariant.withOpacity(0.5),
                   ),
                 ],
               ),
+              const SizedBox(height: 16),
+
+              // STRED: Titul a Popis
+              Text(
+                task.title,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: -0.5,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 8),
+              Expanded(
+                child: Text(
+                  task.notes != null ? QuillUtils.toPlainText(task.notes) : "No description provided",
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: cs.onSurfaceVariant,
+                    height: 1.4,
+                    fontSize: 15
+                  ),
+                  maxLines: 4,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+
+              const SizedBox(height: 4),
+
+              // SPODOK: Progres bar
+              TaskProgressBar(taskId: task.id),
+
+              const SizedBox(height: 8),
+              // Dátum vytvorenia (malým)
+              Align(
+                alignment: Alignment.bottomRight,
+                child: Text(
+                  "Created: ${DateFormatter.formatCreatedAt(task.createdAt)}", // vytvor si túto metódu
+                  style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant.withAlpha(180))),
+                ),
             ],
           ),
         ),
@@ -102,21 +91,27 @@ class TaskCard extends StatelessWidget {
     );
   }
 
-  // Pomocná metóda, aby sme nepísali ten istý kód pre riadok dvakrát
-  Widget _buildDateRow(IconData icon, Color iconColor, String label, Color labelColor) {
-    return Row(
-      children: [
-        Icon(icon, size: 15, color: iconColor),
-        const SizedBox(width: 4),
-        Text(
-          "$label ",
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.normal,
-            color: labelColor,
+  Widget _buildDeadlineBadge(ColorScheme cs, bool isOverdue) {
+    final bgColor = isOverdue ? cs.errorContainer : cs.primaryContainer;
+    final textColor = isOverdue ? cs.onErrorContainer : cs.onPrimaryContainer;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.alarm, size: 14, color: textColor),
+          const SizedBox(width: 6),
+          Text(
+            DateFormatter.formatRelativeDeadline(task.deadLine),
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textColor),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

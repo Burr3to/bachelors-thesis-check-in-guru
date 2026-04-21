@@ -64,7 +64,7 @@ class _LogoSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () => context.go('/app/tasks'),
+      onTap: () => context.go('/tasks'),
       borderRadius: BorderRadius.circular(8),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -104,8 +104,8 @@ class _NavigationSection extends StatelessWidget {
           _verticalDivider(),
           _navButton(context, "My Tasks", '/tasks'),
           _verticalDivider(),
-          _navButton(context, "Shared with me", '/shared'),
-          _verticalDivider(),
+          //_navButton(context, "Shared with me", '/shared'),
+          //_verticalDivider(),
           //_navButton(context, "Create", '/tasks/create'),
           //_verticalDivider(),
         ],
