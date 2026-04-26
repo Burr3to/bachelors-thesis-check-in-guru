@@ -88,6 +88,24 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
     _signalRService.connection?.on("TaskInstancesChanged", _handleInstancesChanged);
     _signalRService.connection?.on("TaskInvitationsChanged", _handleInvitationsChanged);
     _signalRService.connection?.on("InvalidEmailsFound", _handleInvalidEmails);
+    _signalRService.connection?.on("ReceiveNotification", _handleGlobalNotification);
+  }
+
+  void _handleGlobalNotification(List<Object?>? arguments) {
+    if (!mounted) return;
+    final message = arguments?[0] as String?;
+    if (message == null) return;
+
+    if (message == "EMAILS_SENT") {
+      AppSnackBar.showSuccess(context, "Všetky e-maily boli úspešne odoslané.");
+      // Zároveň refreshneme dáta, aby sa zmenili farby čipov na modrú
+      ref.invalidate(taskDetailProvider(widget.taskId));
+    } else if (message == "EMAILS_FAILED") {
+      AppSnackBar.showError(
+        context,
+        "Chyba pri odosielaní e-mailov. Skontrolujte nastavenia SMTP.",
+      );
+    }
   }
 
   @override
@@ -97,6 +115,7 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
     _signalRService.leaveTaskRoom(widget.taskId);
     _signalRService.connection?.off("TaskInvitationsChanged", method: _handleInvitationsChanged);
     _signalRService.connection?.off("InvalidEmailsFound", method: _handleInvalidEmails);
+    _signalRService.connection?.off("ReceiveNotification", method: _handleGlobalNotification);
     super.dispose();
   }
 
@@ -105,13 +124,13 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
     TaskDetailModel task, {
     String? title,
     String? notes,
-        DateTime? deadline,
+    DateTime? deadline,
   }) async {
     final model = TaskUpdateModel(
       id: task.id,
       title: title ?? task.title,
       notes: notes ?? task.notes,
-        deadLine: deadline ?? task.deadLine
+      deadLine: deadline ?? task.deadLine,
     );
 
     try {
@@ -188,10 +207,8 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
                         taskId: widget.taskId,
                         taskLink: taskLink,
                         onDeleteSuccess: () {
+                          AppSnackBar.showSuccess(context, "Task was deleted");
                           context.go('/tasks');
-                          ScaffoldMessenger.of(
-                            context,
-                          ).showSnackBar(const SnackBar(content: Text("Task was deleted")));
                         },
                       ),
 
@@ -202,8 +219,8 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
                         deadlineDate: task.deadLine,
                         requiresAuth: task.requiresAuthenticationToComplete,
                         lastModified: task.lastModifiedAt,
-                          onDeadlineTap: () => _selectDeadline(context, task),
-              ),
+                        onDeadlineTap: () => _selectDeadline(context, task),
+                      ),
 
                       const SizedBox(height: 16),
 
@@ -239,7 +256,11 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
                               return Column(
                                 children: [
                                   const SizedBox(height: 24),
-                                  SubtaskListSection(title: "Task Checklist", subtasks: templates),
+                                  SubtaskListSection(
+                                    title: "Task Checklist",
+                                    subtasks: templates,
+                                    taskId: widget.taskId,
+                                  ),
                                   const SizedBox(height: 24),
                                   const Divider(color: Colors.blueAccent),
                                   const SizedBox(height: 24),

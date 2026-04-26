@@ -111,7 +111,9 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
     if (rawText.isEmpty) return;
     setState(() => _isParsing = true);
     try {
-      final List<String> newEmails = await ref.read(invitationApiServiceProvider).parseEmails('"$rawText"');
+      final List<String> newEmails = await ref
+          .read(invitationApiServiceProvider)
+          .parseEmails('"$rawText"');
       if (newEmails.isEmpty) {
         if (mounted) AppSnackBar.showInfo(context, "No new emails found.");
         setState(() => _isParsing = false);
@@ -131,7 +133,10 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
       if (mounted) {
         AppSnackBar.showSuccess(context, "Added ${newEmails.length} new people.");
         _emailInputController.clear();
-        setState(() { _showInput = false; _isParsing = false; });
+        setState(() {
+          _showInput = false;
+          _isParsing = false;
+        });
         _refreshAll();
       }
     } catch (e) {
@@ -176,14 +181,20 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
                   TextButton(
                     onPressed: () => setState(() => _showInput = true),
                     style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
-                    child: const Text("Add", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                    child: const Text(
+                      "Add",
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
                   ),
                   const SizedBox(width: 4),
                   // REMOVE Button
                   TextButton(
                     onPressed: () => setState(() => _isRemoving = true),
                     style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
-                    child: const Text("Remove", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                    child: const Text(
+                      "Remove",
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ],
 
@@ -191,18 +202,33 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
                   TextButton(
                     onPressed: () => setState(() => _showInput = false),
                     style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
-                    child: Text("Cancel", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: cs.error)),
+                    child: Text(
+                      "Cancel",
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: cs.error),
+                    ),
                   ),
 
                 if (_isRemoving) ...[
                   TextButton(
-                    onPressed: () => setState(() { _isRemoving = false; _selectedEmails.clear(); }),
+                    onPressed: () => setState(() {
+                      _isRemoving = false;
+                      _selectedEmails.clear();
+                    }),
                     style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
-                    child: Text("Cancel", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: cs.primary)),
+                    child: Text(
+                      "Cancel",
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: cs.primary,
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 8),
                   ElevatedButton(
-                    onPressed: (_selectedEmails.isEmpty || _isDeleting) ? null : _handleDeleteConfirm,
+                    onPressed: (_selectedEmails.isEmpty || _isDeleting)
+                        ? null
+                        : _handleDeleteConfirm,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: cs.onError,
                       foregroundColor: cs.error,
@@ -210,8 +236,15 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
                       visualDensity: VisualDensity.compact,
                     ),
                     child: _isDeleting
-                        ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
-                        : Text("Delete (${_selectedEmails.length})", style: const TextStyle(fontSize: 11)),
+                        ? const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(
+                            "Delete (${_selectedEmails.length})",
+                            style: const TextStyle(fontSize: 11),
+                          ),
                   ),
                 ],
 
@@ -239,28 +272,43 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
 
             if (_showInput) ...[
               const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _emailInputController,
-                      onSubmitted: (_) => _isParsing ? null : _handleParseAndAdd(),
-                      decoration: InputDecoration(
-                        hintText: "Enter emails...",
-                        isDense: true,
-                        filled: true,
-                        fillColor: cs.surface,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _emailInputController,
+                        onSubmitted: (_) => _isParsing ? null : _handleParseAndAdd(),
+                        decoration: InputDecoration(
+                          hintText: "Enter emails...",
+                          isDense: true,
+                          filled: true,
+                          fillColor: cs.surface,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: _isParsing ? null : _handleParseAndAdd,
-                    child: _isParsing ? const SizedBox(width: 14, height: 14,
-                        child: CircularProgressIndicator(strokeWidth: 2)) : const Text("Add"),
-                  ),
-                ],
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        surfaceTintColor: Colors.transparent,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      onPressed: _isParsing ? null : _handleParseAndAdd,
+                      child: _isParsing
+                          ? const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text("Add"),
+                    ),
+                  ],
+                ),
               ),
             ],
 
@@ -276,7 +324,7 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
                 // LOGIKA FARIEB A IKONIEK
                 Color contentColor = cs.onSurfaceVariant;
                 Color chipColor = cs.surface;
-                IconData icon = Icons.dangerous_outlined;
+                IconData icon = Icons.circle_outlined;
 
                 if (inv.isAccepted) {
                   contentColor = isDark ? Colors.greenAccent : Colors.green[700]!;
@@ -295,11 +343,15 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
                 }
 
                 return InkWell(
-                  onTap: _isRemoving ? () {
-                    setState(() {
-                      isSelected ? _selectedEmails.remove(inv.email) : _selectedEmails.add(inv.email);
-                    });
-                  } : null,
+                  onTap: _isRemoving
+                      ? () {
+                          setState(() {
+                            isSelected
+                                ? _selectedEmails.remove(inv.email)
+                                : _selectedEmails.add(inv.email);
+                          });
+                        }
+                      : null,
                   borderRadius: BorderRadius.circular(20),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
@@ -308,7 +360,9 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
                       color: chipColor,
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: (isSelected && _isRemoving) ? cs.error : (inv.isAccepted || inv.isSent ? contentColor : cs.outlineVariant),
+                        color: (isSelected && _isRemoving)
+                            ? cs.error
+                            : (inv.isAccepted || inv.isSent ? contentColor : cs.outlineVariant),
                         width: isSelected ? 1.5 : 1,
                       ),
                     ),

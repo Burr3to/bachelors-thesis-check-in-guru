@@ -40,7 +40,6 @@ public class InvitationFacade(
             using var scope = scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<CheckInDbContext>();
             var mailer = scope.ServiceProvider.GetRequiredService<IEmailService>();
-            var hub = scope.ServiceProvider.GetRequiredService<IHubContext<NotificationHub>>();
             var taskHub = scope.ServiceProvider.GetRequiredService<IHubContext<TaskHub>>();
 
             try
@@ -61,12 +60,14 @@ public class InvitationFacade(
                 await db.SaveChangesAsync();
 
                 // Notifikujeme autora cez SignalR, nech si refreshne UI
-                await hub.Clients.User(authorId.ToString()).SendAsync("ReceiveNotification", "EMAILS_SENT");
-                await taskHub.Clients.Group(taskId.ToString()).SendAsync("TaskInvitationsChanged");
+                var userGroupName = $"User_{authorId.ToString().ToLower()}";
+                await taskHub.Clients.Group(userGroupName).SendAsync("ReceiveNotification", "EMAILS_SENT");
+                await taskHub.Clients.Group(taskId.ToString().ToLower()).SendAsync("TaskInvitationsChanged");
             }
             catch (Exception)
             {
-                await hub.Clients.User(authorId.ToString()).SendAsync("ReceiveNotification", "EMAILS_FAILED");
+                var userGroupName = $"User_{authorId.ToString().ToLower()}";
+                await taskHub.Clients.Group(userGroupName).SendAsync("ReceiveNotification", "EMAILS_FAILED");
             }
         });
     }

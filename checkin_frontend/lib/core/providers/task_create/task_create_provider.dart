@@ -54,7 +54,8 @@ class TaskCreateNotifier extends _$TaskCreateNotifier {
   void addSubtask(String title) {
     final newSubtask = SubtaskTemplateCreateModel(
       title: title,
-      description: '', // Default empty, can be edited later
+      description: '',
+      parentTaskId: '00000000-0000-0000-0000-000000000000',
     );
     state = state.copyWith(subtasks: [...state.subtasks, newSubtask]);
   }

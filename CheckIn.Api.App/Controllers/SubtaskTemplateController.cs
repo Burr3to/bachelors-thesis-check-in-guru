@@ -12,11 +12,11 @@ namespace CheckIn.Api.App.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-[Authorize]
+[Authorize(AuthenticationSchemes = "Bearer")]
 public class SubtaskTemplateController(ISubtaskTemplateFacade facade)
-	: ApiControllerBase<SubtaskTemplateEntity, SubtaskTemplateListModel, SubtaskTemplateDetailModel,
-			SubtaskTemplateCreateModel, SubtaskTemplateUpdateModel, SubtaskTemplateQuery>
-		(facade)
+    : ApiControllerBase<SubtaskTemplateEntity, SubtaskTemplateListModel, SubtaskTemplateDetailModel,
+            SubtaskTemplateCreateModel, SubtaskTemplateUpdateModel, SubtaskTemplateQuery>
+        (facade)
 {
-	// Všetok CRUD je zdedený z ApiControllerBase
+    // Všetok CRUD je zdedený z ApiControllerBase
 }

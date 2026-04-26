@@ -225,7 +225,6 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.MapHub<TaskHub>("/hubs/tasks");
-app.MapHub<NotificationHub>("/notificationHub");
 
 app.Run();
 

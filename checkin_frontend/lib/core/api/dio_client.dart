@@ -2,6 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:firebase_performance_dio/firebase_performance_dio.dart';
 import 'package:flutter/foundation.dart';
 
+import '../../features/auth/data/auth_interceptor.dart';
+
 class DioClient {
   // Singleton alebo len getter, záleží ako to chceš používať.
   // Pre Riverpod je lepšie to mať ako Provider.
@@ -18,7 +20,7 @@ class DioClient {
         connectTimeout: const Duration(seconds: 30),
         receiveTimeout: const Duration(seconds: 30),
         validateStatus: (status) {
-          return status != null && (status < 500 || status == 401);
+          return status != null && status < 300;
         },
         headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
       ),
@@ -26,6 +28,8 @@ class DioClient {
 
     // Pridáme Interceptor na logovanie (aby si videl v konzole čo sa deje)
     //dio.interceptors.add(LogInterceptor(requestBody: true, responseBody: true));
+
+    dio.interceptors.add(AuthInterceptor(dio, apiUrl));
 
     dio.interceptors.add(LogInterceptor(
       requestHeader: false,

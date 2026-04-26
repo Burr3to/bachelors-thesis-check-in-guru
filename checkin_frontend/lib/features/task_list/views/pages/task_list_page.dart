@@ -8,6 +8,9 @@ import '../../../../core/services/signalr_service.dart';
 import '../../../../core/shared_widgets/primary_button.dart';
 import '../../../../core/providers/task_providers.dart';
 import '../widgets/task_card.dart';
+import '../widgets/task_filters_drawer.dart';
+import '../widgets/task_list_header.dart';
+import '../widgets/task_pagination_bar.dart';
 
 class TaskListPage extends ConsumerStatefulWidget {
   const TaskListPage({super.key});
@@ -65,31 +68,28 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-
     final user = ref.watch(authProvider).user;
+    final asyncTasks = ref.watch(taskListProvider);
+    final pagination = ref.watch(taskQueryProvider);
+
 
     if (user == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    final asyncTasks = ref.watch(taskListProvider);
 
     return Scaffold(
       // 2. ZMENA: Namiesto Colors.white
       backgroundColor: colorScheme.surface,
+      endDrawer: const TaskFiltersDrawer(),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            PrimaryButton(
-              text: "Create Task",
-              icon: Icons.add,
-              onPressed: () {
-                context.go('/tasks/create');
-              },
-            ),
-            const SizedBox(height: 35),
+
+            const TaskListHeader(),
+
             Expanded(
               child: asyncTasks.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
@@ -112,23 +112,43 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                     return Center(
                       child: Text(
                         "Žiadne úlohy",
-                        style: TextStyle(color: colorScheme.onSurfaceVariant), // Jemná šedá/biela
+                        style: TextStyle(color: colorScheme.onSurfaceVariant),
                       ),
                     );
                   }
 
-                  return GridView.builder(
-                    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 700,
-                      mainAxisExtent: 290,
-                      crossAxisSpacing: 20,
-                      mainAxisSpacing: 20,
-                    ),
-                    itemCount: tasks.length,
-                    itemBuilder: (context, index) {
-                      final task = tasks[index];
-                      return TaskCard(task: task);
-                    },
+                  // Použijeme Column, aby sme pod GridView pridali PaginationBar
+                  return Stack(
+                    children: [
+                      // 1. VRSTVA: Zoznam úloh
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 20), // Miesto pre pohodlný scroll
+                        child: GridView.builder(
+                          // Pridáme extra padding dole priamo do GridView,
+                          // aby posledný riadok úloh nekončil presne pod lištou
+                          padding: const EdgeInsets.only(bottom: 100),
+                          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                            maxCrossAxisExtent: 700,
+                            mainAxisExtent: 290,
+                            crossAxisSpacing: 20,
+                            mainAxisSpacing: 20,
+                          ),
+                          itemCount: tasks.length,
+                          itemBuilder: (context, index) {
+                            final task = tasks[index];
+                            return TaskCard(task: task);
+                          },
+                        ),
+                      ),
+
+                      // 2. VRSTVA: Plávajúca paginácia (zarovnaná na stred dole)
+                      Positioned(
+                        bottom: 20,
+                        left: 0,
+                        right: 0,
+                        child: TaskPaginationBar(totalCount: queryResult.totalCount),
+                      ),
+                    ],
                   );
                 },
               ),

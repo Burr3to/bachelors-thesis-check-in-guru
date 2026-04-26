@@ -15,9 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$SubtaskTemplateCreateModel {
 
- String get title; String? get description;// Pri vytváraní nového tasku toto ID ešte nemáme,
-// ale ak to backend vyžaduje v modeli, musíme to tam dať (môžeš poslať prázdny string alebo null ak dovolí)
- String get parentTaskId;
+ String get title; String? get description; String get parentTaskId;
 /// Create a copy of SubtaskTemplateCreateModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -207,14 +205,12 @@ return $default(_that.title,_that.description,_that.parentTaskId);case _:
 @JsonSerializable()
 
 class _SubtaskTemplateCreateModel implements SubtaskTemplateCreateModel {
-  const _SubtaskTemplateCreateModel({required this.title, this.description, this.parentTaskId = '00000000-0000-0000-0000-000000000000'});
+  const _SubtaskTemplateCreateModel({required this.title, this.description, required this.parentTaskId});
   factory _SubtaskTemplateCreateModel.fromJson(Map<String, dynamic> json) => _$SubtaskTemplateCreateModelFromJson(json);
 
 @override final  String title;
 @override final  String? description;
-// Pri vytváraní nového tasku toto ID ešte nemáme,
-// ale ak to backend vyžaduje v modeli, musíme to tam dať (môžeš poslať prázdny string alebo null ak dovolí)
-@override@JsonKey() final  String parentTaskId;
+@override final  String parentTaskId;
 
 /// Create a copy of SubtaskTemplateCreateModel
 /// with the given fields replaced by the non-null parameter values.

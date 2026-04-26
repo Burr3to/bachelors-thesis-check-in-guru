@@ -37,7 +37,7 @@ public class TaskFacade(
         Expression<Func<TaskEntity, bool>> filter = entity => true;
 
         if (!string.IsNullOrEmpty(query.NameContains))
-            filter = filter.And(entity => entity.Title.ToLower().Contains(query.NameContains.ToLower()));
+            filter = filter.And(entity => EF.Functions.ILike(entity.Title, $"%{query.NameContains}%"));
 
         if (query.Status.HasValue)
             filter = filter.And(entity => entity.State == query.Status.Value);
@@ -50,6 +50,18 @@ public class TaskFacade(
 
         if (query.CreatedAfter.HasValue)
             filter = filter.And(entity => entity.CreatedAt >= query.CreatedAfter.Value);
+
+        if (query.Mode.HasValue)
+            filter = filter.And(entity => entity.SubtaskMode == query.Mode.Value);
+
+        if (query.RequiresAuth.HasValue)
+            filter = filter.And(entity => entity.RequiresAuthenticationToComplete == query.RequiresAuth.Value);
+
+        if (query.OnlyOverdue == true)
+            filter = filter.And(e => e.DeadLine < DateTime.UtcNow);
+
+        if (query.OnlyActive == true)
+            filter = filter.And(e => e.DeadLine >= DateTime.UtcNow && e.State != TaskState.Completed);
 
         Guid currentUserId = CurrentUserId;
         filter = filter.And(entity => entity.CreatedById == currentUserId);
@@ -78,6 +90,10 @@ public class TaskFacade(
             "createdat" => query.SortDesc
                 ? q => q.OrderByDescending(e => e.CreatedAt)
                 : q => q.OrderBy(e => e.CreatedAt),
+
+            "lastmodifiedat" => query.SortDesc
+                ? q => q.OrderByDescending(e => e.LastModifiedAt)
+                : q => q.OrderBy(e => e.LastModifiedAt),
 
             _ => q => q.OrderBy(e => e.Id)
         };

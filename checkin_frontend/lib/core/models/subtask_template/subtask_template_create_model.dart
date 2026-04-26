@@ -8,9 +8,7 @@ sealed class SubtaskTemplateCreateModel with _$SubtaskTemplateCreateModel {
   const factory SubtaskTemplateCreateModel({
     required String title,
     String? description,
-    // Pri vytváraní nového tasku toto ID ešte nemáme,
-    // ale ak to backend vyžaduje v modeli, musíme to tam dať (môžeš poslať prázdny string alebo null ak dovolí)
-    @Default('00000000-0000-0000-0000-000000000000') String parentTaskId,
+    required String parentTaskId,
   }) = _SubtaskTemplateCreateModel;
 
   factory SubtaskTemplateCreateModel.fromJson(Map<String, dynamic> json) =>

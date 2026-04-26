@@ -80,6 +80,11 @@ class _TaskApiService implements TaskApiService {
     String? sortBy,
     bool? sortDesc,
     String? nameContains,
+    int? mode,
+    int? status,
+    bool? requiresAuth,
+    bool? onlyOverdue,
+    bool? onlyActive,
   }) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{
@@ -88,6 +93,11 @@ class _TaskApiService implements TaskApiService {
       r'sortBy': sortBy,
       r'sortDesc': sortDesc,
       r'nameContains': nameContains,
+      r'mode': mode,
+      r'status': status,
+      r'requiresAuth': requiresAuth,
+      r'onlyOverdue': onlyOverdue,
+      r'onlyActive': onlyActive,
     };
     queryParameters.removeWhere((k, v) => v == null);
     final _headers = <String, dynamic>{};

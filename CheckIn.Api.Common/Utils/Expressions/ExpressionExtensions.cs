@@ -13,7 +13,8 @@ public static class ExpressionExtensions
             this._map = map ?? new Dictionary<ParameterExpression, ParameterExpression>();
         }
 
-        public static Expression ReplaceParameters(Dictionary<ParameterExpression, ParameterExpression> map, Expression exp)
+        public static Expression ReplaceParameters(Dictionary<ParameterExpression, ParameterExpression> map,
+            Expression exp)
         {
             return new ParameterRebinder(map).Visit(exp);
         }
@@ -24,6 +25,7 @@ public static class ExpressionExtensions
             {
                 return replacement;
             }
+
             return base.VisitParameter(p);
         }
     }
@@ -31,9 +33,9 @@ public static class ExpressionExtensions
     public static Expression<Func<T, bool>> And<T>(this Expression<Func<T, bool>> left, Expression<Func<T, bool>> right)
     {
         // Vytvorenie mapy parametrov: (druhá expression používa iný parameter ako prvá)
-        var map = 
+        var map =
             right.Parameters.Select((p, i) => new { p, replacement = left.Parameters[i] })
-                                   .ToDictionary(x => x.p, x => x.replacement);
+                .ToDictionary(x => x.p, x => x.replacement);
 
         var rightBody = ParameterRebinder.ReplaceParameters(map, right.Body);
 
@@ -44,7 +46,7 @@ public static class ExpressionExtensions
     public static Expression<Func<T, bool>> Or<T>(this Expression<Func<T, bool>> left, Expression<Func<T, bool>> right)
     {
         var map = right.Parameters.Select((p, i) => new { p, replacement = left.Parameters[i] })
-                                   .ToDictionary(x => x.p, x => x.replacement);
+            .ToDictionary(x => x.p, x => x.replacement);
 
         var rightBody = ParameterRebinder.ReplaceParameters(map, right.Body);
 

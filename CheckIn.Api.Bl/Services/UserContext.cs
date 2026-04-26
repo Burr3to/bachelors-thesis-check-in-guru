@@ -4,16 +4,9 @@ using Microsoft.AspNetCore.Http;
 
 namespace CheckIn.Api.Bl.Services;
 
-public class UserContext : IUserContext
+public class UserContext(IHttpContextAccessor httpContextAccessor) : IUserContext
 {
-    private readonly IHttpContextAccessor _httpContextAccessor;
-
-    public UserContext(IHttpContextAccessor httpContextAccessor)
-    {
-        _httpContextAccessor = httpContextAccessor;
-    }
-
-    private ClaimsPrincipal? User => _httpContextAccessor.HttpContext?.User;
+    private ClaimsPrincipal? User => httpContextAccessor.HttpContext?.User;
 
     public bool IsAuthenticated() => User?.Identity?.IsAuthenticated ?? false;
 

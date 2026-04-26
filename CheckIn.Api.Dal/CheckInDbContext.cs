@@ -13,7 +13,6 @@ public class CheckInDbContext(DbContextOptions<CheckInDbContext> options)
     public DbSet<SubtaskInstanceEntity> SubtaskInstances { get; set; }
     public new DbSet<UserEntity> Users { get; set; }
     public DbSet<RefreshToken> RefreshTokens { get; set; }
-
     public DbSet<InvitationEntity> Invitations { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

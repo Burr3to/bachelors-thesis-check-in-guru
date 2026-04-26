@@ -1,23 +1,23 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'subtask_template_create_model.dart';
+part of 'subtask_template_update_model.dart';
 
 // **************************************************************************
 // JsonSerializableGenerator
 // **************************************************************************
 
-_SubtaskTemplateCreateModel _$SubtaskTemplateCreateModelFromJson(
+_SubtaskTemplateUpdateModel _$SubtaskTemplateUpdateModelFromJson(
   Map<String, dynamic> json,
-) => _SubtaskTemplateCreateModel(
+) => _SubtaskTemplateUpdateModel(
+  id: json['id'] as String,
   title: json['title'] as String,
   description: json['description'] as String?,
-  parentTaskId: json['parentTaskId'] as String,
 );
 
-Map<String, dynamic> _$SubtaskTemplateCreateModelToJson(
-  _SubtaskTemplateCreateModel instance,
+Map<String, dynamic> _$SubtaskTemplateUpdateModelToJson(
+  _SubtaskTemplateUpdateModel instance,
 ) => <String, dynamic>{
+  'id': instance.id,
   'title': instance.title,
   'description': instance.description,
-  'parentTaskId': instance.parentTaskId,
 };

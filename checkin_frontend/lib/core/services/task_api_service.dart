@@ -31,8 +31,11 @@ abstract class TaskApiService {
     @Query("sortBy") String? sortBy,
     @Query("sortDesc") bool? sortDesc,
     @Query("nameContains") String? nameContains,
-
-
+    @Query("mode") int? mode,
+    @Query("status") int? status,
+    @Query("requiresAuth") bool? requiresAuth,
+    @Query("onlyOverdue") bool? onlyOverdue,
+    @Query("onlyActive") bool? onlyActive,
   });
 
   @DELETE('api/Task/{id}/invitations')

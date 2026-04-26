@@ -69,6 +69,7 @@ class SignalRService {
     }
   }
 
+
   Future<void> joinUserRoom(String userId) async {
     int attempts = 0;
     while (_hubConnection?.state != HubConnectionState.Connected && attempts < 10) {
