@@ -143,7 +143,7 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
     final screenWidth = MediaQuery.of(context).size.width;
     double responsiveMaxWidth = screenWidth < 600
         ? screenWidth
-        : (screenWidth * 0.35).clamp(625.0, 1000.0);
+        : (screenWidth * 0.35).clamp(650.0, 1000.0);
 
     final deadline = ref.watch(taskCreateProvider.select((s) => s.deadLine));
     final requiresAuth = ref.watch(taskCreateProvider.select((s) => s.requiresAuthenticationToComplete));
