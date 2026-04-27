@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/task_create/task_create_provider.dart';
+import '../../../../core/utils/l10n_extensions.dart';
 
 class SubtaskInputSection extends ConsumerStatefulWidget {
   final VoidCallback onRemoveSection;
@@ -45,10 +46,10 @@ class _SubtaskInputSectionState extends ConsumerState<SubtaskInputSection> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("Subtasks", style: TextStyle(fontWeight: FontWeight.bold, color: cs.onSurface)),
+              Text(context.l10n.task_create_subtasks_title, style: TextStyle(fontWeight: FontWeight.bold, color: cs.onSurface)),
               TextButton(
                 onPressed: widget.onRemoveSection,
-                child: Text("Remove section", style: TextStyle(color: cs.error, fontSize: 12)),
+                child: Text(context.l10n.task_create_subtasks_remove, style: TextStyle(color: cs.error, fontSize: 12)),
               ),
             ],
           ),
@@ -61,7 +62,7 @@ class _SubtaskInputSectionState extends ConsumerState<SubtaskInputSection> {
                   controller: _inputController,
                   onSubmitted: (_) => _submitSubtask(),
                   decoration: InputDecoration(
-                    hintText: "Add subtask title...",
+                    hintText: context.l10n.task_create_subtasks_hint,
                     isDense: true,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -155,7 +156,7 @@ class _SubtaskInputSectionState extends ConsumerState<SubtaskInputSection> {
                             style: const TextStyle(fontSize: 13),
                             onChanged: (val) => ref.read(taskCreateProvider.notifier).updateSubtaskDescription(index, val),
                             decoration: InputDecoration(
-                              hintText: "Add description...",
+                              hintText: context.l10n.task_create_subtasks_desc_hint,
                               hintStyle: TextStyle(fontSize: 12, color: cs.onSurfaceVariant.withAlpha(160)),
                               isDense: true,
                               contentPadding: const EdgeInsets.symmetric(vertical: 4),

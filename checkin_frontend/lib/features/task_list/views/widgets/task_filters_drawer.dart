@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/models/enums/task_enums.dart';
 import '../../../../core/providers/task_providers.dart';
+import '../../../../core/utils/l10n_extensions.dart';
 
 class TaskFiltersDrawer extends ConsumerWidget {
   const TaskFiltersDrawer({super.key});
@@ -29,7 +30,7 @@ class TaskFiltersDrawer extends ConsumerWidget {
                 Icon(Icons.filter_alt_rounded, size: 40, color: cs.primary),
                 const SizedBox(height: 12),
                 Text(
-                  "Filters & Sorting",
+                  context.l10n.tasks_filter_title,
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -45,21 +46,21 @@ class TaskFiltersDrawer extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
               children: [
                 // 1. SORTING
-                _buildSectionTitle(cs, "Sort By"),
+                _buildSectionTitle(cs, context.l10n.tasks_filter_sort_by),
                 DropdownButtonFormField<String>(
                   value: query.sortBy,
                   dropdownColor: cs.surfaceContainerHigh, // Farba dropdown menu
                   decoration: _inputDecoration(cs),
-                  items: const [
-                    DropdownMenuItem(value: "createdat", child: Text("Creation Date")),
-                    DropdownMenuItem(value: "deadline", child: Text("Deadline")),
-                    DropdownMenuItem(value: "title", child: Text("Title")),
+                  items: [
+                    DropdownMenuItem(value: "createdat", child: Text(context.l10n.tasks_filter_created_at)),
+                    DropdownMenuItem(value: "deadline", child: Text(context.l10n.tasks_filter_deadline)),
+                    DropdownMenuItem(value: "title", child: Text(context.l10n.tasks_filter_title_field)),
                   ],
                   onChanged: (val) => notifier.setSort(val!, query.sortDesc),
                 ),
                 const SizedBox(height: 8),
                 SwitchListTile(
-                  title: const Text("Descending Order", style: TextStyle(fontSize: 14)),
+                  title: Text(context.l10n.tasks_filter_descending, style: const TextStyle(fontSize: 14)),
                   value: query.sortDesc,
                   activeColor: cs.primary,
                   onChanged: (val) => notifier.setSort(query.sortBy, val),
@@ -71,19 +72,19 @@ class TaskFiltersDrawer extends ConsumerWidget {
                 ),
 
                 // 2. COOPERATION MODE (Toggle logika)
-                _buildSectionTitle(cs, "Cooperation Mode"),
+                _buildSectionTitle(cs, context.l10n.tasks_filter_mode),
                 Wrap(
                   spacing: 10,
                   children: [
                     _FilterChip(
-                      label: "Shared",
+                      label: context.l10n.task_create_mode_collab,
                       selected: query.mode == SubtaskMode.shared,
                       onSelected: (selected) {
                         notifier.setMode(selected ? SubtaskMode.shared : null);
                       },
                     ),
                     _FilterChip(
-                      label: "Independent",
+                      label: context.l10n.task_create_mode_indep,
                       selected: query.mode == SubtaskMode.individual,
                       onSelected: (selected) {
                         notifier.setMode(selected ? SubtaskMode.individual : null);
@@ -94,19 +95,19 @@ class TaskFiltersDrawer extends ConsumerWidget {
                 const SizedBox(height: 24),
 
                 // 3. VISIBILITY (Toggle logika)
-                _buildSectionTitle(cs, "Visibility"),
+                _buildSectionTitle(cs, context.l10n.tasks_filter_visibility),
                 Wrap(
                   spacing: 10,
                   children: [
                     _FilterChip(
-                      label: "Public (Link)",
+                      label: context.l10n.task_create_auth_public,
                       selected: query.requiresAuth == false,
                       onSelected: (selected) {
                         notifier.setVisibility(selected ? false : null);
                       },
                     ),
                     _FilterChip(
-                      label: "Private (Verified)",
+                      label: context.l10n.task_create_auth_verified,
                       selected: query.requiresAuth == true,
                       onSelected: (selected) {
                         notifier.setVisibility(selected ? true : null);
@@ -117,7 +118,7 @@ class TaskFiltersDrawer extends ConsumerWidget {
                 const SizedBox(height: 24),
 
                 // 4. STATUS SPECIAL
-                _buildSectionTitle(cs, "Task Status"),
+                _buildSectionTitle(cs, context.l10n.tasks_filter_status),
                 Container(
                   decoration: BoxDecoration(
                     color: cs.surfaceContainerLowest,
@@ -127,16 +128,16 @@ class TaskFiltersDrawer extends ConsumerWidget {
                   child: Column(
                     children: [
                       CheckboxListTile(
-                        title: const Text("Active only", style: TextStyle(fontWeight: FontWeight.w500)),
-                        subtitle: const Text("Tasks before deadline", style: TextStyle(fontSize: 12)),
+                        title: Text(context.l10n.tasks_filter_active_only, style: const TextStyle(fontWeight: FontWeight.w500)),
+                        subtitle: Text(context.l10n.tasks_filter_active_subtitle, style: const TextStyle(fontSize: 12)),
                         value: query.onlyActive ?? false,
                         activeColor: cs.primary,
                         onChanged: (val) => notifier.setOnlyActive(val ?? false),
                       ),
                       const Divider(height: 1),
                       CheckboxListTile(
-                        title: const Text("Only Overdue", style: TextStyle(fontWeight: FontWeight.w500)),
-                        subtitle: const Text("Tasks after deadline", style: TextStyle(fontSize: 12)),
+                        title: Text(context.l10n.tasks_filter_overdue_only, style: const TextStyle(fontWeight: FontWeight.w500)),
+                        subtitle: Text(context.l10n.tasks_filter_overdue_subtitle, style: const TextStyle(fontSize: 12)),
                         value: query.onlyOverdue ?? false,
                         activeColor: cs.error,
                         onChanged: (val) => notifier.setOverdue(val ?? false),
@@ -160,7 +161,7 @@ class TaskFiltersDrawer extends ConsumerWidget {
               child: TextButton.icon(
                 onPressed: () => notifier.reset(),
                 icon: const Icon(Icons.refresh),
-                label: const Text("Reset All Filters"),
+                label: Text(context.l10n.tasks_filter_reset),
                 style: TextButton.styleFrom(
                   foregroundColor: cs.error,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

@@ -1,8 +1,8 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/invitation_providers.dart';
 import '../../../../core/providers/task_create/task_create_provider.dart';
+import '../../../../core/utils/l10n_extensions.dart';
 
 enum InviteTiming { immediately, later }
 
@@ -129,7 +129,7 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("Invite Team Members",
+              Text(context.l10n.task_create_invite_title,
                   style: TextStyle(fontWeight: FontWeight.bold, color: cs.onSurface)),
               TextButton(
                 onPressed: widget.onCollapse,
@@ -149,7 +149,7 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
                   controller: _emailInputController,
                   onSubmitted: (_) => _isChecking ? null : _handleParse(),
                   decoration: InputDecoration(
-                    hintText: "Enter or paste emails in any format",
+                    hintText: context.l10n.task_create_invite_hint,
                     prefixIcon: const Icon(Icons.mail_outline, size: 20),
                     isDense: true,
                     contentPadding: const EdgeInsets.all(12),
@@ -167,7 +167,7 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
                 ),
                 child: _isChecking
                     ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Text("Parse"),
+                    : Text(context.l10n.task_create_invite_parse),
               ),
             ],
           ),
@@ -189,7 +189,7 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
             TextButton(
               onPressed: _removeAll,
               style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
-              child: const Text("Remove All", style: TextStyle(fontSize: 12)),
+              child: Text(context.l10n.task_create_invite_remove_all, style: TextStyle(fontSize: 12)),
             ),
           ],
 
@@ -200,7 +200,7 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
           // Send Timing Selector
           // Send Timing Selector
           Text(
-            "Send invites:",
+            context.l10n.task_create_invite_send_label,
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: cs.onSurfaceVariant),
           ),
           const SizedBox(height: 10),
@@ -208,14 +208,14 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
             children: [
               _buildTimingOption(
                 timing: InviteTiming.immediately,
-                label: "Immediately",
+                label: context.l10n.task_create_invite_immediately,
                 icon: Icons.bolt,
                 cs: cs,
               ),
               const SizedBox(width: 12),
               _buildTimingOption(
                 timing: InviteTiming.later,
-                label: "Later (manually)",
+                label: context.l10n.task_create_invite_later,
                 icon: Icons.timer_outlined,
                 cs: cs,
               ),

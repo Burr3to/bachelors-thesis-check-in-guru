@@ -5,6 +5,7 @@ import '../../../../core/models/task/task_update_model.dart';
 import '../../../../core/providers/invitation_providers.dart';
 import '../../../../core/providers/task_providers.dart';
 import '../../../../core/utils/app_snack_bar.dart';
+import '../../../../core/utils/l10n_extensions.dart';
 
 class TaskInvitedUsersWidget extends ConsumerStatefulWidget {
   final String taskId;
@@ -53,11 +54,11 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
     try {
       await ref.read(invitationApiServiceProvider).sendInvitations(widget.taskId, null);
       if (mounted) {
-        AppSnackBar.showInfo(context, "Sending invitations in background...");
+        AppSnackBar.showInfo(context, context.l10n.overview_invite_sending_msg);
         _startCooldown();
       }
     } catch (e) {
-      if (mounted) AppSnackBar.showError(context, "Failed to start sending.");
+      if (mounted) AppSnackBar.showError(context, context.l10n.overview_invite_err_sending);
     } finally {
       if (mounted) setState(() => _isSending = false);
     }
@@ -92,7 +93,7 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
     try {
       await ref.read(taskApiServiceProvider).removeInvitations(widget.taskId, _selectedEmails);
       if (mounted) {
-        AppSnackBar.showSuccess(context, "Removed ${_selectedEmails.length} people.");
+        AppSnackBar.showSuccess(context,context.l10n.overview_invite_removed_msg(_selectedEmails.length));
         setState(() {
           _isRemoving = false;
           _selectedEmails.clear();
@@ -115,7 +116,7 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
           .read(invitationApiServiceProvider)
           .parseEmails('"$rawText"');
       if (newEmails.isEmpty) {
-        if (mounted) AppSnackBar.showInfo(context, "No new emails found.");
+        if (mounted) AppSnackBar.showInfo(context, context.l10n.overview_invite_no_new_emails);
         setState(() => _isParsing = false);
         return;
       }
@@ -131,7 +132,7 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
 
       await ref.read(taskApiServiceProvider).updateTask(widget.taskId, updateModel);
       if (mounted) {
-        AppSnackBar.showSuccess(context, "Added ${newEmails.length} new people.");
+        AppSnackBar.showSuccess(context, context.l10n.overview_invite_added_msg(newEmails.length));
         _emailInputController.clear();
         setState(() {
           _showInput = false;
@@ -171,7 +172,7 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
                 Icon(Icons.people_outline, size: 18, color: cs.primary),
                 const SizedBox(width: 8),
                 Text(
-                  "Invited (${widget.invitations.length})",
+                  context.l10n.overview_invite_title(widget.invitations.length),
                   style: TextStyle(fontWeight: FontWeight.bold, color: cs.onSurface),
                 ),
                 const SizedBox(width: 16),
@@ -181,9 +182,9 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
                   TextButton(
                     onPressed: () => setState(() => _showInput = true),
                     style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
-                    child: const Text(
-                      "Add",
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                    child: Text(
+                      context.l10n.common_add,
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                     ),
                   ),
                   const SizedBox(width: 4),
@@ -191,9 +192,9 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
                   TextButton(
                     onPressed: () => setState(() => _isRemoving = true),
                     style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
-                    child: const Text(
-                      "Remove",
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                    child: Text(
+                      context.l10n.overview_invite_remove,
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],
@@ -203,7 +204,7 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
                     onPressed: () => setState(() => _showInput = false),
                     style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
                     child: Text(
-                      "Cancel",
+                      context.l10n.common_cancel,
                       style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: cs.error),
                     ),
                   ),
@@ -242,7 +243,7 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : Text(
-                            "Delete (${_selectedEmails.length})",
+                      context.l10n.overview_invite_delete_count(_selectedEmails.length),
                             style: const TextStyle(fontSize: 11),
                           ),
                   ),
@@ -256,17 +257,17 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
                     TextButton.icon(
                       onPressed: _handleSendToNew,
                       icon: const Icon(Icons.send, size: 14),
-                      label: const Text("Send to New", style: TextStyle(fontSize: 13)),
+                      label: Text(context.l10n.overview_invite_btn_send_new, style: const TextStyle(fontSize: 13)),
                     ),
                   if (hasUnsent && hasNotAccepted) const SizedBox(width: 8),
                   if (hasNotAccepted) // Ak už sú všetci aspoň raz poslaní, ukáž Remind
                     TextButton.icon(
                       onPressed: _handleRemindPending,
                       icon: const Icon(Icons.notification_important_outlined, size: 14),
-                      label: const Text("Remind Unfinished", style: TextStyle(fontSize: 13)),
+                      label: Text(context.l10n.overview_invite_btn_remind, style: const TextStyle(fontSize: 13)),
                     ),
                 ] else if (_cooldownActive)
-                  const Text("Wait 30s...", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  Text(context.l10n.overview_invite_cooldown, style: const TextStyle(fontSize: 12, color: Colors.grey)),
               ],
             ),
 
@@ -281,7 +282,7 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
                         controller: _emailInputController,
                         onSubmitted: (_) => _isParsing ? null : _handleParseAndAdd(),
                         decoration: InputDecoration(
-                          hintText: "Enter emails...",
+                          hintText: context.l10n.overview_invite_input_hint,
                           isDense: true,
                           filled: true,
                           fillColor: cs.surface,

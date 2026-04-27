@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/models/enums/task_enums.dart';
+import '../../../../core/utils/l10n_extensions.dart';
 
 class MainTaskResults extends StatelessWidget {
   final List<SubtaskCombinedListModel> allInstances; // List<SubtaskCombinedListModel>
@@ -27,17 +28,17 @@ class MainTaskResults extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 12),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
           child: Text(
-            "Completed Signatures",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            context.l10n.overview_results_signatures,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
           ),
         ),
         if (completedSignatures.isEmpty)
-          const Padding(
-            padding: EdgeInsets.all(16.0),
-            child: Center(child: Text("No signatures yet.", style: TextStyle(fontStyle: FontStyle.italic))),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Center(child: Text(context.l10n.overview_results_empty, style: const TextStyle(fontStyle: FontStyle.italic))),
           )
         else
           Container(
@@ -60,10 +61,10 @@ class MainTaskResults extends StatelessWidget {
                     child: const Icon(Icons.person, color: Colors.blueAccent),
                   ),
                   title: Text(
-                    "Confirmed",
+                    context.l10n.overview_results_confirmed,
                     style: TextStyle(fontSize: 14, color: colorScheme.onSurfaceVariant),
                   ),
-                  trailing: _buildCompletedTrailing(sig), // Použitie tvojho UI
+                  trailing: _buildCompletedTrailing(sig, context), // Použitie tvojho UI
                 );
               },
             ),
@@ -73,7 +74,7 @@ class MainTaskResults extends StatelessWidget {
   }
 
   // TVOJA UI METÓDA (Integrovná tu)
-  Widget _buildCompletedTrailing(dynamic subtask) {
+  Widget _buildCompletedTrailing(dynamic subtask, dynamic context) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -87,7 +88,7 @@ class MainTaskResults extends StatelessWidget {
               const SizedBox(width: 4),
               SelectionArea(
                 child: Text(
-                  subtask.respondentName ?? "Unknown",
+                  subtask.respondentName ?? context.l10n.common_unknown,
                   style: const TextStyle(
                     color: Colors.green,
                     fontWeight: FontWeight.bold,

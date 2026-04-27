@@ -2,6 +2,7 @@ import 'package:checkin_frontend/core/models/enums/task_enums.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:collection/collection.dart';
+import '../../../../core/utils/l10n_extensions.dart';
 import '../../data/models/subtask_combined_list_model.dart';
 
 class SubtaskProgressList extends StatelessWidget {
@@ -25,7 +26,7 @@ class SubtaskProgressList extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(20.0),
           child: Text(
-              "No progress recorded yet.",
+              context.l10n.overview_progress_empty,
               style: TextStyle(fontStyle: FontStyle.italic, color: colorScheme.onSurfaceVariant)
           ),
         ),
@@ -53,7 +54,7 @@ class SubtaskProgressList extends StatelessWidget {
       children: grouped.entries.map((entry) {
         final userInstances = entry.value;
         final firstInstanceWithName = userInstances.firstWhereOrNull((s) => s.respondentName != null);
-        final respondentName = firstInstanceWithName?.respondentName ?? "Unknown / Not started";
+        final respondentName = firstInstanceWithName?.respondentName ?? context.l10n.overview_progress_not_started;
         final bool isAuthenticatedUser = userInstances.any((s) => s.completedByUserId != null);
         final completedCount = userInstances.where((s) => s.isCompleted).length;
 
@@ -86,7 +87,7 @@ class SubtaskProgressList extends StatelessWidget {
                     ],
                     const Spacer(),
                     Text(
-                      "$completedCount/$totalTaskCount Completed",
+                      context.l10n.overview_progress_completed_count(completedCount, totalTaskCount),
                       style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: colorScheme.primary),
                     ),
                   ],

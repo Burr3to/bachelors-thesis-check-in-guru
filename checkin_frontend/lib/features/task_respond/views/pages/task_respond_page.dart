@@ -8,6 +8,7 @@ import '../../../../core/models/action/bulk_subtask_complete_model.dart';
 import '../../../../core/models/user/user_profile.dart';
 import '../../../../core/shared_widgets/primary_button.dart';
 import '../../../../core/utils/app_snack_bar.dart';
+import '../../../../core/utils/l10n_extensions.dart';
 import '../../../auth/views/providers/auth_provider.dart';
 import '../widgets/login_required_view.dart';
 import '../widgets/respondent_signature_field.dart';
@@ -48,7 +49,7 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
       await ref.read(subtaskInstanceApiServiceProvider).bulkComplete(model);
 
       if (mounted) {
-        AppSnackBar.showSuccess(context, "Task updated successfully");
+        AppSnackBar.showSuccess(context, context.l10n.overview_msg_task_updated);
         ref.invalidate(publicTaskProvider(widget.taskHash));
         setState(() {
           _selectedIds.clear();
@@ -113,7 +114,7 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
                     ),
 
                     if (!isMainTaskOnly) ...[
-                      Text("Tasks:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: cs.onSurface)),
+                      Text(context.l10n.respond_tasks_label, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: cs.onSurface)),
                       const SizedBox(height: 8),
                       SubtaskListCard(
                         subtasks: publicTask.subtasks,
@@ -134,7 +135,7 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
                       if (isMainTaskOnly && auth == null)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 16),
-                          child: Text("Please sign below to confirm completion:",
+                          child: Text(context.l10n.respond_sign_hint,
                               style: TextStyle(fontStyle: FontStyle.italic, color: cs.onSurfaceVariant)),
                         ),
                       RespondentSignatureField(
@@ -160,7 +161,7 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
 
   Widget _buildSubmitButton(UserProfile? auth, bool isMainTaskOnly, ColorScheme cs) {
     final bool isDisabled = _isLoading || _selectedIds.isEmpty || (auth == null && _nameCtrl.text.isEmpty);
-    String buttonText = isMainTaskOnly ? "Sign & Send" : "Submit (${_selectedIds.length})";
+    String buttonText = isMainTaskOnly ? context.l10n.respond_btn_sign_send : context.l10n.respond_btn_submit(_selectedIds.length);
 
     return SizedBox(
       height: 52,
@@ -185,14 +186,14 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
       color: Colors.green.withAlpha(50),
       elevation: 0,
       shape: RoundedRectangleBorder(side: const BorderSide(color: Colors.green), borderRadius: BorderRadius.circular(12)),
-      child: const Padding(
-        padding: EdgeInsets.all(16.0),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.check_circle, color: Colors.green),
-            SizedBox(width: 8),
-            Text("All Tasks are Completed!", style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+            const Icon(Icons.check_circle, color: Colors.green),
+            const SizedBox(width: 8),
+            Text(context.l10n.respond_all_completed, style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
           ],
         ),
       ),
@@ -203,7 +204,7 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
-    String title = "Prístup zamietnutý";
+    String title = context.l10n.error_access_denied;
     String message = "Došlo k chybe pri načítaní úlohy.";
     IconData icon = Icons.error_outline;
     bool showLoginButton = false;
@@ -212,17 +213,17 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
       final statusCode = error.response?.statusCode;
       // Tu spracujeme ten 403, čo vidíš v Network tabe
       if (statusCode == 403) {
-        title = "Nie ste na zozname";
-        message = "Bohužiaľ, tento zoznam úloh je prístupný len pre pozvaných hostí.";
+        title = context.l10n.error_not_on_list;
+        message = context.l10n.error_not_on_list_msg;
         icon = Icons.person_off_outlined;
       } else if (statusCode == 401) {
-        title = "Súkromná úloha";
-        message = "Pre overenie vašej pozvánky sa musíte prihlásiť.";
+        title = context.l10n.error_private_task;
+        message = context.l10n.error_private_task_msg;
         icon = Icons.lock_person_outlined;
         showLoginButton = true;
       } else if (statusCode == 404) {
-        title = "Úloha neexistuje";
-        message = "Odkaz je neplatný alebo úloha bola zmazaná.";
+        title = context.l10n.error_not_found;
+        message = context.l10n.error_not_found_msg;
         icon = Icons.search_off;
       }
     }
@@ -240,9 +241,9 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
             Text(message, style: TextStyle(fontSize: 16, color: cs.onSurfaceVariant), textAlign: TextAlign.center),
             const SizedBox(height: 32),
             if (showLoginButton)
-              PrimaryButton(text: "Prihlásiť sa cez Google", onPressed: () => context.push('/login'))
+              PrimaryButton(text: context.l10n.auth_askforlogin, onPressed: () => context.push('/login'))
             else
-              OutlinedButton(onPressed: () => context.go('/'), child: const Text("Späť na úvod")),
+              OutlinedButton(onPressed: () => context.go('/'), child: Text(context.l10n.common_back_to_home)),
           ],
         ),
       ),

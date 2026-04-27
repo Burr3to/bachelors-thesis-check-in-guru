@@ -1,0 +1,17 @@
+version: '3.8'
+services:
+  checkin-db:
+    image: postgres:17
+    container_name: checkin-postgres
+    restart: always
+    environment:
+      - POSTGRES_USER=checkin_admin
+      - POSTGRES_PASSWORD=moje_silne_heslo123
+      - POSTGRES_DB=checkin_local_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+
+volumes:
+  postgres_data:

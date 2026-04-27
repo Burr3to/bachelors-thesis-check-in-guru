@@ -14,7 +14,7 @@ class PrimaryButton extends StatelessWidget {
     required this.onPressed,
     this.icon,
     this.isLoading = false,
-    this.width = 160, // Pôvodná šírka
+    this.width = 170, // Pôvodná šírka
     this.height = 60, // Tvoja ideálna výška
   });
 

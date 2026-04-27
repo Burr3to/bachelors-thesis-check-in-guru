@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/shared_widgets/app_top_bar.dart';
+import '../../../../core/utils/l10n_extensions.dart';
 import '../providers/auth_provider.dart';
 
 class LoginPage extends ConsumerWidget {
@@ -17,14 +18,14 @@ class LoginPage extends ConsumerWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text('Prosím, prihláste sa.'),
+            Text(context.l10n.auth_askforlogin),
             const SizedBox(height: 20),
             // Tu bude tlačidlo Google Login
             ElevatedButton(
               onPressed: () async {
                 await ref.read(authProvider.notifier).signInWithGoogle();
                 },
-              child: const Text('Prihlásiť sa cez Google'),
+              child: Text(context.l10n.auth_googlelogin),
             ),
           ],
         ),

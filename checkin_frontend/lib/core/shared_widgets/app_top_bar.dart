@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../providers/locale_provider.dart';
 import '../theme/app_theme.dart';
+import '../utils/l10n_extensions.dart';
 
 class AppTopBar extends ConsumerWidget implements PreferredSizeWidget {
   const AppTopBar({super.key});
@@ -88,45 +89,61 @@ class _LogoSection extends StatelessWidget {
   }
 }
 
-// --- NAVIGÁCIA (Tvoje modré ciary) ---
 class _NavigationSection extends StatelessWidget {
   const _NavigationSection();
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 50,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _verticalDivider(),
-          _navButton(context, "Introduction", '/welcome'),
-          _verticalDivider(),
-          _navButton(context, "My Tasks", '/tasks'),
-          _verticalDivider(),
-          //_navButton(context, "Shared with me", '/shared'),
-          //_verticalDivider(),
-          //_navButton(context, "Create", '/tasks/create'),
-          //_verticalDivider(),
-        ],
-      ),
+    // Získame aktuálnu cestu, aby sme vedeli zvýrazniť aktívny button
+    final String location = GoRouterState.of(context).uri.path;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _navButton(
+            context,
+            context.l10n.nav_introduction,
+            '/welcome',
+            isActive: location == '/welcome'
+        ),
+        const SizedBox(width: 8), // Medzera medzi buttonmi
+        _navButton(
+            context,
+            context.l10n.nav_my_tasks,
+            '/tasks',
+            isActive: location.startsWith('/tasks')
+        ),
+      ],
     );
   }
 
-  Widget _verticalDivider() =>
-      Container(width: 1.5, color: Colors.blueAccent.withAlpha(123), height: 32);
+  Widget _navButton(BuildContext context, String title, String path, {required bool isActive}) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
 
-  Widget _navButton(BuildContext context, String title, String path) {
-    return TextButton(
-      onPressed: () => context.go(path),
-      style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 16)),
-      child: Text(
-        title,
-        style: TextStyle(
-          // Kľúčové: onSurface namiesto Colors.black
-          color: Theme.of(context).colorScheme.onSurface,
-          fontSize: 20,
-          fontWeight: FontWeight.normal,
+    return InkWell(
+      onTap: () => context.go(path),
+      borderRadius: BorderRadius.circular(10),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isActive
+              ? cs.primary.withAlpha(theme.brightness == Brightness.light ? 20 : 40)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isActive ? cs.primary.withAlpha(80) : Colors.transparent,
+            width: 1.5,
+          ),
+        ),
+        child: Text(
+          title,
+          style: TextStyle(
+            color: isActive ? cs.primary : cs.onSurface.withAlpha(180),
+            fontSize: 19,
+            fontWeight: isActive ? FontWeight.normal : FontWeight.normal,
+          ),
         ),
       ),
     );
@@ -194,7 +211,7 @@ class _LoginButtonSection extends ConsumerWidget {
     return OutlinedButton.icon(
       onPressed: () => ref.read(authProvider.notifier).signInWithGoogle(),
       icon: const Icon(Icons.login, size: 18),
-      label: const Text("Login"),
+      label: Text(context.l10n.login),
       style: OutlinedButton.styleFrom(
         foregroundColor: Colors.blueAccent,
         side: const BorderSide(color: Colors.blueAccent),
@@ -214,8 +231,8 @@ class _LanguageSwitch extends ConsumerWidget {
       icon: const Icon(Icons.language, color: Colors.blueAccent),
       onSelected: (locale) => ref.read(localeProvider.notifier).setLocale(locale),
       itemBuilder: (context) => [
-        const PopupMenuItem(value: Locale('sk', 'SK'), child: Text("🇸🇰 Slovenčina")),
-        const PopupMenuItem(value: Locale('en', 'US'), child: Text("🇺🇸 English")),
+        const PopupMenuItem(value: Locale('sk', 'SK'), child: Text("Slovenčina")),
+        const PopupMenuItem(value: Locale('en', 'US'), child: Text("English")),
       ],
     );
   }

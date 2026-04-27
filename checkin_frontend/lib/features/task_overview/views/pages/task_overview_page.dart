@@ -2,13 +2,13 @@ import 'package:checkin_frontend/features/task_overview/views/widgets/main_task_
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/utils/l10n_extensions.dart';
 import '../../../../core/models/task/task_update_model.dart';
 import '../../../../core/providers/invitation_providers.dart';
 import '../../../../core/providers/signalr_provider.dart';
 import '../../../../core/services/signalr_service.dart';
 import '../../../../core/shared_widgets/invalid_emails_dialog.dart';
 import '../../../../core/utils/app_snack_bar.dart';
-import '../../../../core/utils/quill_viewer.dart';
 import '../../../../core/providers/task_providers.dart';
 import '../../../auth/views/providers/auth_provider.dart';
 import '../../data/models/task_detail_model.dart';
@@ -97,13 +97,13 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
     if (message == null) return;
 
     if (message == "EMAILS_SENT") {
-      AppSnackBar.showSuccess(context, "Všetky e-maily boli úspešne odoslané.");
+      AppSnackBar.showSuccess(context, context.l10n.overview_msg_emails_sent);
       // Zároveň refreshneme dáta, aby sa zmenili farby čipov na modrú
       ref.invalidate(taskDetailProvider(widget.taskId));
     } else if (message == "EMAILS_FAILED") {
       AppSnackBar.showError(
         context,
-        "Chyba pri odosielaní e-mailov. Skontrolujte nastavenia SMTP.",
+        context.l10n.overview_msg_emails_failed,
       );
     }
   }
@@ -138,10 +138,10 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
       if (!mounted) return;
 
       ref.invalidate(taskDetailProvider(widget.taskId));
-      AppSnackBar.showSuccess(context, "Task updated successfully");
+      AppSnackBar.showSuccess(context, context.l10n.overview_msg_task_updated);
     } catch (e) {
       if (!mounted) return;
-      AppSnackBar.showError(context, "Failed to update: $e");
+      AppSnackBar.showError(context, context.l10n.overview_err_update(e.toString()));
     }
   }
 
@@ -207,7 +207,7 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
                         taskId: widget.taskId,
                         taskLink: taskLink,
                         onDeleteSuccess: () {
-                          AppSnackBar.showSuccess(context, "Task was deleted");
+                          AppSnackBar.showSuccess(context, context.l10n.overview_msg_task_deleted);
                           context.go('/tasks');
                         },
                       ),
@@ -233,7 +233,7 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
 
                       asyncTemplates.when(
                         loading: () => const LinearProgressIndicator(),
-                        error: (e, s) => const Text("Failed to load task structure"),
+                        error: (e, s) => Text(context.l10n.overview_err_load_structure),
                         data: (templates) {
                           // Zistíme, či ide o "Hlavný Task" podľa šablón
                           final bool isMainTaskOnly =
@@ -241,7 +241,7 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
 
                           return asyncInstances.when(
                             loading: () => const LinearProgressIndicator(),
-                            error: (e, s) => const Text("Failed to load progress"),
+                            error: (e, s) => Text(context.l10n.overview_err_load_progress),
                             data: (instances) {
                               if (isMainTaskOnly) {
                                 // Scenár 1 & 2: Zobrazíme len výsledky podpisov
@@ -257,18 +257,18 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
                                 children: [
                                   const SizedBox(height: 24),
                                   SubtaskListSection(
-                                    title: "Task Checklist",
+                                    title: context.l10n.overview_checklist_title,
                                     subtasks: templates,
                                     taskId: widget.taskId,
                                   ),
                                   const SizedBox(height: 24),
                                   const Divider(color: Colors.blueAccent),
                                   const SizedBox(height: 24),
-                                  const Align(
+                                  Align(
                                     alignment: Alignment.centerLeft,
                                     child: Text(
-                                      "Subtasks Progress",
-                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                      context.l10n.overview_progress_title,
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                                     ),
                                   ),
                                   const SizedBox(height: 10),
@@ -300,12 +300,12 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text("Nepodarilo sa načítať úlohu"),
+          Text(context.l10n.overview_err_load_task),
           Text(error.toString(), style: const TextStyle(color: Colors.red)),
           const SizedBox(height: 10),
           ElevatedButton(
             onPressed: () => ref.invalidate(taskDetailProvider(widget.taskId)),
-            child: const Text("Skúsiť znova"),
+            child: Text(context.l10n.common_retry),
           ),
         ],
       ),

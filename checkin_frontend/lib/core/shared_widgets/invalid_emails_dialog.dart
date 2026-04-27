@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../utils/l10n_extensions.dart';
+
 class InvalidEmailsDialog {
   static void show(BuildContext context, List<String> invalidEmails) {
     final cs = Theme.of(context).colorScheme;
@@ -14,7 +16,7 @@ class InvalidEmailsDialog {
             children: [
               Icon(Icons.warning_amber_rounded, color: cs.error, size: 28),
               const SizedBox(width: 12),
-              const Text("Invalid Domains Found"),
+              Text(context.l10n.dialog_invalid_emails_title),
             ],
           ),
           content: SelectionArea(
@@ -24,9 +26,9 @@ class InvalidEmailsDialog {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    "The following emails were ignored because their domains do not exist:",
-                    style: TextStyle(fontSize: 14),
+                  Text(
+                    context.l10n.dialog_invalid_emails_msg,
+                    style: const TextStyle(fontSize: 14),
                   ),
                   const SizedBox(height: 16),
                   Container(
@@ -54,7 +56,7 @@ class InvalidEmailsDialog {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  const Text("Please check for typos.", style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic)),
+                  Text(context.l10n.dialog_invalid_emails_footer, style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic)),
                 ],
               ),
             ),
@@ -62,7 +64,7 @@ class InvalidEmailsDialog {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text("OK, I'll fix them"),
+              child: Text(context.l10n.dialog_invalid_emails_btn),
             ),
           ],
         );

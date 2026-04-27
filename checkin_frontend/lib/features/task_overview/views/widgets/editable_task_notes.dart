@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
+import '../../../../core/utils/l10n_extensions.dart';
 import '../../../../core/utils/quill_utils.dart';
 import '../../../../core/utils/quill_viewer.dart';
 import 'hover_editable_wrapper.dart';
@@ -30,9 +31,22 @@ class _EditableTaskNotesState extends State<EditableTaskNotes> {
   }
 
   @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+
+  @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+
     return HoverEditableWrapper(
       isEditing: _isEditing,
+      initialValue: widget.initialNotes ?? "", // PRIDANÉ
+      hintText: context.l10n.overview_notes_empty, // PRIDANÉ
+      style: theme.textTheme.bodyLarge?.copyWith(height: 1.5),
       onEditTrigger: () => setState(() => _isEditing = true),
       onCancel: () {
         setState(() {
@@ -45,17 +59,19 @@ class _EditableTaskNotesState extends State<EditableTaskNotes> {
         setState(() => _isEditing = false);
       },
       viewChild: widget.initialNotes == null || widget.initialNotes!.isEmpty
-          ? const Text("No description. Click to add...", style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey))
-          : QuillViewer(jsonText: widget.initialNotes),
+          ? null
+          : IgnorePointer(
+        child: QuillViewer(jsonText: widget.initialNotes),
+      ),
 
       editChild: Column(
         children: [
           Container(
             width: double.infinity,
             decoration: BoxDecoration(
-              color: Colors.grey[100],
+              color: Theme.of(context).colorScheme.surfaceContainerHigh,
               borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-              border: Border.all(color: const Color.fromRGBO(81, 119, 200, 0.5)),
+              border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
             ),
             child: QuillSimpleToolbar(
               controller: _controller,
@@ -79,15 +95,15 @@ class _EditableTaskNotesState extends State<EditableTaskNotes> {
           Container(
             constraints: const BoxConstraints(minHeight: 200, maxHeight: 400),
             decoration: BoxDecoration(
-              color: const Color.fromRGBO(100, 130, 255, 0.1),
+              color: Theme.of(context).colorScheme.primary.withAlpha(10),
               borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
-              border: Border.all(color: const Color.fromRGBO(81, 119, 200, 0.5)),
+              border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
             ),
             padding: const EdgeInsets.all(12),
             child: QuillEditor.basic(
               controller: _controller,
-              config: const QuillEditorConfig(
-                placeholder: 'Enter task description',
+              config: QuillEditorConfig(
+                placeholder: context.l10n.overview_notes_hint,
                 autoFocus: true,
                 expands: false,
                 padding: EdgeInsets.zero,

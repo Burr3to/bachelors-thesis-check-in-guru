@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../core/models/user/user_profile.dart';
+import '../../../../core/utils/l10n_extensions.dart';
 
 class RespondentSignatureField extends StatelessWidget {
   final UserProfile? auth;
@@ -23,7 +24,7 @@ class RespondentSignatureField extends StatelessWidget {
         controller: controller,
         style: TextStyle(color: cs.onSurface),
         decoration: InputDecoration(
-          labelText: "Your name / signature",
+          labelText: context.l10n.respond_sig_label,
           labelStyle: TextStyle(color: cs.onSurfaceVariant),
           filled: true,
           fillColor: cs.surfaceContainer,
@@ -44,7 +45,7 @@ class RespondentSignatureField extends StatelessWidget {
       child: ListTile(
         leading: Icon(Icons.verified, color: cs.primary),
         title: Text(
-          "Signed as: ${auth!.name}",
+          context.l10n.respond_sig_signed_as(auth!.name),
           style: TextStyle(fontWeight: FontWeight.bold, color: cs.onSurface),
         ),
         subtitle: Text(auth!.email, style: TextStyle(color: cs.onSurfaceVariant)),

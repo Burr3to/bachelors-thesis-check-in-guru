@@ -1,6 +1,8 @@
 import 'package:checkin_frontend/core/shared_widgets/date_display.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../core/utils/l10n_extensions.dart';
+
 class TaskInfoHeader extends StatefulWidget {
   final DateTime createdDate;
   final DateTime deadlineDate;
@@ -66,7 +68,7 @@ class _TaskInfoHeaderState extends State<TaskInfoHeader> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          "Deadline",
+                          context.l10n.task_create_settings_deadline,
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             color: _isHovering ? colorScheme.primary : colorScheme.onSurface,
@@ -92,7 +94,7 @@ class _TaskInfoHeaderState extends State<TaskInfoHeader> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Created On",
+                  context.l10n.overview_info_created,
                   style: TextStyle(fontWeight: FontWeight.bold, color: colorScheme.onSurface),
                 ),
                 const SizedBox(height: 6),
@@ -107,7 +109,7 @@ class _TaskInfoHeaderState extends State<TaskInfoHeader> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Last Modified", style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(context.l10n.overview_info_modified, style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 6),
                 DateDisplay(
                   dateTime: widget.lastModified,
@@ -120,7 +122,7 @@ class _TaskInfoHeaderState extends State<TaskInfoHeader> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("Identity Verification", style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(context.l10n.overview_info_identity, style: const TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 6),
                 Row(
                   children: [
@@ -132,8 +134,8 @@ class _TaskInfoHeaderState extends State<TaskInfoHeader> {
                     const SizedBox(width: 4),
                     Text(
                       widget.requiresAuth
-                          ? "Required"
-                          : "Not Required", // "Required" znie lepšie ako "Enabled"
+                          ? context.l10n.overview_info_required
+                          : context.l10n.overview_info_not_required, // "Required" znie lepšie ako "Enabled"
                       style: TextStyle(
                         color: widget.requiresAuth
                             ? colorScheme.primary

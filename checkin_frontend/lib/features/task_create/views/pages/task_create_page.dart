@@ -11,6 +11,7 @@ import '../../../../core/services/signalr_service.dart';
 import '../../../../core/shared_widgets/invalid_emails_dialog.dart';
 import '../../../../core/shared_widgets/primary_button.dart';
 import '../../../../core/utils/app_snack_bar.dart';
+import '../../../../core/utils/l10n_extensions.dart';
 import '../../../../core/utils/quill_utils.dart';
 import '../widgets/subtask_input_section.dart';
 import '../widgets/task_basic_info.dart';
@@ -114,7 +115,7 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
     final taskData = ref.read(taskCreateProvider);
 
     if (taskData.title.isEmpty || taskData.deadLine == null) {
-      AppSnackBar.showInfo(context, "Deadline and Title are required");
+      AppSnackBar.showInfo(context, context.l10n.task_create_err_required);
       return;
     }
 
@@ -190,14 +191,14 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
                             if (!_inviteExpanded)
                               _CollapsedButton(
                                 icon: Icons.person_add_alt_1,
-                                label: "Invite People",
+                                label: context.l10n.task_create_btn_invite,
                                 onTap: () => setState(() => _inviteExpanded = true),
                               ),
                             if (!_inviteExpanded && !_subtasksExpanded) const SizedBox(width: 12),
                             if (!_subtasksExpanded)
                               _CollapsedButton(
                                 icon: Icons.list_alt, // Opravená ikona podľa Figmy
-                                label: "Add Subtasks",
+                                label: context.l10n.task_create_btn_subtasks,
                                 onTap: () => setState(() => _subtasksExpanded = true),
                               ),
                           ],
@@ -258,7 +259,7 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
 
                       // SECTION 4: SUBMIT
                       PrimaryButton(
-                        text: "Create Task",
+                        text: context.l10n.task_create_btn_create,
                         isLoading: _isLoading,
                         onPressed: _handleCreateTask,
                       ),
@@ -284,8 +285,8 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
           decoration: BoxDecoration(color: cs.primary, borderRadius: BorderRadius.circular(2)),
         ),
         const SizedBox(height: 12),
-        Text("Create New Task", style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: cs.onSurface)),
-        Text("Build collaborative workflows with precision", style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant)),
+        Text(context.l10n.task_create_header_title, style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: cs.onSurface)),
+        Text(context.l10n.task_create_header_subtitle, style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant)),
       ],
     );
   }
@@ -319,7 +320,7 @@ class _CollapsedButton extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(label, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: cs.onSurface)),
-                  Text("Optional", style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
+                  Text(context.l10n.task_create_optional, style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
                 ],
               ),
             ],

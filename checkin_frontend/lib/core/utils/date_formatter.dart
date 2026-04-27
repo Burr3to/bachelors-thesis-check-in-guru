@@ -1,57 +1,39 @@
+import 'package:flutter/cupertino.dart';
 import 'package:intl/intl.dart';
 
+import 'l10n_extensions.dart';
+
 class DateFormatter {
-  static String formatRelativeDeadline(DateTime dateTime) {
+  static String formatRelativeDeadline(BuildContext context, DateTime dateTime) {
     final now = DateTime.now();
     final localDateTime = dateTime.toLocal();
     final difference = localDateTime.difference(now);
 
-    // 1. Minulosť
     if (difference.isNegative) {
-      if (difference.inDays.abs() == 0) return "Expired today";
-      return "Overdue ${difference.inDays.abs()} days ago";
+      if (difference.inDays.abs() == 0) return context.l10n.date_expired_today;
+      return context.l10n.date_overdue_days_ago(difference.inDays.abs());
     }
 
     final today = DateTime(now.year, now.month, now.day);
     final dateToCompare = DateTime(localDateTime.year, localDateTime.month, localDateTime.day);
     final dayDiff = dateToCompare.difference(today).inDays;
+    final timeStr = DateFormat('HH:mm').format(localDateTime);
 
-    if (dayDiff < 0) {
-      if (dayDiff == -1) return "Expired yesterday";
-      return "Overdue ${dayDiff.abs()} days ago";
-    }
-    // 2. Today
-    if (dayDiff == 0) {
-      return "Today at ${DateFormat('HH:mm').format(localDateTime)}";
-    }
+    if (dayDiff == 0) return context.l10n.date_today_at(timeStr);
+    if (dayDiff == 1) return context.l10n.date_tomorrow_at(timeStr);
+    if (dayDiff < 30) return context.l10n.date_in_days(dayDiff);
 
-    // 3. Tomorrow
-    if (dayDiff == 1) {
-      return "Tomorrow at ${DateFormat('HH:mm').format(localDateTime)}";
-    }
-
-    // 4. This week
-    if (dayDiff < 7) {
-      return "In $dayDiff days (${DateFormat('EEEE').format(localDateTime)})";
-    }
-
-    // 5. Before 30 days
-    if (dayDiff < 30) {
-      return "In $dayDiff days";
-    }
-
-    // 6. Future
     return DateFormat('dd.MM.yyyy').format(localDateTime);
   }
 
-  static String formatCreatedAt(DateTime dateTime) {
+  static String formatCreatedAt(BuildContext context, DateTime dateTime) {
     final now = DateTime.now();
     final diff = now.difference(dateTime.toLocal());
 
-    if (diff.inMinutes < 1) return "Just now";
-    if (diff.inMinutes < 60) return "${diff.inMinutes}m ago";
-    if (diff.inHours < 24) return "${diff.inHours}h ago";
-    if (diff.inDays < 7) return "${diff.inDays}d ago";
+    if (diff.inMinutes < 1) return context.l10n.date_just_now;
+    if (diff.inMinutes < 60) return context.l10n.date_mins_ago(diff.inMinutes);
+    if (diff.inHours < 24) return context.l10n.date_hours_ago(diff.inHours);
+    if (diff.inDays < 7) return context.l10n.date_days_ago(diff.inDays);
 
     return DateFormat('dd.MM.yyyy').format(dateTime.toLocal());
   }

@@ -2,6 +2,7 @@ import 'package:checkin_frontend/core/shared_widgets/app_toggle_button.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/models/enums/task_enums.dart';
+import '../../../../core/utils/l10n_extensions.dart';
 
 class TaskSettingsSection extends StatelessWidget {
   final DateTime? selectedDeadline;
@@ -41,14 +42,14 @@ class TaskSettingsSection extends StatelessWidget {
               onTap: () => onModeChanged(
                 currentMode == SubtaskMode.shared ? SubtaskMode.individual : SubtaskMode.shared,
               ),
-              activeLabel: "Collaborative",
+              activeLabel: context.l10n.task_create_mode_collab,
               activeIcon: Icons.group_outlined,
               activeColor: Colors.orange, // Oranžová pre Collaborative
-              inactiveLabel: "Independent",
+              inactiveLabel: context.l10n.task_create_mode_indep,
               inactiveIcon: Icons.person_outline,
               inactiveColor: cs.primary, // Modrá pre Independent
-              activeTooltip: "One shared list for all",
-              inactiveTooltip: "Individual copies for each",
+              activeTooltip: context.l10n.task_create_mode_collab_tip,
+              inactiveTooltip: context.l10n.task_create_mode_indep_tip,
             ),
           ),
 
@@ -67,7 +68,7 @@ class TaskSettingsSection extends StatelessWidget {
                     child: InputDecorator(
                       textAlign: TextAlign.center, // Vycentrovanie labelu (ak je v strede)
                       decoration: InputDecoration(
-                        labelText: "Deadline",
+                        labelText: context.l10n.task_create_settings_deadline,
                         labelStyle: TextStyle(color: cs.primary, fontWeight: FontWeight.bold, fontSize: 16),
                         isDense: true,
                         contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
@@ -81,7 +82,7 @@ class TaskSettingsSection extends StatelessWidget {
                       child: Center( // Vycentrovanie textu dátumu
                         child: Text(
                           selectedDeadline == null
-                              ? "Set Date"
+                              ? context.l10n.task_create_settings_set_date
                               : DateFormat('dd.MM.yyyy').format(selectedDeadline!),
                           style: TextStyle(
                             fontSize: 14,
@@ -98,11 +99,11 @@ class TaskSettingsSection extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    _QuickDateChip(label: "1 Day", days: 1, onSelect: onDateQuickSelect, cs: cs),
+                    _QuickDateChip(label: context.l10n.task_create_settings_day, days: 1, onSelect: onDateQuickSelect, cs: cs),
                     const SizedBox(width: 4),
-                    _QuickDateChip(label: "1 Week", days: 7, onSelect: onDateQuickSelect, cs: cs),
+                    _QuickDateChip(label: context.l10n.task_create_settings_week, days: 7, onSelect: onDateQuickSelect, cs: cs),
                     const SizedBox(width: 4),
-                    _QuickDateChip(label: "1 Month", days: 30, onSelect: onDateQuickSelect, cs: cs),
+                    _QuickDateChip(label: context.l10n.task_create_settings_month, days: 30, onSelect: onDateQuickSelect, cs: cs),
                   ],
                 ),
               ],
@@ -116,14 +117,14 @@ class TaskSettingsSection extends StatelessWidget {
             child: AppToggleButton(
               isActive: requiresAuth,
               onTap: () => onAuthChanged(!requiresAuth),
-              activeLabel: "Verified",
+              activeLabel: context.l10n.task_create_auth_verified,
               activeIcon: Icons.lock,
               activeColor: cs.primary, // Tvoja modrá
-              inactiveLabel: "Public",
+              inactiveLabel: context.l10n.task_create_auth_public,
               inactiveIcon: Icons.lock_open,
               inactiveColor: cs.onSurfaceVariant, // Oranžová pre Public
-              activeTooltip: "Only Google-signed users",
-              inactiveTooltip: "Anyone with a link",
+              activeTooltip: context.l10n.task_create_auth_verified_tip,
+              inactiveTooltip: context.l10n.task_create_auth_public_tip,
             ),
           ),
         ],

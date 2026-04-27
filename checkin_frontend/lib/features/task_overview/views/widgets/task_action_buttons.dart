@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import '../../../../core/providers/task_providers.dart';
+import '../../../../core/utils/l10n_extensions.dart';
 
 class TaskActionButtons extends ConsumerStatefulWidget {
   final String taskId;
@@ -76,7 +77,7 @@ class _TaskActionButtonsState extends ConsumerState<TaskActionButtons> {
     // Dynamické farby podľa stavu
     final Color bgColor = _isConfirming ? Colors.red : colorScheme.surface;
     final Color fgColor = _isConfirming ? Colors.white : Colors.red;
-    final String label = _isConfirming ? "Confirm" : "Delete";
+    final String label = _isConfirming ? context.l10n.overview_btn_confirm : context.l10n.common_delete;
     final IconData icon = _isConfirming ? Icons.warning_amber_rounded : Icons.delete;
 
     return Row(
@@ -102,7 +103,7 @@ class _TaskActionButtonsState extends ConsumerState<TaskActionButtons> {
         // COPY LINK BUTTON
         OutlinedButton.icon(
           icon: Icon(Icons.copy, color: colorScheme.primary),
-          label: Text("Copy link", style: TextStyle(color: colorScheme.primary)),
+          label: Text(context.l10n.overview_btn_copy_link, style: TextStyle(color: colorScheme.primary)),
           style: OutlinedButton.styleFrom(
             backgroundColor: colorScheme.surface,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -113,9 +114,9 @@ class _TaskActionButtonsState extends ConsumerState<TaskActionButtons> {
             await Clipboard.setData(ClipboardData(text: widget.taskLink));
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("Copied to clipboard"),
-                  duration: Duration(seconds: 2),
+                SnackBar(
+                  content: Text(context.l10n.overview_msg_copied),
+                  duration: const Duration(seconds: 2),
                 ),
               );
             }

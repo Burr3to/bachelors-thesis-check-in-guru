@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/providers/task_providers.dart';
 import '../../../../core/shared_widgets/primary_button.dart';
+import '../../../../core/utils/l10n_extensions.dart';
 
 class TaskListHeader extends ConsumerStatefulWidget {
   const TaskListHeader({super.key});
@@ -56,7 +57,7 @@ class _TaskListHeaderState extends ConsumerState<TaskListHeader> {
                 textAlignVertical: TextAlignVertical.center,
                 style: TextStyle(color: cs.onSurface, fontSize: 18),
                 decoration: InputDecoration(
-                  hintText: "Search tasks by name...",
+                  hintText: context.l10n.tasks_header_search_hint,
                   suffixIcon: Icon(Icons.search, color: cs.primary),
                   filled: true,
                   fillColor: cs.surfaceContainerLow,
@@ -97,7 +98,7 @@ class _TaskListHeaderState extends ConsumerState<TaskListHeader> {
 
           // 3. CREATE TASK BUTTON
           PrimaryButton(
-            text: "Create Task",
+            text: context.l10n.task_create_btn_create,
             icon: Icons.add,
             height: commonHeight, // Nastavená výška na 60
             onPressed: () => context.go('/tasks/create'),

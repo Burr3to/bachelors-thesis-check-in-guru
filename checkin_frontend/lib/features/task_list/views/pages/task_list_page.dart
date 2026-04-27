@@ -7,6 +7,7 @@ import '../../../../core/providers/signalr_provider.dart';
 import '../../../../core/services/signalr_service.dart';
 import '../../../../core/shared_widgets/primary_button.dart';
 import '../../../../core/providers/task_providers.dart';
+import '../../../../core/utils/l10n_extensions.dart';
 import '../widgets/task_card.dart';
 import '../widgets/task_filters_drawer.dart';
 import '../widgets/task_list_header.dart';
@@ -98,7 +99,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                 error: (error, stack) {
                   return Center(
                     child: Text(
-                      "Chyba: $error",
+                      context.l10n.tasks_error(error.toString()),
                       style: TextStyle(color: colorScheme.error), // Použije červenú z témy
                     ),
                   );
@@ -111,7 +112,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                   if (tasks.isEmpty) {
                     return Center(
                       child: Text(
-                        "Žiadne úlohy",
+                        context.l10n.tasks_empty,
                         style: TextStyle(color: colorScheme.onSurfaceVariant),
                       ),
                     );

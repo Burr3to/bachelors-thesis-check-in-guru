@@ -24,8 +24,8 @@ class DateDisplay extends StatelessWidget {
     final Color iconColor = color ?? (isOverdue ? Colors.red : colorScheme.primary);
 
     final String text = showRelative
-        ? DateFormatter.formatRelativeDeadline(dateTime)
-        : DateFormatter.formatCreatedAt(dateTime);
+        ? DateFormatter.formatRelativeDeadline(context, dateTime)
+        : DateFormatter.formatCreatedAt(context, dateTime);
 
     return Row(
       mainAxisSize: MainAxisSize.min,

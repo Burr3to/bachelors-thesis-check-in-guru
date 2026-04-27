@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 
+import '../../../../core/utils/l10n_extensions.dart';
+
 class TaskBasicInfo extends StatefulWidget {
   final TextEditingController titleController;
   final QuillController quillController;
@@ -39,10 +41,10 @@ class _TaskBasicInfoState extends State<TaskBasicInfo> {
               style: TextStyle(color: cs.onSurface),
               textInputAction: TextInputAction.next,
               decoration: InputDecoration(
-                labelText: "Title *",
+                labelText: context.l10n.task_create_basic_title_label,
                 labelStyle: TextStyle(color: cs.onSurfaceVariant),
                 floatingLabelStyle: TextStyle(color: cs.primary, fontWeight: FontWeight.bold),
-                hintText: "Enter Task Title",
+                hintText: context.l10n.task_create_basic_title_hint,
                 hintStyle: TextStyle(color: cs.onSurfaceVariant.withOpacity(0.5)),
                 filled: true,
                 fillColor: cs.surfaceContainerLow, // Tvoja svetlomodrá (v Light)
@@ -107,7 +109,7 @@ class _TaskBasicInfoState extends State<TaskBasicInfo> {
                 controller: widget.quillController,
                 focusNode: _editorFocusNode,
                 config: QuillEditorConfig(
-                  placeholder: 'Enter task description',
+                  placeholder: context.l10n.task_create_basic_desc_placeholder,
                   customStyles: DefaultStyles(
                     // Paragraph
                     paragraph: DefaultTextBlockStyle(

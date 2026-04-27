@@ -2,6 +2,7 @@ import 'dart:ui'; // Potrebné pre BackdropFilter (voliteľné)
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/task_providers.dart';
+import '../../../../core/utils/l10n_extensions.dart';
 
 
 class TaskPaginationBar extends ConsumerWidget {
@@ -42,7 +43,7 @@ class TaskPaginationBar extends ConsumerWidget {
             Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text("Page", style: TextStyle(fontSize: 9, color: cs.onSurfaceVariant, fontWeight: FontWeight.bold)),
+                Text(context.l10n.tasks_pagination_page, style: TextStyle(fontSize: 9, color: cs.onSurfaceVariant, fontWeight: FontWeight.bold)),
                 Text("${query.pageNumber} / $totalPages",
                     style: TextStyle(fontWeight: FontWeight.w900, color: cs.onSurface, fontSize: 14)),
               ],

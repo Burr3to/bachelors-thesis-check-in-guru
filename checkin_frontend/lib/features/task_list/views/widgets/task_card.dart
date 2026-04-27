@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/models/enums/task_enums.dart';
 import '../../../../core/utils/date_formatter.dart';
+import '../../../../core/utils/l10n_extensions.dart';
 import '../../../../core/utils/quill_utils.dart';
 
 class TaskCard extends StatelessWidget {
@@ -37,7 +38,7 @@ class TaskCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildDeadlineBadge(cs, isOverdue),
+                  _buildDeadlineBadge(cs, isOverdue, context),
                   Icon(
                     task.subtaskMode == SubtaskMode.shared ? Icons.groups : Icons.person,
                     size: 19,
@@ -60,11 +61,13 @@ class TaskCard extends StatelessWidget {
               const SizedBox(height: 8),
               Expanded(
                 child: Text(
-                  task.notes != null ? QuillUtils.toPlainText(task.notes) : "No description provided",
+                  task.notes != null
+                      ? QuillUtils.toPlainText(task.notes)
+                      : context.l10n.tasks_card_no_desc,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: cs.onSurfaceVariant,
                     height: 1.4,
-                    fontSize: 15
+                    fontSize: 15,
                   ),
                   maxLines: 4,
                   overflow: TextOverflow.ellipsis,
@@ -81,9 +84,10 @@ class TaskCard extends StatelessWidget {
               Align(
                 alignment: Alignment.bottomRight,
                 child: Text(
-                  "Created: ${DateFormatter.formatCreatedAt(task.createdAt)}", // vytvor si túto metódu
-                  style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant.withAlpha(180))),
+                  "${context.l10n.tasks_card_created}: ${DateFormatter.formatCreatedAt(context, task.createdAt)}",
+                  style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant.withAlpha(180)),
                 ),
+              ),
             ],
           ),
         ),
@@ -91,23 +95,20 @@ class TaskCard extends StatelessWidget {
     );
   }
 
-  Widget _buildDeadlineBadge(ColorScheme cs, bool isOverdue) {
+  Widget _buildDeadlineBadge(ColorScheme cs, bool isOverdue, BuildContext context) {
     final bgColor = isOverdue ? cs.errorContainer : cs.primaryContainer;
     final textColor = isOverdue ? cs.onErrorContainer : cs.onPrimaryContainer;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(8),
-      ),
+      decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(8)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.alarm, size: 14, color: textColor),
           const SizedBox(width: 6),
           Text(
-            DateFormatter.formatRelativeDeadline(task.deadLine),
+            DateFormatter.formatRelativeDeadline(context, task.deadLine),
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textColor),
           ),
         ],

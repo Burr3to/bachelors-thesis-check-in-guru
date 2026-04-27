@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/models/subtask_template/subtask_template_create_model.dart';
 import '../../../../core/models/subtask_template/subtask_template_list_model.dart';
 import '../../../../core/models/subtask_template/subtask_template_update_model.dart';
+import '../../../../core/utils/l10n_extensions.dart';
 import '../../data/models/subtask_combined_list_model.dart';
 
 class SubtaskListSection extends ConsumerStatefulWidget {
@@ -53,7 +54,7 @@ class _SubtaskListSectionState extends ConsumerState<SubtaskListSection> {
         _newTitleController.clear();
         _newDescController.clear();
       });
-      AppSnackBar.showSuccess(context, "Subtask added successfully");
+      AppSnackBar.showSuccess(context, context.l10n.overview_msg_subtask_added);
       ref.invalidate(taskTemplatesProvider(widget.taskId));
     } catch (e) {
       AppSnackBar.showError(context, "Failed to add subtask: $e");
@@ -63,7 +64,7 @@ class _SubtaskListSectionState extends ConsumerState<SubtaskListSection> {
   Future<void> _deleteTemplate(String id) async {
     try {
       await ref.read(subtaskTemplateApiServiceProvider).deleteTemplate(id);
-      AppSnackBar.showSuccess(context, "Subtask deleted");
+      AppSnackBar.showSuccess(context, context.l10n.overview_msg_subtask_deleted);
       ref.invalidate(taskTemplatesProvider(widget.taskId));
     } catch (e) {
       AppSnackBar.showError(context, "Failed to delete: $e");
@@ -74,7 +75,7 @@ class _SubtaskListSectionState extends ConsumerState<SubtaskListSection> {
     try {
       final model = SubtaskTemplateUpdateModel(id: id, title: title ?? "", description: desc);
       await ref.read(subtaskTemplateApiServiceProvider).updateTemplate(id, model);
-      AppSnackBar.showSuccess(context, "Changes saved");
+      AppSnackBar.showSuccess(context, context.l10n.overview_msg_changes_saved);
       ref.invalidate(taskTemplatesProvider(widget.taskId));
     } catch (e) {
       AppSnackBar.showError(context, "Failed to update: $e");
@@ -98,14 +99,14 @@ class _SubtaskListSectionState extends ConsumerState<SubtaskListSection> {
                 TextButton.icon(
                   onPressed: () => setState(() => _isEditMode = true),
                   icon: const Icon(Icons.edit, size: 16),
-                  label: const Text("Edit"), // Zmenené z Edit structure na Edit
+                  label: Text(context.l10n.common_edit), // Zmenené z Edit structure na Edit
                   style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
                 )
               else ...[
                 TextButton.icon(
                   onPressed: () => setState(() => _isAddingNew = true),
                   icon: const Icon(Icons.add, size: 16),
-                  label: const Text("Add"),
+                  label: Text(context.l10n.common_add),
                   style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
                 ),
                 const SizedBox(width: 8),
@@ -120,7 +121,7 @@ class _SubtaskListSectionState extends ConsumerState<SubtaskListSection> {
                     visualDensity: VisualDensity.compact,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
-                  child: const Text("Save"),
+                  child: Text(context.l10n.common_save),
                 ),
               ],
               const Spacer(), // Spacer je teraz na konci, aby tlačidlá boli vľavo

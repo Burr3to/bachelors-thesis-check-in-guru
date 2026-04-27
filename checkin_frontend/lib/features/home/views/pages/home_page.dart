@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/shared_widgets/autoplay_video.dart';
+import '../../../../core/utils/l10n_extensions.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -49,7 +50,7 @@ class HomePage extends StatelessWidget {
                             borderRadius: BorderRadius.circular(30),
                           ),
                           child: Text(
-                            "Independent • Collaborative • Public • Private",
+                            context.l10n.home_hero_chip,
                             style: TextStyle(
                               color: primaryBlue,
                               fontWeight: FontWeight.bold,
@@ -59,7 +60,7 @@ class HomePage extends StatelessWidget {
                         ),
                         const SizedBox(height: 32),
                         Text(
-                          "Smart Checklists.\nFrictionless Responses.",
+                          context.l10n.home_hero_title,
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 62,
@@ -71,7 +72,7 @@ class HomePage extends StatelessWidget {
                         ),
                         const SizedBox(height: 32),
                         Text(
-                          "The professional way to collect data. You build the task,\nthey complete it in seconds—no registration required for respondents.",
+                          context.l10n.home_hero_subtitle,
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 22,
@@ -90,7 +91,7 @@ class HomePage extends StatelessWidget {
                             shadowColor: primaryBlue.withAlpha(100),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           ),
-                          child: const Text("Create Your Task", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          child: Text(context.l10n.home_hero_cta, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                         ),
                       ],
                     ),
@@ -103,10 +104,10 @@ class HomePage extends StatelessWidget {
             _buildFeatureSection(
               context: context,
               maxWidth: maxContentWidth,
-              title: "Two Modes. Infinite Control.",
+              title: context.l10n.home_sec1_title,
               description: _styledDescription(
                 context,
-                "Choose **Collaborative** for shared team goals where everyone works together, or **Independent** to give every respondent their own private copy of the checklist.",
+                context.l10n.home_sec1_desc,
                 primaryBlue,
               ),
               videoAsset: 'assets/videos/AutorCreate.webm',
@@ -118,10 +119,10 @@ class HomePage extends StatelessWidget {
               context: context,
               maxWidth: maxContentWidth,
               backgroundColor: secondaryBg,
-              title: "Participation Made Simple.",
+              title: context.l10n.home_sec2_title,
               description: _styledDescription(
                 context,
-                "Respondents join via a simple URL. For public tasks, **no login is required**—they just type their name and start. Fast, direct, and effective.",
+                context.l10n.home_sec2_desc,
                 primaryBlue,
               ),
               videoAsset: 'assets/videos/Respondent.webm',
@@ -132,10 +133,10 @@ class HomePage extends StatelessWidget {
             _buildFeatureSection(
               context: context,
               maxWidth: maxContentWidth,
-              title: "Your Data, Your Rules.",
+              title: context.l10n.home_sec3_title,
               description: _styledDescription(
                 context,
-                "Need verified responses? Switch to **Private Mode** to require authentication. Want maximum reach? Use **Public Mode** for instant access without barriers.",
+                context.l10n.home_sec3_desc,
                 primaryBlue,
               ),
               videoAsset: 'assets/videos/AutorOverview.webm',
@@ -160,13 +161,13 @@ class HomePage extends StatelessWidget {
                     const SizedBox(height: 20),
                     Container(height: 2, width: 40, color: primaryBlue),
                     const SizedBox(height: 20),
-                    const Text(
-                      "The efficient way to manage Tasks.",
+                    Text(
+                      context.l10n.home_footer_subtitle,
                       style: TextStyle(color: Colors.white54, fontSize: 16),
                     ),
                     const SizedBox(height: 40),
-                    const Text(
-                      "© 2026 CheckIn • Powered by Flutter Web",
+                    Text(
+                      context.l10n.home_footer_copyright,
                       style: TextStyle(color: Colors.white24, fontSize: 12),
                     ),
                   ],
@@ -215,7 +216,7 @@ class HomePage extends StatelessWidget {
               Icon(Icons.check_circle, color: primaryBlue, size: 20),
               const SizedBox(width: 10),
               Text(
-                "Ready in seconds",
+                context.l10n.home_feature_ready,
                 style: TextStyle(fontWeight: FontWeight.bold, color: colorScheme.onSurface),
               ),
             ],

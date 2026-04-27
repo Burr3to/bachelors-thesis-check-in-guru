@@ -30,27 +30,61 @@ class _EditableTaskTitleState extends State<EditableTaskTitle> {
   }
 
   @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // TENTO RIADOK CHÝBAL:
+    final theme = Theme.of(context);
+
     return HoverEditableWrapper(
       isEditing: _isEditing,
+      initialValue: widget.initialTitle,
+      style: theme.textTheme.headlineMedium?.copyWith(
+        fontWeight: FontWeight.bold,
+        color: theme.colorScheme.onSurface,
+      ),
       onEditTrigger: () => setState(() => _isEditing = true),
       onCancel: () => setState(() {
         _isEditing = false;
         _controller.text = widget.initialTitle;
       }),
       onSave: () {
-        widget.onSave(_controller.text);
-        setState(() => _isEditing = false);
+        if (_controller.text.trim().isNotEmpty) {
+          widget.onSave(_controller.text.trim());
+          setState(() => _isEditing = false);
+        }
       },
+      // Kedže HoverEditableWrapper teraz generuje Text interne,
+      // viewChild môžeme nechať null alebo ho zladiť
       viewChild: Text(
         widget.initialTitle,
-        style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+        style: theme.textTheme.headlineMedium?.copyWith(
+          fontWeight: FontWeight.bold,
+          color: theme.colorScheme.onSurface,
+        ),
       ),
       editChild: TextField(
         controller: _controller,
         autofocus: true,
-        style: Theme.of(context).textTheme.headlineMedium,
-        decoration: const InputDecoration(border: OutlineInputBorder(), contentPadding: EdgeInsets.all(12)),
+        selectAllOnFocus: false,
+        style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+        decoration: InputDecoration(
+          border: const OutlineInputBorder(),
+          contentPadding: const EdgeInsets.all(12),
+          // Skryjeme counter, aby to nebolo príliš vysoké
+          counterText: "",
+        ),
+        maxLength: 255,
+        onSubmitted: (val) {
+          if (val.trim().isNotEmpty) {
+            widget.onSave(val.trim());
+            setState(() => _isEditing = false);
+          }
+        },
       ),
     );
   }
