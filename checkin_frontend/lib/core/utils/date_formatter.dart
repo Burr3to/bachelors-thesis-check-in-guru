@@ -37,4 +37,5 @@ class DateFormatter {
 
     return DateFormat('dd.MM.yyyy').format(dateTime.toLocal());
   }
+
 }

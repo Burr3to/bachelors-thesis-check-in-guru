@@ -24,6 +24,7 @@ public class TaskMapperProfile : Profile
             .ForMember(dest => dest.Hash, opt => opt.MapFrom(src => Guid.NewGuid().ToString("N")))
             .ForMember(dest => dest.Id, opt => opt.MapFrom(src => Guid.NewGuid()))
             .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
+            .ForMember(dest => dest.LastModifiedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
             .ForMember(dest => dest.SubtaskMode, opt => opt.MapFrom(src => src.SubtaskMode))
             .ForMember(dest => dest.Subtasks, opt => opt.MapFrom(src => src.Subtasks));
 

@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$TaskCreateModel {
 
- String get title; String? get notes; DateTime get deadLine; SubtaskMode get subtaskMode; bool get requiresAuthenticationToComplete; List<SubtaskTemplateCreateModel> get subtasks; List<String> get invitedEmails; bool get sendInvitesImmediately;
+ String get title; String? get notes; DateTime get deadLine; SubtaskMode get subtaskMode; bool get requiresAuthenticationToComplete; List<SubtaskTemplateCreateModel> get subtasks; List<String> get invitedEmails; bool get sendInvitesImmediately; String? get allowedDomain;@JsonKey(includeToJson: false) bool? get isDomainValid;
 /// Create a copy of TaskCreateModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $TaskCreateModelCopyWith<TaskCreateModel> get copyWith => _$TaskCreateModelCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is TaskCreateModel&&(identical(other.title, title) || other.title == title)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.deadLine, deadLine) || other.deadLine == deadLine)&&(identical(other.subtaskMode, subtaskMode) || other.subtaskMode == subtaskMode)&&(identical(other.requiresAuthenticationToComplete, requiresAuthenticationToComplete) || other.requiresAuthenticationToComplete == requiresAuthenticationToComplete)&&const DeepCollectionEquality().equals(other.subtasks, subtasks)&&const DeepCollectionEquality().equals(other.invitedEmails, invitedEmails)&&(identical(other.sendInvitesImmediately, sendInvitesImmediately) || other.sendInvitesImmediately == sendInvitesImmediately));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TaskCreateModel&&(identical(other.title, title) || other.title == title)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.deadLine, deadLine) || other.deadLine == deadLine)&&(identical(other.subtaskMode, subtaskMode) || other.subtaskMode == subtaskMode)&&(identical(other.requiresAuthenticationToComplete, requiresAuthenticationToComplete) || other.requiresAuthenticationToComplete == requiresAuthenticationToComplete)&&const DeepCollectionEquality().equals(other.subtasks, subtasks)&&const DeepCollectionEquality().equals(other.invitedEmails, invitedEmails)&&(identical(other.sendInvitesImmediately, sendInvitesImmediately) || other.sendInvitesImmediately == sendInvitesImmediately)&&(identical(other.allowedDomain, allowedDomain) || other.allowedDomain == allowedDomain)&&(identical(other.isDomainValid, isDomainValid) || other.isDomainValid == isDomainValid));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,title,notes,deadLine,subtaskMode,requiresAuthenticationToComplete,const DeepCollectionEquality().hash(subtasks),const DeepCollectionEquality().hash(invitedEmails),sendInvitesImmediately);
+int get hashCode => Object.hash(runtimeType,title,notes,deadLine,subtaskMode,requiresAuthenticationToComplete,const DeepCollectionEquality().hash(subtasks),const DeepCollectionEquality().hash(invitedEmails),sendInvitesImmediately,allowedDomain,isDomainValid);
 
 @override
 String toString() {
-  return 'TaskCreateModel(title: $title, notes: $notes, deadLine: $deadLine, subtaskMode: $subtaskMode, requiresAuthenticationToComplete: $requiresAuthenticationToComplete, subtasks: $subtasks, invitedEmails: $invitedEmails, sendInvitesImmediately: $sendInvitesImmediately)';
+  return 'TaskCreateModel(title: $title, notes: $notes, deadLine: $deadLine, subtaskMode: $subtaskMode, requiresAuthenticationToComplete: $requiresAuthenticationToComplete, subtasks: $subtasks, invitedEmails: $invitedEmails, sendInvitesImmediately: $sendInvitesImmediately, allowedDomain: $allowedDomain, isDomainValid: $isDomainValid)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $TaskCreateModelCopyWith<$Res>  {
   factory $TaskCreateModelCopyWith(TaskCreateModel value, $Res Function(TaskCreateModel) _then) = _$TaskCreateModelCopyWithImpl;
 @useResult
 $Res call({
- String title, String? notes, DateTime deadLine, SubtaskMode subtaskMode, bool requiresAuthenticationToComplete, List<SubtaskTemplateCreateModel> subtasks, List<String> invitedEmails, bool sendInvitesImmediately
+ String title, String? notes, DateTime deadLine, SubtaskMode subtaskMode, bool requiresAuthenticationToComplete, List<SubtaskTemplateCreateModel> subtasks, List<String> invitedEmails, bool sendInvitesImmediately, String? allowedDomain,@JsonKey(includeToJson: false) bool? isDomainValid
 });
 
 
@@ -65,7 +65,7 @@ class _$TaskCreateModelCopyWithImpl<$Res>
 
 /// Create a copy of TaskCreateModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? title = null,Object? notes = freezed,Object? deadLine = null,Object? subtaskMode = null,Object? requiresAuthenticationToComplete = null,Object? subtasks = null,Object? invitedEmails = null,Object? sendInvitesImmediately = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? title = null,Object? notes = freezed,Object? deadLine = null,Object? subtaskMode = null,Object? requiresAuthenticationToComplete = null,Object? subtasks = null,Object? invitedEmails = null,Object? sendInvitesImmediately = null,Object? allowedDomain = freezed,Object? isDomainValid = freezed,}) {
   return _then(_self.copyWith(
 title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,notes: freezed == notes ? _self.notes : notes // ignore: cast_nullable_to_non_nullable
@@ -75,7 +75,9 @@ as SubtaskMode,requiresAuthenticationToComplete: null == requiresAuthenticationT
 as bool,subtasks: null == subtasks ? _self.subtasks : subtasks // ignore: cast_nullable_to_non_nullable
 as List<SubtaskTemplateCreateModel>,invitedEmails: null == invitedEmails ? _self.invitedEmails : invitedEmails // ignore: cast_nullable_to_non_nullable
 as List<String>,sendInvitesImmediately: null == sendInvitesImmediately ? _self.sendInvitesImmediately : sendInvitesImmediately // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,allowedDomain: freezed == allowedDomain ? _self.allowedDomain : allowedDomain // ignore: cast_nullable_to_non_nullable
+as String?,isDomainValid: freezed == isDomainValid ? _self.isDomainValid : isDomainValid // ignore: cast_nullable_to_non_nullable
+as bool?,
   ));
 }
 
@@ -157,10 +159,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String title,  String? notes,  DateTime deadLine,  SubtaskMode subtaskMode,  bool requiresAuthenticationToComplete,  List<SubtaskTemplateCreateModel> subtasks,  List<String> invitedEmails,  bool sendInvitesImmediately)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String title,  String? notes,  DateTime deadLine,  SubtaskMode subtaskMode,  bool requiresAuthenticationToComplete,  List<SubtaskTemplateCreateModel> subtasks,  List<String> invitedEmails,  bool sendInvitesImmediately,  String? allowedDomain, @JsonKey(includeToJson: false)  bool? isDomainValid)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _TaskCreateModel() when $default != null:
-return $default(_that.title,_that.notes,_that.deadLine,_that.subtaskMode,_that.requiresAuthenticationToComplete,_that.subtasks,_that.invitedEmails,_that.sendInvitesImmediately);case _:
+return $default(_that.title,_that.notes,_that.deadLine,_that.subtaskMode,_that.requiresAuthenticationToComplete,_that.subtasks,_that.invitedEmails,_that.sendInvitesImmediately,_that.allowedDomain,_that.isDomainValid);case _:
   return orElse();
 
 }
@@ -178,10 +180,10 @@ return $default(_that.title,_that.notes,_that.deadLine,_that.subtaskMode,_that.r
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String title,  String? notes,  DateTime deadLine,  SubtaskMode subtaskMode,  bool requiresAuthenticationToComplete,  List<SubtaskTemplateCreateModel> subtasks,  List<String> invitedEmails,  bool sendInvitesImmediately)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String title,  String? notes,  DateTime deadLine,  SubtaskMode subtaskMode,  bool requiresAuthenticationToComplete,  List<SubtaskTemplateCreateModel> subtasks,  List<String> invitedEmails,  bool sendInvitesImmediately,  String? allowedDomain, @JsonKey(includeToJson: false)  bool? isDomainValid)  $default,) {final _that = this;
 switch (_that) {
 case _TaskCreateModel():
-return $default(_that.title,_that.notes,_that.deadLine,_that.subtaskMode,_that.requiresAuthenticationToComplete,_that.subtasks,_that.invitedEmails,_that.sendInvitesImmediately);}
+return $default(_that.title,_that.notes,_that.deadLine,_that.subtaskMode,_that.requiresAuthenticationToComplete,_that.subtasks,_that.invitedEmails,_that.sendInvitesImmediately,_that.allowedDomain,_that.isDomainValid);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -195,10 +197,10 @@ return $default(_that.title,_that.notes,_that.deadLine,_that.subtaskMode,_that.r
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String title,  String? notes,  DateTime deadLine,  SubtaskMode subtaskMode,  bool requiresAuthenticationToComplete,  List<SubtaskTemplateCreateModel> subtasks,  List<String> invitedEmails,  bool sendInvitesImmediately)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String title,  String? notes,  DateTime deadLine,  SubtaskMode subtaskMode,  bool requiresAuthenticationToComplete,  List<SubtaskTemplateCreateModel> subtasks,  List<String> invitedEmails,  bool sendInvitesImmediately,  String? allowedDomain, @JsonKey(includeToJson: false)  bool? isDomainValid)?  $default,) {final _that = this;
 switch (_that) {
 case _TaskCreateModel() when $default != null:
-return $default(_that.title,_that.notes,_that.deadLine,_that.subtaskMode,_that.requiresAuthenticationToComplete,_that.subtasks,_that.invitedEmails,_that.sendInvitesImmediately);case _:
+return $default(_that.title,_that.notes,_that.deadLine,_that.subtaskMode,_that.requiresAuthenticationToComplete,_that.subtasks,_that.invitedEmails,_that.sendInvitesImmediately,_that.allowedDomain,_that.isDomainValid);case _:
   return null;
 
 }
@@ -210,7 +212,7 @@ return $default(_that.title,_that.notes,_that.deadLine,_that.subtaskMode,_that.r
 @JsonSerializable()
 
 class _TaskCreateModel implements TaskCreateModel {
-  const _TaskCreateModel({required this.title, this.notes, required this.deadLine, required this.subtaskMode, this.requiresAuthenticationToComplete = true, final  List<SubtaskTemplateCreateModel> subtasks = const [], final  List<String> invitedEmails = const [], this.sendInvitesImmediately = false}): _subtasks = subtasks,_invitedEmails = invitedEmails;
+  const _TaskCreateModel({required this.title, this.notes, required this.deadLine, required this.subtaskMode, this.requiresAuthenticationToComplete = true, final  List<SubtaskTemplateCreateModel> subtasks = const [], final  List<String> invitedEmails = const [], this.sendInvitesImmediately = false, this.allowedDomain, @JsonKey(includeToJson: false) this.isDomainValid = null}): _subtasks = subtasks,_invitedEmails = invitedEmails;
   factory _TaskCreateModel.fromJson(Map<String, dynamic> json) => _$TaskCreateModelFromJson(json);
 
 @override final  String title;
@@ -233,6 +235,8 @@ class _TaskCreateModel implements TaskCreateModel {
 }
 
 @override@JsonKey() final  bool sendInvitesImmediately;
+@override final  String? allowedDomain;
+@override@JsonKey(includeToJson: false) final  bool? isDomainValid;
 
 /// Create a copy of TaskCreateModel
 /// with the given fields replaced by the non-null parameter values.
@@ -247,16 +251,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TaskCreateModel&&(identical(other.title, title) || other.title == title)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.deadLine, deadLine) || other.deadLine == deadLine)&&(identical(other.subtaskMode, subtaskMode) || other.subtaskMode == subtaskMode)&&(identical(other.requiresAuthenticationToComplete, requiresAuthenticationToComplete) || other.requiresAuthenticationToComplete == requiresAuthenticationToComplete)&&const DeepCollectionEquality().equals(other._subtasks, _subtasks)&&const DeepCollectionEquality().equals(other._invitedEmails, _invitedEmails)&&(identical(other.sendInvitesImmediately, sendInvitesImmediately) || other.sendInvitesImmediately == sendInvitesImmediately));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TaskCreateModel&&(identical(other.title, title) || other.title == title)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.deadLine, deadLine) || other.deadLine == deadLine)&&(identical(other.subtaskMode, subtaskMode) || other.subtaskMode == subtaskMode)&&(identical(other.requiresAuthenticationToComplete, requiresAuthenticationToComplete) || other.requiresAuthenticationToComplete == requiresAuthenticationToComplete)&&const DeepCollectionEquality().equals(other._subtasks, _subtasks)&&const DeepCollectionEquality().equals(other._invitedEmails, _invitedEmails)&&(identical(other.sendInvitesImmediately, sendInvitesImmediately) || other.sendInvitesImmediately == sendInvitesImmediately)&&(identical(other.allowedDomain, allowedDomain) || other.allowedDomain == allowedDomain)&&(identical(other.isDomainValid, isDomainValid) || other.isDomainValid == isDomainValid));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,title,notes,deadLine,subtaskMode,requiresAuthenticationToComplete,const DeepCollectionEquality().hash(_subtasks),const DeepCollectionEquality().hash(_invitedEmails),sendInvitesImmediately);
+int get hashCode => Object.hash(runtimeType,title,notes,deadLine,subtaskMode,requiresAuthenticationToComplete,const DeepCollectionEquality().hash(_subtasks),const DeepCollectionEquality().hash(_invitedEmails),sendInvitesImmediately,allowedDomain,isDomainValid);
 
 @override
 String toString() {
-  return 'TaskCreateModel(title: $title, notes: $notes, deadLine: $deadLine, subtaskMode: $subtaskMode, requiresAuthenticationToComplete: $requiresAuthenticationToComplete, subtasks: $subtasks, invitedEmails: $invitedEmails, sendInvitesImmediately: $sendInvitesImmediately)';
+  return 'TaskCreateModel(title: $title, notes: $notes, deadLine: $deadLine, subtaskMode: $subtaskMode, requiresAuthenticationToComplete: $requiresAuthenticationToComplete, subtasks: $subtasks, invitedEmails: $invitedEmails, sendInvitesImmediately: $sendInvitesImmediately, allowedDomain: $allowedDomain, isDomainValid: $isDomainValid)';
 }
 
 
@@ -267,7 +271,7 @@ abstract mixin class _$TaskCreateModelCopyWith<$Res> implements $TaskCreateModel
   factory _$TaskCreateModelCopyWith(_TaskCreateModel value, $Res Function(_TaskCreateModel) _then) = __$TaskCreateModelCopyWithImpl;
 @override @useResult
 $Res call({
- String title, String? notes, DateTime deadLine, SubtaskMode subtaskMode, bool requiresAuthenticationToComplete, List<SubtaskTemplateCreateModel> subtasks, List<String> invitedEmails, bool sendInvitesImmediately
+ String title, String? notes, DateTime deadLine, SubtaskMode subtaskMode, bool requiresAuthenticationToComplete, List<SubtaskTemplateCreateModel> subtasks, List<String> invitedEmails, bool sendInvitesImmediately, String? allowedDomain,@JsonKey(includeToJson: false) bool? isDomainValid
 });
 
 
@@ -284,7 +288,7 @@ class __$TaskCreateModelCopyWithImpl<$Res>
 
 /// Create a copy of TaskCreateModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? title = null,Object? notes = freezed,Object? deadLine = null,Object? subtaskMode = null,Object? requiresAuthenticationToComplete = null,Object? subtasks = null,Object? invitedEmails = null,Object? sendInvitesImmediately = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? title = null,Object? notes = freezed,Object? deadLine = null,Object? subtaskMode = null,Object? requiresAuthenticationToComplete = null,Object? subtasks = null,Object? invitedEmails = null,Object? sendInvitesImmediately = null,Object? allowedDomain = freezed,Object? isDomainValid = freezed,}) {
   return _then(_TaskCreateModel(
 title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,notes: freezed == notes ? _self.notes : notes // ignore: cast_nullable_to_non_nullable
@@ -294,7 +298,9 @@ as SubtaskMode,requiresAuthenticationToComplete: null == requiresAuthenticationT
 as bool,subtasks: null == subtasks ? _self._subtasks : subtasks // ignore: cast_nullable_to_non_nullable
 as List<SubtaskTemplateCreateModel>,invitedEmails: null == invitedEmails ? _self._invitedEmails : invitedEmails // ignore: cast_nullable_to_non_nullable
 as List<String>,sendInvitesImmediately: null == sendInvitesImmediately ? _self.sendInvitesImmediately : sendInvitesImmediately // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,allowedDomain: freezed == allowedDomain ? _self.allowedDomain : allowedDomain // ignore: cast_nullable_to_non_nullable
+as String?,isDomainValid: freezed == isDomainValid ? _self.isDomainValid : isDomainValid // ignore: cast_nullable_to_non_nullable
+as bool?,
   ));
 }
 

@@ -124,17 +124,15 @@ public class InvitationFacade(
     public async Task<List<string>> ParseEmailsAsync(string rawText)
     {
         var allParsedEmails = emailService.ParseEmails(rawText).Distinct().ToList();
-
         var validEmails = new List<string>();
         var invalidEmails = new List<string>();
 
         foreach (var email in allParsedEmails)
         {
-            // 1. DÔLEŽITÉ: Ak doména nie je validná, pridáme do invalid a POKRAČUJEME (continue)
-            if (!await emailService.IsDomainValidAsync(email))
+            if (!await emailService.IsEmailDomainValidAsync(email))
             {
                 invalidEmails.Add(email);
-                continue; // Tento mail sa nesmie dostať do validEmails!
+                continue;
             }
 
             validEmails.Add(email);
@@ -154,6 +152,11 @@ public class InvitationFacade(
         }
 
         return validEmails; // Tu už budú len tie skutočne dobré
+    }
+
+    public async Task<bool> ValidateDomainAsync(string domain)
+    {
+        return await emailService.IsDomainValidAsync(domain);
     }
 
 

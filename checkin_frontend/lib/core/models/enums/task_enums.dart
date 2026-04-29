@@ -27,9 +27,9 @@ enum TaskState {
 }
 
 enum SubtaskMode {
-  @JsonValue(1)
+  @JsonValue(0)
   shared,
-  @JsonValue(2)
+  @JsonValue(1)
   individual,
 }
 

@@ -14,17 +14,20 @@ class SubtaskInputSection extends ConsumerStatefulWidget {
 
 class _SubtaskInputSectionState extends ConsumerState<SubtaskInputSection> {
   final _inputController = TextEditingController();
+  final FocusNode _inputFocusNode = FocusNode(); // Pridaný FocusNode
   final Set<int> _expandedIndices = {};
 
   void _submitSubtask() {
     if (_inputController.text.trim().isEmpty) return;
     ref.read(taskCreateProvider.notifier).addSubtask(_inputController.text.trim());
     _inputController.clear();
+    _inputFocusNode.requestFocus(); // Vráti focus na pole
   }
 
   @override
   void dispose() {
     _inputController.dispose();
+    _inputFocusNode.dispose();
     super.dispose();
   }
 
@@ -46,10 +49,12 @@ class _SubtaskInputSectionState extends ConsumerState<SubtaskInputSection> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(context.l10n.task_create_subtasks_title, style: TextStyle(fontWeight: FontWeight.bold, color: cs.onSurface)),
-              TextButton(
+              Text(context.l10n.task_create_subtasks_title,
+                  style: TextStyle(fontWeight: FontWeight.bold, color: cs.onSurface)),
+              IconButton(
                 onPressed: widget.onRemoveSection,
-                child: Text(context.l10n.task_create_subtasks_remove, style: TextStyle(color: cs.error, fontSize: 12)),
+                icon: const Icon(Icons.close, size: 20),
+                visualDensity: VisualDensity.compact,
               ),
             ],
           ),
@@ -60,6 +65,7 @@ class _SubtaskInputSectionState extends ConsumerState<SubtaskInputSection> {
               Expanded(
                 child: TextField(
                   controller: _inputController,
+                  focusNode: _inputFocusNode, // Priradený focus node
                   onSubmitted: (_) => _submitSubtask(),
                   decoration: InputDecoration(
                     hintText: context.l10n.task_create_subtasks_hint,
@@ -82,9 +88,6 @@ class _SubtaskInputSectionState extends ConsumerState<SubtaskInputSection> {
 
           if (subtasks.isNotEmpty) ...[
             const SizedBox(height: 16),
-            const Divider(),
-            const SizedBox(height: 8),
-
             ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -105,6 +108,7 @@ class _SubtaskInputSectionState extends ConsumerState<SubtaskInputSection> {
                     children: [
                       ListTile(
                         visualDensity: VisualDensity.compact,
+                        contentPadding: const EdgeInsets.only(left: 4, right: 8),
                         leading: IconButton(
                           icon: Icon(
                             isExpanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_right,
@@ -112,15 +116,11 @@ class _SubtaskInputSectionState extends ConsumerState<SubtaskInputSection> {
                           ),
                           onPressed: () {
                             setState(() {
-                              if (isExpanded) {
-                                _expandedIndices.remove(index);
-                              } else {
-                                _expandedIndices.add(index);
-                              }
+                              if (isExpanded) _expandedIndices.remove(index);
+                              else _expandedIndices.add(index);
                             });
                           },
                         ),
-                        // TITUL + NÁHĽAD POPISU
                         title: Row(
                           children: [
                             Text(subtask.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
@@ -128,40 +128,49 @@ class _SubtaskInputSectionState extends ConsumerState<SubtaskInputSection> {
                               Expanded(
                                 child: Text(
                                   " • ${subtask.description}",
-                                  style: TextStyle(
-                                      fontSize: 12,
-                                      color: cs.onSurfaceVariant.withOpacity(0.5),
-                                      fontStyle: FontStyle.italic
-                                  ),
+                                  style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant.withOpacity(0.5), fontStyle: FontStyle.italic),
                                   overflow: TextOverflow.ellipsis,
                                   maxLines: 1,
                                 ),
                               ),
                           ],
                         ),
-                        trailing: TextButton(
+                        trailing: IconButton(
+                          icon: Icon(Icons.remove_circle_outline, color: cs.error, size: 20),
                           onPressed: () => ref.read(taskCreateProvider.notifier).removeSubtask(index),
-                          child: Text("Remove", style: TextStyle(color: cs.error, fontSize: 12)),
                         ),
                       ),
 
                       // EDITÁCIA POPISU
                       if (isExpanded)
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(48, 0, 16, 12), // Zarovnané pod text titulu
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                           child: TextFormField(
                             initialValue: subtask.description,
-                            maxLines: null, // Umožní rásť podľa textu
+                            maxLines: null,
                             keyboardType: TextInputType.multiline,
                             style: const TextStyle(fontSize: 13),
                             onChanged: (val) => ref.read(taskCreateProvider.notifier).updateSubtaskDescription(index, val),
                             decoration: InputDecoration(
-                              hintText: context.l10n.task_create_subtasks_desc_hint,
+                              hintText: "Add detailed notes or instructions...", // context.l10n.task_create_subtasks_desc_hint
                               hintStyle: TextStyle(fontSize: 12, color: cs.onSurfaceVariant.withAlpha(160)),
                               isDense: true,
-                              contentPadding: const EdgeInsets.symmetric(vertical: 4),
-                              border: UnderlineInputBorder(borderSide: BorderSide(color: cs.primary.withAlpha(160))),
-                              focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: cs.primary)),
+                              fillColor: cs.surfaceContainerHigh.withAlpha(100),
+                              filled: true,
+                              contentPadding: const EdgeInsets.all(12),
+                              // Tu je ten obdĺžnik namiesto riadku:
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(color: cs.outlineVariant),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(color: cs.outlineVariant.withAlpha(100)),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(color: cs.primary.withAlpha(150)),
+                              ),
                             ),
                           ),
                         ),

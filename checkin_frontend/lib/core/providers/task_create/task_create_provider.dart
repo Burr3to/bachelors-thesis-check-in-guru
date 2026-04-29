@@ -43,6 +43,10 @@ class TaskCreateNotifier extends _$TaskCreateNotifier {
     }
   }
 
+  void setDomainValidation(bool? isValid) {
+    state = state.copyWith(isDomainValid: isValid);
+  }
+
   void removeEmail(String email) {
     state = state.copyWith(
         invitedEmails: state.invitedEmails.where((e) => e != email).toList()
@@ -50,6 +54,10 @@ class TaskCreateNotifier extends _$TaskCreateNotifier {
   }
 
   void setEmails(List<String> emails) => state = state.copyWith(invitedEmails: emails);
+
+  void updateAllowedDomain(String? domain) {
+    state = state.copyWith(allowedDomain: domain);
+  }
 
   void addSubtask(String title) {
     final newSubtask = SubtaskTemplateCreateModel(

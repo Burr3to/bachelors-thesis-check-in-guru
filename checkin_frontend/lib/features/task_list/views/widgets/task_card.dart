@@ -39,10 +39,31 @@ class TaskCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   _buildDeadlineBadge(cs, isOverdue, context),
-                  Icon(
-                    task.subtaskMode == SubtaskMode.shared ? Icons.groups : Icons.person,
-                    size: 19,
-                    color: cs.onSurfaceVariant.withOpacity(0.5),
+
+                  // Skupina ikoniek na pravej strane
+                  Row(
+                    children: [
+                      // Ikona overenia (vľavo od módu subtaskov)
+                      Icon(
+                        task.requiresAuthenticationToComplete
+                            ? Icons.verified_user
+                            : Icons.no_encryption_outlined,
+                        size: 19,
+                        // Ak je true, použije primary farbu, inak šedú
+                        color: task.requiresAuthenticationToComplete
+                            ? cs.primary
+                            : cs.onSurfaceVariant.withAlpha(125),
+                      ),
+
+                      const SizedBox(width: 8), // Medzera medzi ikonkami
+
+                      // Ikona módu (pôvodná)
+                      Icon(
+                        task.subtaskMode == SubtaskMode.shared ? Icons.groups : Icons.person,
+                        size: 19,
+                        color: cs.onSurfaceVariant.withAlpha(125),
+                      ),
+                    ],
                   ),
                 ],
               ),

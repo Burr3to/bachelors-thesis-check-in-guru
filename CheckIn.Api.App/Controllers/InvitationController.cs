@@ -37,6 +37,13 @@ public class InvitationController(IInvitationFacade facade)
         return Ok(result);
     }
 
+    [HttpGet("validate-domain")]
+    public async Task<ActionResult<bool>> ValidateDomain([FromQuery] string domain)
+    {
+        var isValid = await _invitationFacade.ValidateDomainAsync(domain);
+        return Ok(isValid);
+    }
+
     [HttpPost("remind-pending/{taskId}")]
     public async Task<ActionResult<Result<bool>>> SendReminders(Guid taskId)
     {

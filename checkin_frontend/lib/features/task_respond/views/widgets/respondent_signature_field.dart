@@ -1,9 +1,10 @@
+import 'package:checkin_frontend/features/auth/views/providers/auth_provider.dart'; // Pridaný import
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart'; // Pridaný import
 import '../../../../core/models/user/user_profile.dart';
 import '../../../../core/utils/l10n_extensions.dart';
 
-class RespondentSignatureField extends StatelessWidget {
+class RespondentSignatureField extends ConsumerWidget { // Zmena na ConsumerWidget
   final UserProfile? auth;
   final TextEditingController controller;
   final VoidCallback onChanged;
@@ -16,7 +17,7 @@ class RespondentSignatureField extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) { // Pridaný ref
     final cs = Theme.of(context).colorScheme;
 
     if (auth == null) {
@@ -49,6 +50,12 @@ class RespondentSignatureField extends StatelessWidget {
           style: TextStyle(fontWeight: FontWeight.bold, color: cs.onSurface),
         ),
         subtitle: Text(auth!.email, style: TextStyle(color: cs.onSurfaceVariant)),
+        // PRIDANÉ: Logout tlačidlo vpravo
+        trailing: IconButton(
+          icon: Icon(Icons.logout_rounded, color: cs.onSurfaceVariant, size: 20),
+          onPressed: () => ref.read(authProvider.notifier).signOut(),
+          tooltip: 'Logout',
+        ),
       ),
     );
   }

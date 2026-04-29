@@ -15,7 +15,11 @@ sealed class TaskCreateModel with _$TaskCreateModel {
     @Default(true) bool requiresAuthenticationToComplete,
     @Default([]) List<SubtaskTemplateCreateModel> subtasks,
     @Default([]) List<String> invitedEmails,
-    @Default(false) bool sendInvitesImmediately
+    @Default(false) bool sendInvitesImmediately,
+    String? allowedDomain,
+
+    @JsonKey(includeToJson: false)
+    @Default(null) bool? isDomainValid, // null = unchecked, true = ok, false = suspicious
   }) = _TaskCreateModel;
 
   factory TaskCreateModel.fromJson(Map<String, dynamic> json) =>

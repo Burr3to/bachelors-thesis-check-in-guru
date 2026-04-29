@@ -107,15 +107,29 @@ public class EmailService(IConfiguration configuration) : IEmailService
             .ToList();
     }
 
-    public async Task<bool> IsDomainValidAsync(string email)
+    public async Task<bool> IsDomainValidAsync(string domain)
+    {
+        if (string.IsNullOrWhiteSpace(domain)) return false;
+
+        var host = domain.Trim().Split('@').Last();
+
+        return await CheckMxRecordsAsync(host);
+    }
+
+    public async Task<bool> IsEmailDomainValidAsync(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email) || !email.Contains('@')) return false;
+
+        var host = email.Split('@').Last();
+        return await CheckMxRecordsAsync(host);
+    }
+
+    private async Task<bool> CheckMxRecordsAsync(string host)
     {
         try
         {
-            var host = email.Split('@').Last();
             var lookup = new LookupClient();
             var result = await lookup.QueryAsync(host, QueryType.MX);
-
-            // Musí existovať aspoň jeden MX záznam a nesmie tam byť DNS chyba
             return !result.HasError && result.Answers.MxRecords().Any();
         }
         catch

@@ -11,6 +11,8 @@ public class TaskEntity : IEntity
 
     [MaxLength(512)] public required string Hash { get; set; }
 
+    [MaxLength(100)] public string? AllowedDomain { get; set; }
+
     //Delta Json string
     public string? Notes { get; set; }
     public DateTime CreatedAt { get; set; }

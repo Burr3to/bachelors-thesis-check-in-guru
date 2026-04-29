@@ -9,14 +9,12 @@ enum InviteTiming { immediately, later }
 class TaskInviteSection extends ConsumerStatefulWidget {
   final Function(List<String>) onEmailsChanged;
   final bool isExpanded;
-  final VoidCallback onExpand;
   final VoidCallback onCollapse;
 
   const TaskInviteSection({
     super.key,
     required this.onEmailsChanged,
     required this.isExpanded,
-    required this.onExpand,
     required this.onCollapse,
   });
 
@@ -30,12 +28,6 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
   List<String> _detectedEmails = [];
   InviteTiming _selectedTiming = InviteTiming.later;
 
-  @override
-  void dispose() {
-    _emailInputController.dispose();
-    super.dispose();
-  }
-
   Future<void> _handleParse() async {
     final rawText = _emailInputController.text.trim();
     if (rawText.isEmpty) return;
@@ -43,78 +35,34 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
     setState(() => _isChecking = true);
     try {
       final api = ref.read(invitationApiServiceProvider);
-      // BE expect quoted string
       final List<String> result = await api.parseEmails('"$rawText"');
 
       setState(() {
-        // Merge unique emails
         _detectedEmails = {..._detectedEmails, ...result}.toList();
         _emailInputController.clear();
       });
       widget.onEmailsChanged(_detectedEmails);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to parse emails.")),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Failed to parse emails.")));
     } finally {
       if (mounted) setState(() => _isChecking = false);
     }
   }
 
   void _removeEmail(String email) {
-    setState(() {
-      _detectedEmails.remove(email);
-    });
+    setState(() => _detectedEmails.remove(email));
     widget.onEmailsChanged(_detectedEmails);
   }
 
   void _removeAll() {
-    setState(() {
-      _detectedEmails.clear();
-    });
+    setState(() => _detectedEmails.clear());
     widget.onEmailsChanged(_detectedEmails);
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
+    final cs = Theme.of(context).colorScheme;
 
-    // --- CASE 1: COLLAPSED VIEW (The side-by-side button style) ---
-    if (!widget.isExpanded) {
-      return Expanded(
-        child: InkWell(
-          onTap: widget.onExpand,
-          borderRadius: BorderRadius.circular(8),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-            decoration: BoxDecoration(
-              border: Border.all(color: cs.outlineVariant),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.person_add_alt_1_outlined, size: 20, color: cs.primary),
-                const SizedBox(width: 8),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text("Invite People",
-                        style: TextStyle(fontWeight: FontWeight.w600, color: cs.onSurface, fontSize: 13)),
-                    Text("Optional",
-                        style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant)),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    // --- CASE 2: EXPANDED VIEW ---
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -125,34 +73,35 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header: Title + Remove Link
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(context.l10n.task_create_invite_title,
                   style: TextStyle(fontWeight: FontWeight.bold, color: cs.onSurface)),
-              TextButton(
+              IconButton(
                 onPressed: widget.onCollapse,
-                style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
-                child: Text("Remove section",
-                    style: TextStyle(color: cs.error, fontSize: 12)),
+                icon: const Icon(Icons.close, size: 20),
+                visualDensity: VisualDensity.compact,
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
 
-          // Email Input + Parse Button
-          Row(
+        IntrinsicHeight( // Zabezpečí, že deti v Row budú môcť mať rovnakú výšku
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(
                 child: TextField(
                   controller: _emailInputController,
+                  maxLines: 1, // Dôležité pre funkciu Enter-u
                   onSubmitted: (_) => _isChecking ? null : _handleParse(),
                   decoration: InputDecoration(
-                    hintText: context.l10n.task_create_invite_hint,
+                    hintText: "Emails in any format test@gmail.com; test2@vutbr.com - test3...",
+                    hintStyle: TextStyle(fontSize: 12, color: cs.onSurfaceVariant.withAlpha(150)),
                     prefixIcon: const Icon(Icons.mail_outline, size: 20),
                     isDense: true,
-                    contentPadding: const EdgeInsets.all(12),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                 ),
@@ -163,44 +112,45 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: cs.primary,
                   foregroundColor: cs.onPrimary,
+                  elevation: 0,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                 ),
                 child: _isChecking
-                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                    : Text(context.l10n.task_create_invite_parse),
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Text("ADD", style: TextStyle(fontWeight: FontWeight.normal)),
               ),
             ],
           ),
+        ),
 
-          // Email Chips Container
           if (_detectedEmails.isNotEmpty) ...[
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: _removeAll,
+              icon: Icon(Icons.delete_sweep_outlined, size: 16, color: cs.error),
+              label: Text("Remove all", style: TextStyle(color: cs.error, fontSize: 12)),
+              style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+            ),
+            const SizedBox(height: 8),
             Wrap(
               spacing: 8,
               runSpacing: 4,
               children: _detectedEmails.map((email) => InputChip(
                 label: Text(email, style: const TextStyle(fontSize: 12)),
                 onDeleted: () => _removeEmail(email),
+                deleteIcon: const Icon(Icons.remove_circle_outline, size: 16),
                 deleteIconColor: cs.error,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                 visualDensity: VisualDensity.compact,
               )).toList(),
             ),
-            TextButton(
-              onPressed: _removeAll,
-              style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
-              child: Text(context.l10n.task_create_invite_remove_all, style: TextStyle(fontSize: 12)),
-            ),
           ],
 
-          const SizedBox(height: 16),
-          const Divider(),
-          const SizedBox(height: 8),
+          const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider()),
 
-          // Send Timing Selector
-          // Send Timing Selector
           Text(
-            context.l10n.task_create_invite_send_label,
+            "When should the invites be sent?",
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: cs.onSurfaceVariant),
           ),
           const SizedBox(height: 10),
@@ -208,14 +158,14 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
             children: [
               _buildTimingOption(
                 timing: InviteTiming.immediately,
-                label: context.l10n.task_create_invite_immediately,
+                label: "Immediately when created",
                 icon: Icons.bolt,
                 cs: cs,
               ),
               const SizedBox(width: 12),
               _buildTimingOption(
                 timing: InviteTiming.later,
-                label: context.l10n.task_create_invite_later,
+                label: "Later manually in detail",
                 icon: Icons.timer_outlined,
                 cs: cs,
               ),
@@ -225,7 +175,6 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
       ),
     );
   }
-
   Widget _buildTimingOption({
     required InviteTiming timing,
     required String label,

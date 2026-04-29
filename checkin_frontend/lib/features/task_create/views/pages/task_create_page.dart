@@ -49,12 +49,10 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
     });
 
     _quillCtrl.changes.listen((_) {
-      final isEditorEmpty = _quillCtrl.document.isEmpty() ||
-          _quillCtrl.document.toPlainText().trim().isEmpty;
+      final isEditorEmpty =
+          _quillCtrl.document.isEmpty() || _quillCtrl.document.toPlainText().trim().isEmpty;
 
-      final notes = !isEditorEmpty
-          ? QuillUtils.controllerToString(_quillCtrl)
-          : null;
+      final notes = !isEditorEmpty ? QuillUtils.controllerToString(_quillCtrl) : null;
       ref.read(taskCreateProvider.notifier).updateDescription(notes);
     });
 
@@ -82,7 +80,6 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
     _signalRService.connection?.on("InvalidEmailsFound", _handleInvalidEmails);
   }
 
-
   void _handleInvalidEmails(List<Object?>? arguments) {
     // V SignalR prichádza zoznam emailov ako prvý argument (arguments[0])
     final rawList = arguments?[0] as List?;
@@ -101,6 +98,14 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
     }
   }
 
+  DateTime _normalizeToEndOfDay(DateTime date) {
+    return DateTime(
+      date.year,
+      date.month,
+      date.day,
+      23, 59, 59, 999,
+    );
+  }
 
   @override
   void dispose() {
@@ -117,6 +122,31 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
     if (taskData.title.isEmpty || taskData.deadLine == null) {
       AppSnackBar.showInfo(context, context.l10n.task_create_err_required);
       return;
+    }
+
+    if (taskData.requiresAuthenticationToComplete &&
+        taskData.allowedDomain != null &&
+        taskData.isDomainValid == false) {
+      final proceed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text("Domain Warning"),
+          content: Text(
+            "We couldn't verify that '${taskData.allowedDomain}' is a valid mail domain."
+                " If it's incorrect, invited respondents won't be able to access the task. Do you want to proceed anyway?",
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("CANCEL")),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: const Text("PROCEED", style: TextStyle(color: Colors.white),),
+            ),
+          ],
+        ),
+      );
+
+      if (proceed != true) return; // Ak klikol cancel, nepokračujeme
     }
 
     setState(() => _isLoading = true);
@@ -147,7 +177,9 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
         : (screenWidth * 0.35).clamp(650.0, 1000.0);
 
     final deadline = ref.watch(taskCreateProvider.select((s) => s.deadLine));
-    final requiresAuth = ref.watch(taskCreateProvider.select((s) => s.requiresAuthenticationToComplete));
+    final requiresAuth = ref.watch(
+      taskCreateProvider.select((s) => s.requiresAuthenticationToComplete),
+    );
     final mode = ref.watch(taskCreateProvider.select((s) => s.subtaskMode));
     // Tieto premenné sledujeme, aby sme vedeli, či sú sekcie prázdne/využívané
     final hasEmails = ref.watch(taskCreateProvider.select((s) => s.invitedEmails.isNotEmpty));
@@ -177,68 +209,54 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      TaskBasicInfo(
-                        titleController: _titleCtrl,
-                        quillController: _quillCtrl,
-                      ),
+                      TaskBasicInfo(titleController: _titleCtrl, quillController: _quillCtrl),
 
                       const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Divider()),
 
-                      // SECTION 2: OPTIONAL
-                      if (!_inviteExpanded || !_subtasksExpanded)
-                        Row(
-                          children: [
-                            if (!_inviteExpanded)
-                              _CollapsedButton(
-                                icon: Icons.person_add_alt_1,
-                                label: context.l10n.task_create_btn_invite,
-                                onTap: () => setState(() => _inviteExpanded = true),
-                              ),
-                            if (!_inviteExpanded && !_subtasksExpanded) const SizedBox(width: 12),
-                            if (!_subtasksExpanded)
-                              _CollapsedButton(
-                                icon: Icons.list_alt, // Opravená ikona podľa Figmy
-                                label: context.l10n.task_create_btn_subtasks,
-                                onTap: () => setState(() => _subtasksExpanded = true),
-                              ),
-                          ],
-                        ),
+                      // SECTION 2: OPTIONAL SECTIONS (VERTICAL STACK)
+                      Column(
+                        children: [
+                          // INVITE SECTION
+                          if (!_inviteExpanded)
+                            _CollapsedButton(
+                              icon: Icons.person_add_alt_1,
+                              label: context.l10n.task_create_btn_invite,
+                              onTap: () => setState(() => _inviteExpanded = true),
+                            )
+                          else
+                            TaskInviteSection(
+                              isExpanded: true,
+                              onEmailsChanged: notifier.setEmails,
+                              onCollapse: () => setState(() => _inviteExpanded = false),
+                            ),
 
-                      if (_inviteExpanded) ...[
-                        const SizedBox(height: 12),
-                        TaskInviteSection(
-                          isExpanded: true,
-                          onExpand: () {},
-                          onCollapse: () => setState(() => _inviteExpanded = false),
-                          onEmailsChanged: notifier.setEmails,
-                        ),
-                      ],
+                          const SizedBox(height: 12),
 
-                      if (_inviteExpanded && _subtasksExpanded)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 12),
-                          child: Center(child: Icon(Icons.more_horiz, size: 16, color: Colors.grey)),
-                        ),
+                          // SUBTASK SECTION
+                          if (!_subtasksExpanded)
+                            _CollapsedButton(
+                              icon: Icons.list_alt,
+                              label: context.l10n.task_create_btn_subtasks,
+                              onTap: () => setState(() => _subtasksExpanded = true),
+                            )
+                          else
+                            SubtaskInputSection(
+                              key: const ValueKey('subtask_section'),
+                              onRemoveSection: () => setState(() => _subtasksExpanded = false),
+                            ),
+                        ],
+                      ),
 
-                      if (_subtasksExpanded) ...[
-                        const SizedBox(height: 12),
-                        SubtaskInputSection(
-                          key: const ValueKey('subtask_section'),
-                          onRemoveSection: () => setState(() => _subtasksExpanded = false),
-                        ),
-                      ],
-
-                      if (_inviteExpanded || _subtasksExpanded)
-                        const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Divider()),
-
-
-                      const SizedBox(height: 24),
+                      const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Divider()),
 
                       // SECTION 3: SETTINGS
                       TaskSettingsSection(
                         selectedDeadline: deadline,
                         requiresAuth: requiresAuth,
                         currentMode: mode,
+                        onDomainChanged: (domain) {
+                          ref.read(taskCreateProvider.notifier).updateAllowedDomain(domain);
+                        },
                         onDateTap: () async {
                           final picked = await showDatePicker(
                             context: context,
@@ -246,13 +264,17 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
                             firstDate: DateTime.now(),
                             lastDate: DateTime(2100),
                           );
-                          if (picked != null) notifier.setDeadline(picked);
+                          if (picked != null) {
+                            final endOfDay = _normalizeToEndOfDay(picked);
+                            notifier.setDeadline(endOfDay.toUtc());
+                          }
                         },
                         onAuthChanged: notifier.toggleAuth,
                         onModeChanged: notifier.setSubtaskMode,
-                          onDateQuickSelect: (date) {
-                            notifier.setDeadline(date.toUtc());
-                          },
+                        onDateQuickSelect: (date) {
+                          final endOfDay = _normalizeToEndOfDay(date);
+                          notifier.setDeadline(endOfDay.toUtc());
+                        },
                       ),
 
                       const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Divider()),
@@ -281,12 +303,19 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          height: 4, width: 60,
+          height: 4,
+          width: 60,
           decoration: BoxDecoration(color: cs.primary, borderRadius: BorderRadius.circular(2)),
         ),
         const SizedBox(height: 12),
-        Text(context.l10n.task_create_header_title, style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: cs.onSurface)),
-        Text(context.l10n.task_create_header_subtitle, style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant)),
+        Text(
+          context.l10n.task_create_header_title,
+          style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: cs.onSurface),
+        ),
+        Text(
+          context.l10n.task_create_header_subtitle,
+          style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant),
+        ),
       ],
     );
   }
@@ -302,29 +331,40 @@ class _CollapsedButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: cs.outlineVariant, width: 1),
-          ),
-          child: Row(
-            children: [
-              Icon(icon, color: cs.primary, size: 22),
-              const SizedBox(width: 10),
-              Column(
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: cs.outlineVariant, width: 1),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: cs.primary, size: 24),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: cs.onSurface)),
-                  Text(context.l10n.task_create_optional, style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: cs.onSurface,
+                    ),
+                  ),
+                  Text(
+                    context.l10n.task_create_optional,
+                    style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+                  ),
                 ],
               ),
-            ],
-          ),
+            ),
+            Icon(Icons.add, color: cs.onSurfaceVariant, size: 20),
+          ],
         ),
       ),
     );

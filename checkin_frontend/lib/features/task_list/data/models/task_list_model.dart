@@ -10,16 +10,15 @@ sealed class TaskListModel with _$TaskListModel {
   const factory TaskListModel({
     required String id,
     required String title,
-    String? notes, // Pridané
+    String? notes,
     required String hash,
     required DateTime createdAt,
     required DateTime deadLine,
     required String createdById,
-
-    // Nové polia
-    required TaskState state, // Teraz už máme enum
+    required TaskState state,
     required SubtaskMode subtaskMode,
     @Default(true) bool requiresAuthenticationToComplete,
+    String? allowedDomain,
   }) = _TaskListModel;
 
   factory TaskListModel.fromJson(Map<String, dynamic> json) => _$TaskListModelFromJson(json);

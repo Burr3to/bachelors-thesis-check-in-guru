@@ -25,6 +25,7 @@ _TaskPublicDetailModel _$TaskPublicDetailModelFromJson(
           )
           .toList() ??
       const [],
+  allowedDomain: json['allowedDomain'] as String?,
 );
 
 Map<String, dynamic> _$TaskPublicDetailModelToJson(
@@ -39,6 +40,7 @@ Map<String, dynamic> _$TaskPublicDetailModelToJson(
   'subtaskMode': _$SubtaskModeEnumMap[instance.subtaskMode]!,
   'requiresAuthenticationToComplete': instance.requiresAuthenticationToComplete,
   'subtasks': instance.subtasks,
+  'allowedDomain': instance.allowedDomain,
 };
 
 const _$TaskStateEnumMap = {
@@ -47,4 +49,4 @@ const _$TaskStateEnumMap = {
   TaskState.completed: 2,
 };
 
-const _$SubtaskModeEnumMap = {SubtaskMode.shared: 1, SubtaskMode.individual: 2};
+const _$SubtaskModeEnumMap = {SubtaskMode.shared: 0, SubtaskMode.individual: 1};

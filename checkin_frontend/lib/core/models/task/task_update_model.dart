@@ -15,6 +15,8 @@ sealed class TaskUpdateModel with _$TaskUpdateModel {
 
     @Default([]) List<String> invitedEmails,
     @Default([]) List<SubtaskTemplateCreateModel> subtasks,
+    String? allowedDomain,
+
   }) = _TaskUpdateModel;
 
   factory TaskUpdateModel.fromJson(Map<String, dynamic> json) =>

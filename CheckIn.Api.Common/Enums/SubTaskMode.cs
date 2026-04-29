@@ -2,6 +2,6 @@ namespace CheckIn.Api.Common.Enums;
 
 public enum SubtaskMode
 {
-	Shared = 1,
-	Individual = 2
+    Shared = 0, //predtym 1
+    Individual = 1 //predtym 2
 }

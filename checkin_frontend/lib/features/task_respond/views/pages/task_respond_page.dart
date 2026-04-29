@@ -10,11 +10,11 @@ import '../../../../core/shared_widgets/primary_button.dart';
 import '../../../../core/utils/app_snack_bar.dart';
 import '../../../../core/utils/l10n_extensions.dart';
 import '../../../auth/views/providers/auth_provider.dart';
+import '../../../task_overview/data/models/subtask_combined_list_model.dart';
 import '../widgets/login_required_view.dart';
 import '../widgets/respondent_signature_field.dart';
 import '../widgets/subtask_list_card.dart';
 import '../widgets/task_header.dart';
-
 
 class TaskRespondPage extends ConsumerStatefulWidget {
   final String taskHash;
@@ -70,98 +70,122 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
-    return Scaffold(
-      appBar: AppTopBar(),
-      backgroundColor: cs.surface,
-      body: asyncData.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, s) {
-          // PRIDAJ TENTO PRINT PRE DEBUG:
-          print("FLUTTER ERROR CAUGHT: $e");
-          return _buildErrorState(ref, e);
-        },
-        data: (publicTask) {
-          if (publicTask.requiresAuthenticationToComplete && auth == null) {
-            return const LoginRequiredView();
-          }
+    return asyncData.when(
+      loading: () => Scaffold(
+        appBar: const _SimpleAppBar(), // Kým sa načítava, ukážeme aspoň logo
+        body: const Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, s) => Scaffold(appBar: const _SimpleAppBar(), body: _buildErrorState(ref, e)),
+      data: (dynamic publicTask) {
+        final List<SubtaskCombinedListModel> subtasks = List<SubtaskCombinedListModel>.from(
+          publicTask.subtasks,
+        );
 
-          final bool isMainTaskOnly = publicTask.subtasks.isNotEmpty &&
-              publicTask.subtasks.every((s) => s.isGeneratedFromTask);
+        final bool hasAnyCompleted = subtasks.any((SubtaskCombinedListModel s) => s.isCompleted);
 
-          // Ak je to hlavný task a ešte nie je vybraný v set-e, pridáme ho tam automaticky
-          if (isMainTaskOnly && !publicTask.subtasks.first.isCompleted) {
-            if (!_selectedIds.contains(publicTask.subtasks.first.id)) {
-              Future.microtask(() => setState(() {
-                _selectedIds.add(publicTask.subtasks.first.id);
-              }));
-            }
-          }
+        if (publicTask.requiresAuthenticationToComplete && auth == null) {
+          return const Scaffold(appBar: _SimpleAppBar(), body: LoginRequiredView());
+        }
 
-          final hasPendingTasks = publicTask.subtasks.any((s) => !s.isCompleted);
+        // --- HLAVNÁ ZMENA: Prepínanie AppBar-u ---
+        return Scaffold(
+          // ZMENA: hasAnyCompleted namiesto allCompleted
+          appBar: hasAnyCompleted ? const AppTopBar() : const _SimpleAppBar(),
+          backgroundColor: cs.surface,
+          body: _buildTaskBody(publicTask, auth, cs),
+        );
+      },
+    );
+  }
 
-          return Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 600),
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    TaskHeader(
-                      title: publicTask.title,
-                      notes: publicTask.notes,
-                      deadline: publicTask.deadLine,
-                    ),
+  // Vyčlenil som body do samostatnej metódy pre lepšiu prehľadnosť
+  Widget _buildTaskBody(dynamic publicTask, UserProfile? auth, ColorScheme cs) {
+    final List<SubtaskCombinedListModel> subtasks = List<SubtaskCombinedListModel>.from(
+      publicTask.subtasks,
+    );
 
-                    if (!isMainTaskOnly) ...[
-                      Text(context.l10n.respond_tasks_label, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: cs.onSurface)),
-                      const SizedBox(height: 8),
-                      SubtaskListCard(
-                        subtasks: publicTask.subtasks,
-                        selectedIds: _selectedIds,
-                        onSelectionChanged: (id, isSelected) {
-                          setState(() {
-                            isSelected ? _selectedIds.add(id) : _selectedIds.remove(id);
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 24),
-                    ],
+    final bool isMainTaskOnly =
+        subtasks.isNotEmpty &&
+        subtasks.every((SubtaskCombinedListModel s) => s.isGeneratedFromTask);
 
+    if (isMainTaskOnly && subtasks.isNotEmpty && !subtasks.first.isCompleted) {
+      if (!_selectedIds.contains(subtasks.first.id)) {
+        Future.microtask(
+          () => setState(() {
+            _selectedIds.add(subtasks.first.id);
+          }),
+        );
+      }
+    }
 
-                    const SizedBox(height: 24),
-                    if (hasPendingTasks) ...[
-                      // Ak je to main task only, môžeme tu pridať malý text "Please sign to complete this task"
-                      if (isMainTaskOnly && auth == null)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: Text(context.l10n.respond_sign_hint,
-                              style: TextStyle(fontStyle: FontStyle.italic, color: cs.onSurfaceVariant)),
-                        ),
-                      RespondentSignatureField(
-                        auth: auth,
-                        controller: _nameCtrl,
-                        onChanged: () => setState(() {}),
-                      ),
-                      const SizedBox(height: 24),
-                      _buildSubmitButton(auth, isMainTaskOnly, cs), // Pridaný parameter
-                    ] else ...[
-                      _buildAllCompletedBadge(cs),
-                    ],
-                    const SizedBox(height: 40),
-                  ],
-                ),
+    final bool hasPendingTasks = subtasks.any((SubtaskCombinedListModel s) => !s.isCompleted);
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 600),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TaskHeader(
+                title: publicTask.title,
+                notes: publicTask.notes,
+                deadline: publicTask.deadLine,
               ),
-            ),
-          );
-        },
+
+              if (!isMainTaskOnly) ...[
+                Text(
+                  context.l10n.respond_tasks_label,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+                const SizedBox(height: 8),
+                SubtaskListCard(
+                  subtasks: publicTask.subtasks,
+                  selectedIds: _selectedIds,
+                  onSelectionChanged: (id, isSelected) {
+                    setState(() {
+                      isSelected ? _selectedIds.add(id) : _selectedIds.remove(id);
+                    });
+                  },
+                ),
+                const SizedBox(height: 24),
+              ],
+
+              const SizedBox(height: 24),
+              if (hasPendingTasks) ...[
+                if (isMainTaskOnly && auth == null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Text(
+                      context.l10n.respond_sign_hint,
+                      style: TextStyle(fontStyle: FontStyle.italic, color: cs.onSurfaceVariant),
+                    ),
+                  ),
+                RespondentSignatureField(
+                  auth: auth,
+                  controller: _nameCtrl,
+                  onChanged: () => setState(() {}),
+                ),
+                const SizedBox(height: 24),
+                _buildSubmitButton(auth, isMainTaskOnly, cs),
+              ] else ...[
+                _buildAllCompletedBadge(cs),
+              ],
+              const SizedBox(height: 40),
+            ],
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildSubmitButton(UserProfile? auth, bool isMainTaskOnly, ColorScheme cs) {
-    final bool isDisabled = _isLoading || _selectedIds.isEmpty || (auth == null && _nameCtrl.text.isEmpty);
-    String buttonText = isMainTaskOnly ? context.l10n.respond_btn_sign_send : context.l10n.respond_btn_submit(_selectedIds.length);
+    final bool isDisabled =
+        _isLoading || _selectedIds.isEmpty || (auth == null && _nameCtrl.text.isEmpty);
+    String buttonText = isMainTaskOnly
+        ? context.l10n.respond_btn_sign_send
+        : context.l10n.respond_btn_submit(_selectedIds.length);
 
     return SizedBox(
       height: 52,
@@ -180,12 +204,14 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
     );
   }
 
-
   Widget _buildAllCompletedBadge(ColorScheme cs) {
     return Card(
       color: Colors.green.withAlpha(50),
       elevation: 0,
-      shape: RoundedRectangleBorder(side: const BorderSide(color: Colors.green), borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(
+        side: const BorderSide(color: Colors.green),
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Row(
@@ -193,7 +219,10 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
           children: [
             const Icon(Icons.check_circle, color: Colors.green),
             const SizedBox(width: 8),
-            Text(context.l10n.respond_all_completed, style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+            Text(
+              context.l10n.respond_all_completed,
+              style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+            ),
           ],
         ),
       ),
@@ -236,17 +265,62 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
           children: [
             Icon(icon, size: 80, color: cs.primary),
             const SizedBox(height: 24),
-            Text(title, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: cs.onSurface)),
+            Text(
+              title,
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: cs.onSurface),
+            ),
             const SizedBox(height: 12),
-            Text(message, style: TextStyle(fontSize: 16, color: cs.onSurfaceVariant), textAlign: TextAlign.center),
+            Text(
+              message,
+              style: TextStyle(fontSize: 16, color: cs.onSurfaceVariant),
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 32),
             if (showLoginButton)
-              PrimaryButton(text: context.l10n.auth_askforlogin, onPressed: () => context.push('/login'))
+              PrimaryButton(
+                text: context.l10n.auth_askforlogin,
+                onPressed: () => context.push('/login'),
+              )
             else
-              OutlinedButton(onPressed: () => context.go('/'), child: Text(context.l10n.common_back_to_home)),
+              OutlinedButton(
+                onPressed: () => context.go('/'),
+                child: Text(context.l10n.common_back_to_home),
+              ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _SimpleAppBar extends StatelessWidget implements PreferredSizeWidget {
+  const _SimpleAppBar();
+
+  @override
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return AppBar(
+      backgroundColor: cs.surface,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      automaticallyImplyLeading: false,
+      centerTitle: false, // Logo ostane vľavo
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.check_circle_outline_rounded, size: 32, color: Colors.blueAccent),
+          const SizedBox(width: 10),
+          Text(
+            'CheckInGuru',
+            style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.bold, fontSize: 18),
+          ),
+        ],
+      ),
+      // Ak by si chcel aj tu prepínač témy, môžeš ho pridať do actions: []
     );
   }
 }

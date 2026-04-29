@@ -32,4 +32,4 @@ Map<String, dynamic> _$TaskSummaryStatsToJson(_TaskSummaryStats instance) =>
       'completedSubtasks': instance.completedSubtasks,
     };
 
-const _$SubtaskModeEnumMap = {SubtaskMode.shared: 1, SubtaskMode.individual: 2};
+const _$SubtaskModeEnumMap = {SubtaskMode.shared: 0, SubtaskMode.individual: 1};

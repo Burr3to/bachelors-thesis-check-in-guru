@@ -73,9 +73,7 @@ final taskListProvider = FutureProvider.autoDispose<QueryResult<TaskListModel>>(
     sortBy: query.sortBy,
     sortDesc: query.sortDesc,
     nameContains: query.nameContains,
-    mode: query.mode != null
-        ? query.mode!.index + 1
-        : null, // ! For a fix change enum in BE .Common, will break database
+      mode: query.mode?.index,
     status: query.status?.index,
     requiresAuth: query.requiresAuth,
     onlyOverdue: query.onlyOverdue,

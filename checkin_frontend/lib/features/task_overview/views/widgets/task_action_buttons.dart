@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import '../../../../core/providers/task_providers.dart';
+import '../../../../core/utils/app_snack_bar.dart';
 import '../../../../core/utils/l10n_extensions.dart';
 
 class TaskActionButtons extends ConsumerStatefulWidget {
@@ -113,11 +114,9 @@ class _TaskActionButtonsState extends ConsumerState<TaskActionButtons> {
           onPressed: () async {
             await Clipboard.setData(ClipboardData(text: widget.taskLink));
             if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(context.l10n.overview_msg_copied),
-                  duration: const Duration(seconds: 2),
-                ),
+              AppSnackBar.showInfo(
+                context,
+                context.l10n.overview_msg_copied,
               );
             }
           },

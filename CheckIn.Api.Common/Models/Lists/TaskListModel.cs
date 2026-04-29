@@ -9,6 +9,7 @@ public record TaskListModel : IEntityModel
     public Guid Id { get; init; }
     public required string Title { get; init; }
     public string? Notes { get; init; }
+    public string? AllowedDomain { get; set; }
 
     public required string Hash { get; init; }
     public DateTime CreatedAt { get; init; }

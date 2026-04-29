@@ -26,6 +26,7 @@ _TaskUpdateModel _$TaskUpdateModelFromJson(Map<String, dynamic> json) =>
               )
               .toList() ??
           const [],
+      allowedDomain: json['allowedDomain'] as String?,
     );
 
 Map<String, dynamic> _$TaskUpdateModelToJson(_TaskUpdateModel instance) =>
@@ -36,4 +37,5 @@ Map<String, dynamic> _$TaskUpdateModelToJson(_TaskUpdateModel instance) =>
       'deadLine': instance.deadLine.toIso8601String(),
       'invitedEmails': instance.invitedEmails,
       'subtasks': instance.subtasks,
+      'allowedDomain': instance.allowedDomain,
     };

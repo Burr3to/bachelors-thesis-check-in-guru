@@ -29,6 +29,8 @@ _TaskCreateModel _$TaskCreateModelFromJson(Map<String, dynamic> json) =>
               .toList() ??
           const [],
       sendInvitesImmediately: json['sendInvitesImmediately'] as bool? ?? false,
+      allowedDomain: json['allowedDomain'] as String?,
+      isDomainValid: json['isDomainValid'] as bool? ?? null,
     );
 
 Map<String, dynamic> _$TaskCreateModelToJson(
@@ -42,6 +44,7 @@ Map<String, dynamic> _$TaskCreateModelToJson(
   'subtasks': instance.subtasks,
   'invitedEmails': instance.invitedEmails,
   'sendInvitesImmediately': instance.sendInvitesImmediately,
+  'allowedDomain': instance.allowedDomain,
 };
 
-const _$SubtaskModeEnumMap = {SubtaskMode.shared: 1, SubtaskMode.individual: 2};
+const _$SubtaskModeEnumMap = {SubtaskMode.shared: 0, SubtaskMode.individual: 1};

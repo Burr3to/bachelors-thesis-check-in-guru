@@ -6,6 +6,7 @@ public record TaskCreateModel
 {
     public required string Title { get; init; }
     public string? Notes { get; init; }
+    public string? AllowedDomain { get; set; }
     public DateTime DeadLine { get; init; }
 
 

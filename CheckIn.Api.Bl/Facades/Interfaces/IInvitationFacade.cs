@@ -22,4 +22,5 @@ public interface IInvitationFacade :
     Task<Result<bool>> SendInvitationsForTaskAsync(Guid taskId, List<string>? specificEmails = null);
     Task<Result<bool>> SendRemindersForTaskAsync(Guid taskId);
     Task<List<string>> ParseEmailsAsync(string rawText);
+    Task<bool> ValidateDomainAsync(string domain);
 }

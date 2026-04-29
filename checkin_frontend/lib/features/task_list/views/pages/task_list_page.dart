@@ -130,7 +130,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                           padding: const EdgeInsets.only(bottom: 100),
                           gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                             maxCrossAxisExtent: 700,
-                            mainAxisExtent: 290,
+                            mainAxisExtent: 260,
                             crossAxisSpacing: 20,
                             mainAxisSpacing: 20,
                           ),

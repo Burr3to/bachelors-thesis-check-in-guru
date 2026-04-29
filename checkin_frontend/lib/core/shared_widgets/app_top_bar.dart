@@ -20,9 +20,12 @@ class AppTopBar extends ConsumerWidget implements PreferredSizeWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return AppBar(
-      // Používame surface farbu z témy (v light biela, v dark tmavošedá/čierna)
       backgroundColor: colorScheme.surface,
       surfaceTintColor: Colors.transparent,
+      // Tieň pri scrollovaní
+      elevation: 0,
+      scrolledUnderElevation: 3,
+      shadowColor: colorScheme.shadow.withAlpha(200),
       automaticallyImplyLeading: false,
       title: Row(
         children: [
@@ -41,7 +44,6 @@ class AppTopBar extends ConsumerWidget implements PreferredSizeWidget {
               color: Colors.blueAccent,
             ),
             onPressed: () {
-              // Riverpod 3 Notifier syntax:
               ref.read(themeProvider.notifier).toggleTheme();
             },
           ),
@@ -58,7 +60,7 @@ class AppTopBar extends ConsumerWidget implements PreferredSizeWidget {
   }
 }
 
-// --- LOGO ---
+// --- LOGO (Nezmenené) ---
 class _LogoSection extends StatelessWidget {
   const _LogoSection();
 
@@ -77,7 +79,6 @@ class _LogoSection extends StatelessWidget {
             Text(
               'CheckInGuru',
               style: TextStyle(
-                // onSurface sa automaticky zmení na bielu v dark móde
                 color: Theme.of(context).colorScheme.onSurface,
                 fontWeight: FontWeight.bold,
               ),
@@ -89,12 +90,12 @@ class _LogoSection extends StatelessWidget {
   }
 }
 
+// --- NAVIGÁCIA (Nezmenené) ---
 class _NavigationSection extends StatelessWidget {
   const _NavigationSection();
 
   @override
   Widget build(BuildContext context) {
-    // Získame aktuálnu cestu, aby sme vedeli zvýrazniť aktívny button
     final String location = GoRouterState.of(context).uri.path;
 
     return Row(
@@ -106,12 +107,18 @@ class _NavigationSection extends StatelessWidget {
             '/welcome',
             isActive: location == '/welcome'
         ),
-        const SizedBox(width: 8), // Medzera medzi buttonmi
+        const SizedBox(width: 8),
         _navButton(
             context,
             context.l10n.nav_my_tasks,
             '/tasks',
-            isActive: location.startsWith('/tasks')
+            isActive: location.startsWith('/tasks') && !location.startsWith('/tasks/create')
+        ),
+        _navButton(
+            context,
+            "Create Task",
+            '/tasks/create',
+            isActive: location.startsWith('/tasks/create')
         ),
       ],
     );
@@ -141,8 +148,8 @@ class _NavigationSection extends StatelessWidget {
           title,
           style: TextStyle(
             color: isActive ? cs.primary : cs.onSurface.withAlpha(180),
-            fontSize: 19,
-            fontWeight: isActive ? FontWeight.normal : FontWeight.normal,
+            fontSize: 16, // Jemne zmenšené z 19 pre lepší balans
+            fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
           ),
         ),
       ),
@@ -150,7 +157,7 @@ class _NavigationSection extends StatelessWidget {
   }
 }
 
-// --- PROFIL PRIHLÁSENÉHO POUŽÍVATEĽA ---
+// --- PROFIL PRIHLÁSENÉHO POUŽÍVATEĽA (UPRAVENÉ) ---
 class _UserAccountSection extends ConsumerWidget {
   final dynamic user;
   const _UserAccountSection({required this.user});
@@ -159,50 +166,56 @@ class _UserAccountSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        // Požiadavka: Modrý border
-        border: Border.all(color: Colors.blueAccent.withAlpha(125), width: 2),
-      ),
-      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
-      child: Row(
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                user.name ?? "",
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: colorScheme.onSurface, // Biely v dark, čierny v light
-                ),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              user.name ?? "",
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: colorScheme.onSurface,
               ),
-              Text(
-                user.email ?? "",
-                style: TextStyle(
-                  fontSize: 13,
-                  color: colorScheme.onSurfaceVariant, // Jemnejší text, viditeľný v oboch módoch
-                ),
+            ),
+            Text(
+              user.email ?? "",
+              style: TextStyle(
+                fontSize: 13,
+                color: colorScheme.onSurfaceVariant,
               ),
-            ],
+            ),
+          ],
+        ),
+        const SizedBox(width: 12),
+        // Elegantný Avatar namiesto bordera
+        CircleAvatar(
+          radius: 18,
+          backgroundColor: Colors.blueAccent.withAlpha(40),
+          child: Text(
+            (user.name ?? "U").substring(0, 1).toUpperCase(),
+            style: const TextStyle(
+              color: Colors.blueAccent,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
           ),
-          const SizedBox(width: 12),
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.redAccent, size: 20),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            onPressed: () => ref.read(authProvider.notifier).signOut(),
-          ),
-        ],
-      ),
+        ),
+        const SizedBox(width: 4),
+        IconButton(
+          icon: Icon(Icons.logout_rounded, color: colorScheme.onSurfaceVariant, size: 20),
+          tooltip: 'Logout',
+          onPressed: () => ref.read(authProvider.notifier).signOut(),
+        ),
+      ],
     );
   }
 }
 
-// --- TLAČIDLO PRIHLÁSIŤ ---
+// --- LOGIN (Nezmenené) ---
 class _LoginButtonSection extends ConsumerWidget {
   const _LoginButtonSection();
 
@@ -221,7 +234,7 @@ class _LoginButtonSection extends ConsumerWidget {
   }
 }
 
-// --- PREPÍNAČ JAZYKA ---
+// --- PREPÍNAČ JAZYKA (Nezmenené) ---
 class _LanguageSwitch extends ConsumerWidget {
   const _LanguageSwitch();
 

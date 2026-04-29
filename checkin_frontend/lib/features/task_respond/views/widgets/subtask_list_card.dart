@@ -1,13 +1,9 @@
 import 'package:checkin_frontend/features/task_overview/data/models/subtask_combined_list_model.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-
 import '../../../../core/utils/l10n_extensions.dart';
-// Tu si doplň správny import pre tvoj model
-// import '.../public_task_model.dart';
 
 class SubtaskListCard extends StatelessWidget {
-  final List<SubtaskCombinedListModel> subtasks; // Nahraď správnym typom Subtask
+  final List<SubtaskCombinedListModel> subtasks;
   final Set<String> selectedIds;
   final Function(String, bool) onSelectionChanged;
 
@@ -42,6 +38,9 @@ class SubtaskListCard extends StatelessWidget {
           final subtask = visibleSubtasks[index];
           final isDone = subtask.isCompleted;
 
+          // Kontrola, či subtask má platný popis
+          final bool hasDescription = subtask.description != null && subtask.description!.trim().isNotEmpty;
+
           if (isDone) {
             return ListTile(
               leading: const Icon(Icons.check_circle, color: Colors.green),
@@ -64,15 +63,25 @@ class SubtaskListCard extends StatelessWidget {
               ),
             );
           }
+
           return CheckboxListTile(
             value: selectedIds.contains(subtask.id),
             onChanged: (val) => onSelectionChanged(subtask.id, val ?? false),
-            title: Text(subtask.title, style: TextStyle(color: cs.onSurface)),
-            subtitle: subtask.description != null
-                ? Text(subtask.description!, style: TextStyle(color: cs.onSurfaceVariant))
-                : null,
+            // Title sa vycentruje automaticky, ak subtitle dostane null
+            title: Text(
+              subtask.title,
+              style: TextStyle(color: cs.onSurface),
+            ),
+            subtitle: hasDescription
+                ? Text(
+              subtask.description!,
+              style: TextStyle(color: cs.onSurfaceVariant),
+            )
+                : null, // Ak nie je popis, posielame null -> title sa vycentruje
             activeColor: cs.primary,
             controlAffinity: ListTileControlAffinity.leading,
+            // isThreeLine: false zabezpečí, že ak nie je subtitle, title bude v strede
+            isThreeLine: false,
           );
         },
       ),

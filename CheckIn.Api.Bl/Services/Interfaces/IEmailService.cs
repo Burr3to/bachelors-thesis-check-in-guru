@@ -9,5 +9,6 @@ public interface IEmailService
 
     List<string> ParseEmails(string rawText);
 
-    Task<bool> IsDomainValidAsync(string email);
+    Task<bool> IsDomainValidAsync(string domain);
+    Task<bool> IsEmailDomainValidAsync(string email);
 }

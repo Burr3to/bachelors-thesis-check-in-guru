@@ -18,6 +18,8 @@ sealed class TaskPublicDetailModel with _$TaskPublicDetailModel {
     required SubtaskMode subtaskMode,
     required bool requiresAuthenticationToComplete,
     @Default([]) List<SubtaskCombinedListModel> subtasks,
+    String? allowedDomain,
+
   }) = _TaskPublicDetailModel;
 
   factory TaskPublicDetailModel.fromJson(Map<String, dynamic> json) =>
