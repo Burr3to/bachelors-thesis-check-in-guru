@@ -10,6 +10,7 @@ sealed class SubtaskTemplateListModel with _$SubtaskTemplateListModel {
     required String title,
     String? description,
     required String parentTaskId,
+    DateTime? createdAt,
     @Default(false) bool isGeneratedFromTask
 
   }) = _SubtaskTemplateListModel;

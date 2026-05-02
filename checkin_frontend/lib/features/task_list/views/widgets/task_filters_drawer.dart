@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/models/enums/task_enums.dart';
 import '../../../../core/providers/task_providers.dart';
 import '../../../../core/utils/l10n_extensions.dart';
+import '../../data/models/query/task_list_query.dart';
 
 class TaskFiltersDrawer extends ConsumerWidget {
   const TaskFiltersDrawer({super.key});
@@ -12,6 +15,8 @@ class TaskFiltersDrawer extends ConsumerWidget {
     final query = ref.watch(taskQueryProvider);
     final notifier = ref.read(taskQueryProvider.notifier);
     final cs = Theme.of(context).colorScheme;
+    final hasFilters = query.hasFilters;
+    final filterCount = query.activeFilterCount;
 
     return Drawer(
       width: 350,
@@ -31,11 +36,7 @@ class TaskFiltersDrawer extends ConsumerWidget {
                 const SizedBox(height: 12),
                 Text(
                   context.l10n.tasks_filter_title,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: cs.onSurface,
-                  ),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: cs.onSurface),
                 ),
               ],
             ),
@@ -52,24 +53,33 @@ class TaskFiltersDrawer extends ConsumerWidget {
                   dropdownColor: cs.surfaceContainerHigh, // Farba dropdown menu
                   decoration: _inputDecoration(cs),
                   items: [
-                    DropdownMenuItem(value: "createdat", child: Text(context.l10n.tasks_filter_created_at)),
-                    DropdownMenuItem(value: "deadline", child: Text(context.l10n.tasks_filter_deadline)),
-                    DropdownMenuItem(value: "title", child: Text(context.l10n.tasks_filter_title_field)),
+                    DropdownMenuItem(
+                      value: "createdat",
+                      child: Text(context.l10n.tasks_filter_created_at),
+                    ),
+                    DropdownMenuItem(
+                      value: "deadline",
+                      child: Text(context.l10n.tasks_filter_deadline),
+                    ),
+                    DropdownMenuItem(
+                      value: "title",
+                      child: Text(context.l10n.tasks_filter_title_field),
+                    ),
                   ],
                   onChanged: (val) => notifier.setSort(val!, query.sortDesc),
                 ),
                 const SizedBox(height: 8),
                 SwitchListTile(
-                  title: Text(context.l10n.tasks_filter_descending, style: const TextStyle(fontSize: 14)),
+                  title: Text(
+                    context.l10n.tasks_filter_descending,
+                    style: const TextStyle(fontSize: 14),
+                  ),
                   value: query.sortDesc,
                   activeColor: cs.primary,
                   onChanged: (val) => notifier.setSort(query.sortBy, val),
                 ),
 
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8.0),
-                  child: Divider(),
-                ),
+                const Padding(padding: EdgeInsets.symmetric(vertical: 8.0), child: Divider()),
 
                 // 2. COOPERATION MODE (Toggle logika)
                 _buildSectionTitle(cs, context.l10n.tasks_filter_mode),
@@ -119,32 +129,41 @@ class TaskFiltersDrawer extends ConsumerWidget {
 
                 // 4. STATUS SPECIAL
                 _buildSectionTitle(cs, context.l10n.tasks_filter_status),
-                Container(
-                  decoration: BoxDecoration(
-                    color: cs.surfaceContainerLowest,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: cs.outlineVariant.withAlpha(50)),
-                  ),
-                  child: Column(
-                    children: [
-                      CheckboxListTile(
-                        title: Text(context.l10n.tasks_filter_active_only, style: const TextStyle(fontWeight: FontWeight.w500)),
-                        subtitle: Text(context.l10n.tasks_filter_active_subtitle, style: const TextStyle(fontSize: 12)),
-                        value: query.onlyActive ?? false,
-                        activeColor: cs.primary,
-                        onChanged: (val) => notifier.setOnlyActive(val ?? false),
-                      ),
-                      const Divider(height: 1),
-                      CheckboxListTile(
-                        title: Text(context.l10n.tasks_filter_overdue_only, style: const TextStyle(fontWeight: FontWeight.w500)),
-                        subtitle: Text(context.l10n.tasks_filter_overdue_subtitle, style: const TextStyle(fontSize: 12)),
-                        value: query.onlyOverdue ?? false,
-                        activeColor: cs.error,
-                        onChanged: (val) => notifier.setOverdue(val ?? false),
-                      ),
-                    ],
-                  ),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _FilterChip(
+                      label: "In Progress",
+                      selected: query.status == TaskState.inProgress,
+                      onSelected: (selected) =>
+                          notifier.setStatus(selected ? TaskState.inProgress : null),
+                    ),
+                    _FilterChip(
+                      label: "Completed",
+                      selected: query.status == TaskState.completed,
+                      onSelected: (selected) =>
+                          notifier.setStatus(selected ? TaskState.completed : null),
+                    ),
+                    _FilterChip(
+                      label: "Missed",
+                      selected: query.status == TaskState.missed,
+                      onSelected: (selected) =>
+                          notifier.setStatus(selected ? TaskState.missed : null),
+                    ),
+                  ],
                 ),
+
+                const SizedBox(height: 24),
+
+                _buildSectionTitle(cs, "Respondent / Assignee"),
+                _RespondentEmailFilter(
+                  initialValue: query.respondentEmail,
+                  onChanged: (email) => notifier.setRespondentEmail(email),
+                ),
+
+                const SizedBox(height: 24),
+
               ],
             ),
           ),
@@ -208,11 +227,7 @@ class _FilterChip extends StatelessWidget {
   final bool selected;
   final Function(bool) onSelected;
 
-  const _FilterChip({
-    required this.label,
-    required this.selected,
-    required this.onSelected,
-  });
+  const _FilterChip({required this.label, required this.selected, required this.onSelected});
 
   @override
   Widget build(BuildContext context) {
@@ -233,6 +248,81 @@ class _FilterChip extends StatelessWidget {
           color: selected ? cs.primary : cs.outlineVariant,
           width: selected ? 1.5 : 1,
         ),
+      ),
+    );
+  }
+}
+
+class _RespondentEmailFilter extends ConsumerStatefulWidget {
+  final String? initialValue;
+  final Function(String?) onChanged;
+
+  const _RespondentEmailFilter({required this.initialValue, required this.onChanged});
+
+  @override
+  ConsumerState<_RespondentEmailFilter> createState() => _RespondentEmailFilterState();
+}
+
+class _RespondentEmailFilterState extends ConsumerState<_RespondentEmailFilter> {
+  late TextEditingController _controller;
+  Timer? _debounce;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue);
+  }
+
+  @override
+  void didUpdateWidget(_RespondentEmailFilter oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Ak sa filter zresetuje zvonku, vymažeme aj text v poli
+    if (widget.initialValue == null && _controller.text.isNotEmpty) {
+      _controller.clear();
+    }
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged(String value) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      widget.onChanged(value.trim().isEmpty ? null : value.trim());
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return TextField(
+      controller: _controller,
+      onChanged: _onSearchChanged,
+      style: const TextStyle(fontSize: 14),
+      decoration: InputDecoration(
+        filled: true,
+        fillColor: cs.surfaceContainerLow,
+        hintText: "Search email...",
+        prefixIcon: const Icon(Icons.person_search, size: 20),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+        suffixIcon: _controller.text.isNotEmpty
+            ? IconButton(
+                icon: const Icon(Icons.clear, size: 16),
+                onPressed: () {
+                  _controller.clear();
+                  _onSearchChanged("");
+                },
+              )
+            : null,
       ),
     );
   }

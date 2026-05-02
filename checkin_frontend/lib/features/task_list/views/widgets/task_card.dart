@@ -38,7 +38,7 @@ class TaskCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildDeadlineBadge(cs, isOverdue, context),
+                  _buildDeadlineBadge(cs, context),
 
                   // Skupina ikoniek na pravej strane
                   Row(
@@ -116,21 +116,45 @@ class TaskCard extends StatelessWidget {
     );
   }
 
-  Widget _buildDeadlineBadge(ColorScheme cs, bool isOverdue, BuildContext context) {
-    final bgColor = isOverdue ? cs.errorContainer : cs.primaryContainer;
-    final textColor = isOverdue ? cs.onErrorContainer : cs.onPrimaryContainer;
+  Widget _buildDeadlineBadge(ColorScheme cs, BuildContext context) {
+    final state = task.state;
+
+    // Definujeme farbu badge-u podľa stavu
+    // Použijeme priamo farby z tvojho enumu, alebo ich jemne upravíme pre Material 3
+    final Color baseColor = state.color;
+
+    // M3 štýl: jemné pozadie, výrazný text
+    final Color bgColor = baseColor.withOpacity(0.15);
+    final Color contentColor = baseColor;
+
+    // Ikona sa zmení na "fajku", ak je hotovo
+    final IconData statusIcon = state == TaskState.completed
+        ? Icons.check_circle_outline
+        : Icons.alarm;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(8)),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: contentColor.withOpacity(0.3)),
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.alarm, size: 14, color: textColor),
+          Icon(statusIcon, size: 14, color: contentColor),
           const SizedBox(width: 6),
           Text(
-            DateFormatter.formatRelativeDeadline(context, task.deadLine),
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textColor),
+            // Ak je Completed, môžeme napísať "COMPLETED"
+            // alebo nechať dátum. Navrhujem:
+            state == TaskState.completed
+                ? context.l10n.nav_my_tasks.toUpperCase() // alebo len "DONE"
+                : DateFormatter.formatRelativeDeadline(context, task.deadLine),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: contentColor,
+            ),
           ),
         ],
       ),

@@ -41,7 +41,7 @@ public class SubtaskInstanceFacade(
     protected override Func<IQueryable<SubtaskInstanceEntity>, IOrderedQueryable<SubtaskInstanceEntity>> CreateOrderBy(
         SubtaskInstanceQuery query)
     {
-        return q => q.OrderBy(e => e.Id);
+        return q => q.OrderBy(e => e.TemplateSubtask.CreatedAt).ThenBy(e => e.TemplateSubtaskId);
     }
 
 
@@ -148,6 +148,11 @@ public class SubtaskInstanceFacade(
             }
         }
 
+        if (taskId.HasValue)
+        {
+            // PRIDANÉ: Skontrolujeme, či táto zmena nedokončila celý Task
+            await CheckAndSetTaskCompletionAsync(taskId.Value);
+        }
 
         await dbContext.SaveChangesAsync();
         Console.WriteLine($"[BULK] Zmeny uložené do DB. TaskId: {taskId}");
@@ -179,5 +184,59 @@ public class SubtaskInstanceFacade(
 
 
         return Result<int>.Success(completedCount);
+    }
+
+
+    private async Task CheckAndSetTaskCompletionAsync(Guid taskId)
+    {
+        var task = await dbContext.Set<TaskEntity>()
+            .Include(t => t.Invitations)
+            .Include(t => t.Subtasks)
+            .ThenInclude(st => st.Instances)
+            .FirstOrDefaultAsync(t => t.Id == taskId);
+
+        if (task == null || task.State == TaskState.Completed) return;
+
+        bool isAllDone = false;
+
+        if (task.SubtaskMode == SubtaskMode.Shared)
+        {
+            // SHARED: Každá šablóna musí mať aspoň jednu splnenú inštanciu
+            isAllDone = task.Subtasks.All(st => st.Instances.Any(i => i.IsCompleted));
+        }
+        else
+        {
+            // INDIVIDUAL: Všetci pozvaní respondenti musia mať hotovo
+            // (Zisťujeme, či každý Invitation má ResponseGroup, kde sú všetky subtasky hotové)
+            var invitations = task.Invitations.Select(i => i.Email).ToList();
+
+            // Získame všetky unikátne ResponseGroupIds pre tento task
+            var groups = task.Subtasks.SelectMany(st => st.Instances)
+                .GroupBy(i => i.ResponseGroupId)
+                .Select(g => new
+                {
+                    GroupId = g.Key,
+                    AllCompleted = g.All(i => i.IsCompleted),
+                    Count = g.Count()
+                })
+                .Where(g => g.AllCompleted && g.Count == task.Subtasks.Count)
+                .ToList();
+
+            // Task je hotový, ak počet úspešných skupín zodpovedá počtu pozvánok 
+            // (Ak je task otvorený "Anyone", Completed stav v Individual móde nedáva zmysel automaticky, 
+            //  vtedy by ho musel autor zavrieť manuálne, alebo to necháme InProgress)
+            if (invitations.Any())
+            {
+                isAllDone = groups.Count >= invitations.Count;
+            }
+        }
+
+        if (isAllDone)
+        {
+            task.State = TaskState.Completed;
+            task.LastModifiedAt = DateTime.UtcNow;
+            // Tu netreba SaveChanges, ak to voláme pred hlavným uložením, 
+            // alebo ho zavoláme explicitne, ak to voláme po ňom.
+        }
     }
 }

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/providers/task_providers.dart';
 import '../../../../core/shared_widgets/primary_button.dart';
 import '../../../../core/utils/l10n_extensions.dart';
+import '../../data/models/query/task_list_query.dart';
 
 class TaskListHeader extends ConsumerStatefulWidget {
   const TaskListHeader({super.key});
@@ -37,7 +38,11 @@ class _TaskListHeaderState extends ConsumerState<TaskListHeader> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    const double commonHeight = 60.0; // Jednotná výška
+    final query = ref.watch(taskQueryProvider); // Sledujeme zmeny query
+    final filterCount = query.activeFilterCount;
+    final hasFilters = filterCount > 0;
+
+    const double commonHeight = 60.0;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 24),
@@ -78,18 +83,34 @@ class _TaskListHeaderState extends ConsumerState<TaskListHeader> {
           const SizedBox(width: 12),
 
           // 2. FILTER BUTTON
+          // 2. FILTER BUTTON s Badge
           SizedBox(
             width: commonHeight,
             height: commonHeight,
-            child: IconButton.outlined(
-              onPressed: () {
-                Scaffold.of(context).openEndDrawer();
-              },
-              icon: const Icon(Icons.filter_list),
-              style: IconButton.styleFrom(
-                backgroundColor: cs.surface,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                side: BorderSide(color: cs.outlineVariant),
+            child: Badge(
+              isLabelVisible: hasFilters,
+              label: Text('$filterCount'),
+              backgroundColor: cs.primary,
+              textColor: cs.onPrimary,
+              // OFFSET: Posunie badge doprava a nahor mimo hranice tlačidla
+              // Prvé číslo je posun doprava, druhé je posun nahor
+              offset: const Offset(2, -2),
+              child: IconButton.outlined(
+                onPressed: () => Scaffold.of(context).openEndDrawer(),
+                icon: Icon(hasFilters ? Icons.filter_alt : Icons.filter_list),
+                style: IconButton.styleFrom(
+                  // KĽÚČOVÁ OPRAVA: Fixná veľkosť tlačidla, ktorá ignoruje Badge
+                  minimumSize: const Size(commonHeight, commonHeight),
+                  fixedSize: const Size(commonHeight, commonHeight),
+
+                  backgroundColor: hasFilters ? cs.primaryContainer : cs.surface,
+                  foregroundColor: hasFilters ? cs.onPrimaryContainer : cs.onSurface,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  side: BorderSide(
+                    color: hasFilters ? cs.primary : cs.outlineVariant,
+                    width: hasFilters ? 2 : 1,
+                  ),
+                ),
               ),
             ),
           ),

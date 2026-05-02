@@ -68,6 +68,10 @@ class TaskCreateNotifier extends _$TaskCreateNotifier {
     state = state.copyWith(subtasks: [...state.subtasks, newSubtask]);
   }
 
+  void clearSubtasks() {
+    state = state.copyWith(subtasks: []);
+  }
+
   void removeSubtask(int index) {
     final list = List<SubtaskTemplateCreateModel>.from(state.subtasks);
     list.removeAt(index);

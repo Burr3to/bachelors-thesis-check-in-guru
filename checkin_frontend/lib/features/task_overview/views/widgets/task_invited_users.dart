@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/models/invitations/invitation_list_model.dart';
@@ -6,6 +7,8 @@ import '../../../../core/providers/invitation_providers.dart';
 import '../../../../core/providers/task_providers.dart';
 import '../../../../core/utils/app_snack_bar.dart';
 import '../../../../core/utils/l10n_extensions.dart';
+
+enum EditToolbarState { none, defaultEdit, addMode, removeMode }
 
 class TaskInvitedUsersWidget extends ConsumerStatefulWidget {
   final String taskId;
@@ -26,13 +29,9 @@ class TaskInvitedUsersWidget extends ConsumerStatefulWidget {
 }
 
 class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget> {
-  bool _isSending = false;
-  bool _isParsing = false;
-  bool _isDeleting = false;
+  EditToolbarState _toolbarState = EditToolbarState.none;
+  bool _isProcessing = false;
   bool _cooldownActive = false;
-  bool _showInput = false;
-  bool _isRemoving = false;
-
   final List<String> _selectedEmails = [];
   final _emailInputController = TextEditingController();
 
@@ -48,38 +47,6 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
     ref.invalidate(taskInstancesProvider(widget.taskId));
   }
 
-  /// POSLANIE NOVÝM (isSent == false)
-  Future<void> _handleSendToNew() async {
-    setState(() => _isSending = true);
-    try {
-      await ref.read(invitationApiServiceProvider).sendInvitations(widget.taskId, null);
-      if (mounted) {
-        AppSnackBar.showInfo(context, context.l10n.overview_invite_sending_msg);
-        _startCooldown();
-      }
-    } catch (e) {
-      if (mounted) AppSnackBar.showError(context, context.l10n.overview_invite_err_sending);
-    } finally {
-      if (mounted) setState(() => _isSending = false);
-    }
-  }
-
-  /// POSLANIE PRIPOMIENOK (isAccepted == false)
-  Future<void> _handleRemindPending() async {
-    setState(() => _isSending = true);
-    try {
-      await ref.read(invitationApiServiceProvider).sendReminders(widget.taskId);
-      if (mounted) {
-        AppSnackBar.showInfo(context, "Sending reminders in background...");
-        _startCooldown();
-      }
-    } catch (e) {
-      if (mounted) AppSnackBar.showError(context, "Failed to start reminders.");
-    } finally {
-      if (mounted) setState(() => _isSending = false);
-    }
-  }
-
   void _startCooldown() {
     setState(() => _cooldownActive = true);
     Future.delayed(const Duration(seconds: 30), () {
@@ -87,305 +54,376 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
     });
   }
 
-  Future<void> _handleDeleteConfirm() async {
-    if (_selectedEmails.isEmpty) return;
-    setState(() => _isDeleting = true);
+  Future<void> _handleInviteAll() async {
+    setState(() => _isProcessing = true);
     try {
-      await ref.read(taskApiServiceProvider).removeInvitations(widget.taskId, _selectedEmails);
-      if (mounted) {
-        AppSnackBar.showSuccess(context,context.l10n.overview_invite_removed_msg(_selectedEmails.length));
-        setState(() {
-          _isRemoving = false;
-          _selectedEmails.clear();
-          _isDeleting = false;
-        });
-        _refreshAll();
-      }
+      await ref.read(invitationApiServiceProvider).sendInvitations(widget.taskId, null);
+      AppSnackBar.showInfo(context, context.l10n.overview_invite_sending_msg);
+      _startCooldown();
     } catch (e) {
-      if (mounted) AppSnackBar.showError(context, "Failed to remove people.");
-      setState(() => _isDeleting = false);
+      AppSnackBar.showError(context, "Failed to send invitations.");
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
+    }
+  }
+
+  Future<void> _handleNotifyPending() async {
+    setState(() => _isProcessing = true);
+    try {
+      await ref.read(invitationApiServiceProvider).sendReminders(widget.taskId);
+      AppSnackBar.showInfo(context, "Sending reminders...");
+      _startCooldown();
+    } catch (e) {
+      AppSnackBar.showError(context, "Failed to send reminders.");
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
     }
   }
 
   Future<void> _handleParseAndAdd() async {
     final rawText = _emailInputController.text.trim();
     if (rawText.isEmpty) return;
-    setState(() => _isParsing = true);
+    setState(() => _isProcessing = true);
     try {
-      final List<String> newEmails = await ref
-          .read(invitationApiServiceProvider)
-          .parseEmails('"$rawText"');
+      final List<String> newEmails = await ref.read(invitationApiServiceProvider).parseEmails('"$rawText"');
       if (newEmails.isEmpty) {
-        if (mounted) AppSnackBar.showInfo(context, context.l10n.overview_invite_no_new_emails);
-        setState(() => _isParsing = false);
+        AppSnackBar.showInfo(context, "No valid new emails found.");
         return;
       }
-      final existingEmails = widget.invitations.map((e) => e.email).toList();
-      final updatedEmailList = {...existingEmails, ...newEmails}.toList();
-
+      final updatedEmailList = {...widget.invitations.map((e) => e.email), ...newEmails}.toList();
       final updateModel = TaskUpdateModel(
         id: widget.taskId,
         title: widget.taskTitle,
         deadLine: widget.taskDeadline,
         invitedEmails: updatedEmailList,
       );
-
       await ref.read(taskApiServiceProvider).updateTask(widget.taskId, updateModel);
-      if (mounted) {
-        AppSnackBar.showSuccess(context, context.l10n.overview_invite_added_msg(newEmails.length));
-        _emailInputController.clear();
-        setState(() {
-          _showInput = false;
-          _isParsing = false;
-        });
-        _refreshAll();
-      }
+      _emailInputController.clear();
+      setState(() => _toolbarState = EditToolbarState.defaultEdit);
+      _refreshAll();
     } catch (e) {
-      if (mounted) AppSnackBar.showError(context, "Failed to add people.");
-      setState(() => _isParsing = false);
+      AppSnackBar.showError(context, "Failed to add emails.");
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
+    }
+  }
+
+  Future<void> _handleBulkDelete() async {
+    if (_selectedEmails.isEmpty) return;
+    setState(() => _isProcessing = true);
+    try {
+      await ref.read(taskApiServiceProvider).removeInvitations(widget.taskId, _selectedEmails);
+      setState(() {
+        _selectedEmails.clear();
+        _toolbarState = EditToolbarState.defaultEdit;
+      });
+      _refreshAll();
+    } catch (e) {
+      AppSnackBar.showError(context, "Failed to remove emails.");
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
+    }
+  }
+
+  Future<void> _handleSingleDelete(String email) async {
+    setState(() => _isProcessing = true);
+    try {
+      await ref.read(taskApiServiceProvider).removeInvitations(widget.taskId, [email]);
+      _refreshAll();
+    } catch (e) {
+      AppSnackBar.showError(context, "Failed to delete.");
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bool isEditMode = _toolbarState != EditToolbarState.none;
 
-    // Smart logika pre tlačidlá
-    final bool hasUnsent = widget.invitations.any((inv) => !inv.isSent);
-    final bool hasNotAccepted = widget.invitations.any((inv) => inv.isSent && !inv.isAccepted);
+    final int totalInvited = widget.invitations.length;
+    final int completed = widget.invitations.where((i) => i.isAccepted).length;
+    final bool hasUnsent = widget.invitations.any((i) => !i.isSent);
+    final bool hasUnfinished = widget.invitations.any((i) => i.isSent && !i.isAccepted);
 
-    return Card(
-      elevation: 0,
-      color: cs.surfaceContainer,
-      shape: RoundedRectangleBorder(
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: cs.surface,
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: cs.outlineVariant),
+        border: Border.all(color: cs.primary, width: 1.2),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.people_outline, size: 18, color: cs.primary),
-                const SizedBox(width: 8),
-                Text(
-                  context.l10n.overview_invite_title(widget.invitations.length),
-                  style: TextStyle(fontWeight: FontWeight.bold, color: cs.onSurface),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // --- ROW 1: HEADER ---
+          Row(
+            children: [
+              Icon(Icons.people_outline, size: 20, color: cs.onSurfaceVariant),
+              const SizedBox(width: 8),
+              Text("Invited", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: cs.onSurface)),
+              const SizedBox(width: 12),
+              TextButton(
+                onPressed: () => setState(() => _toolbarState = isEditMode ? EditToolbarState.none : EditToolbarState.defaultEdit),
+                style: TextButton.styleFrom(
+                  foregroundColor: cs.primary,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  minimumSize: Size.zero,
+                  visualDensity: VisualDensity.compact,
                 ),
-                const SizedBox(width: 16),
-
-                if (!_isRemoving && !_showInput) ...[
-                  // ADD Button
-                  TextButton(
-                    onPressed: () => setState(() => _showInput = true),
-                    style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
-                    child: Text(
-                      context.l10n.common_add,
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                    ),
+                child: Text(isEditMode ? "Done" : "Edit", style: const TextStyle(fontWeight: FontWeight.bold)),
+              ),
+              const SizedBox(width: 8),
+              Text("$totalInvited Invited • $completed Completed", style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+              const Spacer(),
+              if (!isEditMode) ...[
+                Tooltip(
+                  message: "Sends a reminder to everyone who hasn't completed the task yet.",
+                  child: _ActionBtn(
+                    label: "Remind Unfinished", // Krátke a výstižné
+                    icon: Icons.notification_important_outlined,
+                    onPressed: (hasUnfinished && !_cooldownActive && !_isProcessing)
+                        ? _handleNotifyPending
+                        : null,
+                    isPrimary: false,
                   ),
-                  const SizedBox(width: 4),
-                  // REMOVE Button
-                  TextButton(
-                    onPressed: () => setState(() => _isRemoving = true),
-                    style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
-                    child: Text(
-                      context.l10n.overview_invite_remove,
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                    ),
+                ),
+                const SizedBox(width: 8),
+
+                Tooltip(
+                  message: "Sends invitations to people who haven't been invited yet.",
+                  child: _ActionBtn(
+                    label: "Invite New", // Jasne hovorí, že ide o nových ľudí
+                    icon: Icons.mail_outline,
+                    onPressed: (hasUnsent && !_cooldownActive && !_isProcessing)
+                        ? _handleInviteAll
+                        : null,
+                    isPrimary: true,
                   ),
-                ],
+                ),
+              ]
+            ],
+          ),
+          const SizedBox(height: 12),
+          Divider(height: 1, color: cs.outlineVariant),
 
-                if (_showInput)
-                  TextButton(
-                    onPressed: () => setState(() => _showInput = false),
-                    style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
-                    child: Text(
-                      context.l10n.common_cancel,
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: cs.error),
-                    ),
+          // --- ROW 2: EDIT TOOLBAR ---
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            child: _buildToolbar(cs),
+          ),
+
+          const SizedBox(height: 16),
+
+          // --- ROW 3: CHIPS ---
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: widget.invitations.map((inv) => _buildChip(inv, cs)).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildToolbar(ColorScheme cs) {
+    switch (_toolbarState) {
+      case EditToolbarState.defaultEdit:
+        return Padding(
+          padding: const EdgeInsets.only(top: 12),
+          key: const ValueKey('defaultEdit'),
+          child: Row(
+            children: [
+              _ToolbarBtn(label: "Add Emails", icon: Icons.add, onTap: () => setState(() => _toolbarState = EditToolbarState.addMode)),
+              const SizedBox(width: 8),
+              _ToolbarBtn(label: "Select to Remove", icon: Icons.delete_outline, onTap: () => setState(() => _toolbarState = EditToolbarState.removeMode)),
+            ],
+          ),
+        );
+      case EditToolbarState.addMode:
+        return Padding(
+          padding: const EdgeInsets.only(top: 12),
+          key: const ValueKey('addMode'),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _emailInputController,
+                  autofocus: true,
+                  onSubmitted: (_) => _handleParseAndAdd(),
+                  decoration: InputDecoration(
+                    hintText: "Enter emails...",
+                    isDense: true,
+                    filled: true,
+                    fillColor: cs.surfaceContainerLow,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: cs.outlineVariant)),
                   ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton(
+                onPressed: _isProcessing ? null : _handleParseAndAdd,
+                style: ElevatedButton.styleFrom(backgroundColor: cs.primary, foregroundColor: cs.onPrimary, elevation: 0),
+                child: const Text("Add"),
+              ),
+              TextButton(
+                onPressed: () => setState(() => _toolbarState = EditToolbarState.defaultEdit),
+                child: Text("Cancel", style: TextStyle(color: cs.onSurfaceVariant)),
+              ),
+            ],
+          ),
+        );
+      case EditToolbarState.removeMode:
+        return Padding(
+          padding: const EdgeInsets.only(top: 12),
+          key: const ValueKey('removeMode'),
+          child: Row(
+            children: [
+              Text(
+                _selectedEmails.isEmpty ? "Click chips to select for deletion" : "${_selectedEmails.length} selected",
+                style: TextStyle(fontSize: 14, color: _selectedEmails.isEmpty ? cs.onSurfaceVariant : cs.error, fontWeight: FontWeight.bold),
+              ),
+              const Spacer(),
+              if (_selectedEmails.isNotEmpty)
+                ElevatedButton(
+                  onPressed: _isProcessing ? null : _handleBulkDelete,
+                  style: ElevatedButton.styleFrom(backgroundColor: cs.error, foregroundColor: cs.onError, elevation: 0),
+                  child: const Text("Confirm Delete"),
+                ),
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    _selectedEmails.clear();
+                    _toolbarState = EditToolbarState.defaultEdit;
+                  });
+                },
+                child: Text("Cancel", style: TextStyle(color: cs.onSurfaceVariant)),
+              ),
+            ],
+          ),
+        );
+      default:
+        return const SizedBox.shrink();
+    }
+  }
 
-                if (_isRemoving) ...[
-                  TextButton(
-                    onPressed: () => setState(() {
-                      _isRemoving = false;
-                      _selectedEmails.clear();
-                    }),
-                    style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
-                    child: Text(
-                      "Cancel",
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        color: cs.primary,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: (_selectedEmails.isEmpty || _isDeleting)
-                        ? null
-                        : _handleDeleteConfirm,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: cs.onError,
-                      foregroundColor: cs.error,
-                      side: BorderSide(color: cs.error),
-                      visualDensity: VisualDensity.compact,
-                    ),
-                    child: _isDeleting
-                        ? const SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Text(
-                      context.l10n.overview_invite_delete_count(_selectedEmails.length),
-                            style: const TextStyle(fontSize: 11),
-                          ),
-                  ),
-                ],
+  Widget _buildChip(InvitationListModel inv, ColorScheme cs) {
+    final bool isRemoveMode = _toolbarState == EditToolbarState.removeMode;
+    final bool isDefaultEdit = _toolbarState == EditToolbarState.defaultEdit;
+    final bool isSelected = _selectedEmails.contains(inv.email);
 
-                const Spacer(),
+    // Defaultný štát (Pending)
+    Color bgColor = cs.surfaceContainerHigh;
+    Color textColor = cs.onSurfaceVariant;
+    IconData icon = Icons.circle_outlined;
 
-                // SMART SEND BUTTONS
-                if (!_isRemoving && !_showInput && !_cooldownActive && !_isSending) ...[
-                  if (hasUnsent)
-                    TextButton.icon(
-                      onPressed: _handleSendToNew,
-                      icon: const Icon(Icons.send, size: 14),
-                      label: Text(context.l10n.overview_invite_btn_send_new, style: const TextStyle(fontSize: 13)),
-                    ),
-                  if (hasUnsent && hasNotAccepted) const SizedBox(width: 8),
-                  if (hasNotAccepted) // Ak už sú všetci aspoň raz poslaní, ukáž Remind
-                    TextButton.icon(
-                      onPressed: _handleRemindPending,
-                      icon: const Icon(Icons.notification_important_outlined, size: 14),
-                      label: Text(context.l10n.overview_invite_btn_remind, style: const TextStyle(fontSize: 13)),
-                    ),
-                ] else if (_cooldownActive)
-                  Text(context.l10n.overview_invite_cooldown, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-              ],
-            ),
+    if (inv.isAccepted) {
+      // Úspech (Zelená zostáva pre logiku stavu, ale jemne prispôsobená)
+      bgColor = Colors.green.withOpacity(0.1);
+      textColor = Colors.green[700]!;
+      icon = Icons.check_circle_outline;
+    } else if (inv.isSent) {
+      // Poslané (Modrá téma)
+      bgColor = cs.primary.withOpacity(0.1);
+      textColor = cs.primary;
+      icon = Icons.mail_outline;
+    }
 
-            if (_showInput) ...[
-              const SizedBox(height: 12),
-              IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _emailInputController,
-                        onSubmitted: (_) => _isParsing ? null : _handleParseAndAdd(),
-                        decoration: InputDecoration(
-                          hintText: context.l10n.overview_invite_input_hint,
-                          isDense: true,
-                          filled: true,
-                          fillColor: cs.surface,
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        backgroundColor: Theme.of(context).colorScheme.primary,
-                        surfaceTintColor: Colors.transparent,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      onPressed: _isParsing ? null : _handleParseAndAdd,
-                      child: _isParsing
-                          ? const SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text("Add"),
-                    ),
-                  ],
+    if (isRemoveMode && isSelected) {
+      // Výber na zmazanie (Chyba)
+      bgColor = cs.errorContainer;
+      textColor = cs.onErrorContainer;
+    }
+
+    return GestureDetector(
+      onTap: isRemoveMode
+          ? () => setState(() => isSelected ? _selectedEmails.remove(inv.email) : _selectedEmails.add(inv.email))
+          : null,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isRemoveMode && isSelected ? cs.error : Colors.transparent,
+            width: isRemoveMode && isSelected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: textColor),
+            const SizedBox(width: 6),
+            Text(inv.email, style: TextStyle(fontSize: 14, color: textColor, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+            if (isDefaultEdit) ...[
+              const SizedBox(width: 6),
+              GestureDetector(
+                onTap: () => _handleSingleDelete(inv.email),
+                child: Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(color: cs.onSurface.withOpacity(0.1), shape: BoxShape.circle),
+                  child: Icon(Icons.close, size: 12, color: cs.onSurfaceVariant),
                 ),
               ),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+}
 
-            const SizedBox(height: 16),
+class _ActionBtn extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final VoidCallback? onPressed;
+  final bool isPrimary;
 
-            // CHIPS LIST
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: widget.invitations.map((inv) {
-                final bool isSelected = _selectedEmails.contains(inv.email);
+  const _ActionBtn({required this.label, required this.icon, required this.onPressed, required this.isPrimary});
 
-                // LOGIKA FARIEB A IKONIEK
-                Color contentColor = cs.onSurfaceVariant;
-                Color chipColor = cs.surface;
-                IconData icon = Icons.circle_outlined;
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final style = isPrimary
+        ? ElevatedButton.styleFrom(backgroundColor: cs.primary, foregroundColor: cs.onPrimary, elevation: 0)
+        : ElevatedButton.styleFrom(backgroundColor: cs.surfaceContainerHigh, foregroundColor: cs.onSurfaceVariant, elevation: 0);
 
-                if (inv.isAccepted) {
-                  contentColor = isDark ? Colors.greenAccent : Colors.green[700]!;
-                  chipColor = Colors.green.withAlpha(25);
-                  icon = Icons.check_circle;
-                } else if (inv.isSent) {
-                  contentColor = cs.primary;
-                  chipColor = cs.primary.withAlpha(25);
-                  icon = Icons.mark_email_unread_outlined;
-                }
+    return Opacity(
+      opacity: onPressed == null ? 0.5 : 1.0,
+      child: ElevatedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon, size: 14),
+        label: Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.normal)),
+        style: style,
+      ),
+    );
+  }
+}
 
-                if (_isRemoving && isSelected) {
-                  contentColor = cs.error;
-                  chipColor = cs.error.withAlpha(isDark ? 40 : 25);
-                  icon = Icons.delete_forever;
-                }
+class _ToolbarBtn extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
 
-                return InkWell(
-                  onTap: _isRemoving
-                      ? () {
-                          setState(() {
-                            isSelected
-                                ? _selectedEmails.remove(inv.email)
-                                : _selectedEmails.add(inv.email);
-                          });
-                        }
-                      : null,
-                  borderRadius: BorderRadius.circular(20),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: chipColor,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: (isSelected && _isRemoving)
-                            ? cs.error
-                            : (inv.isAccepted || inv.isSent ? contentColor : cs.outlineVariant),
-                        width: isSelected ? 1.5 : 1,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(icon, size: 18, color: contentColor),
-                        const SizedBox(width: 6),
-                        Text(
-                          inv.email,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                            color: contentColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
+  const _ToolbarBtn({required this.label, required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(color: cs.surfaceContainerHigh, borderRadius: BorderRadius.circular(8)),
+        child: Row(
+          children: [
+            Icon(icon, size: 16, color: cs.onSurfaceVariant),
+            const SizedBox(width: 6),
+            Text(label, style: TextStyle(fontSize: 13, color: cs.onSurface, fontWeight: FontWeight.w600)),
           ],
         ),
       ),

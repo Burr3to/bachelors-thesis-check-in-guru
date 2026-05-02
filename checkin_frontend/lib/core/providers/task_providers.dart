@@ -41,21 +41,14 @@ class TaskQueryNotifier extends StateNotifier<TaskListQuery> {
   void setVisibility(bool? requiresAuth) =>
       state = state.copyWith(requiresAuth: requiresAuth, pageNumber: 1);
 
-  void setOverdue(bool onlyOverdue) =>
-      state = state.copyWith(onlyOverdue: onlyOverdue, pageNumber: 1);
-
   void setSort(String field, bool desc) =>
       state = state.copyWith(sortBy: field, sortDesc: desc, pageNumber: 1);
 
-  void setOnlyActive(bool val) {
-    state = state.copyWith(
-      onlyActive: val,
-      onlyOverdue: val ? false : state.onlyOverdue,
-      pageNumber: 1,
-    );
-  }
-
   void reset() => state = const TaskListQuery();
+
+  void setRespondentEmail(String? email) {
+    state = state.copyWith(respondentEmail: email, pageNumber: 1);
+  }
 }
 
 final taskQueryProvider = StateNotifierProvider<TaskQueryNotifier, TaskListQuery>((ref) {
@@ -73,11 +66,10 @@ final taskListProvider = FutureProvider.autoDispose<QueryResult<TaskListModel>>(
     sortBy: query.sortBy,
     sortDesc: query.sortDesc,
     nameContains: query.nameContains,
-      mode: query.mode?.index,
+    mode: query.mode?.index,
     status: query.status?.index,
     requiresAuth: query.requiresAuth,
-    onlyOverdue: query.onlyOverdue,
-      onlyActive: query.onlyActive
+      respondentEmail: query.respondentEmail
   );
 });
 

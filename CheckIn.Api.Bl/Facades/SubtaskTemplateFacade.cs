@@ -42,7 +42,7 @@ public class SubtaskTemplateFacade(
     protected override Func<IQueryable<SubtaskTemplateEntity>, IOrderedQueryable<SubtaskTemplateEntity>> CreateOrderBy(
         SubtaskTemplateQuery query)
     {
-        return q => q.OrderBy(e => e.Id);
+        return q => q.OrderBy(e => e.CreatedAt).ThenBy(e => e.Id);
     }
 
     // 1. CREATE - Pridanie novej podúlohy

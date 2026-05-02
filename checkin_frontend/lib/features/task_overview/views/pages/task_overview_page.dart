@@ -2,6 +2,7 @@ import 'package:checkin_frontend/features/task_overview/views/widgets/main_task_
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/models/enums/task_enums.dart';
 import '../../../../core/utils/l10n_extensions.dart';
 import '../../../../core/models/task/task_update_model.dart';
 import '../../../../core/providers/invitation_providers.dart';
@@ -16,8 +17,7 @@ import '../widgets/editable_task_notes.dart';
 import '../widgets/editable_task_title.dart';
 import '../widgets/subtask_list_section.dart';
 import '../widgets/subtask_progress_list.dart';
-import '../widgets/task_action_buttons.dart';
-import '../widgets/task_info_header.dart';
+import '../widgets/task_overview_header.dart';
 import '../widgets/task_invited_users.dart';
 
 class TaskOverviewPage extends ConsumerStatefulWidget {
@@ -101,10 +101,7 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
       // Zároveň refreshneme dáta, aby sa zmenili farby čipov na modrú
       ref.invalidate(taskDetailProvider(widget.taskId));
     } else if (message == "EMAILS_FAILED") {
-      AppSnackBar.showError(
-        context,
-        context.l10n.overview_msg_emails_failed,
-      );
+      AppSnackBar.showError(context, context.l10n.overview_msg_emails_failed);
     }
   }
 
@@ -125,12 +122,20 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
     String? title,
     String? notes,
     DateTime? deadline,
+    bool? requiresAuth,
+    String? allowedDomain,
+        TaskState? state,
+    bool resetDomain = false,
   }) async {
     final model = TaskUpdateModel(
       id: task.id,
       title: title ?? task.title,
       notes: notes ?? task.notes,
       deadLine: deadline ?? task.deadLine,
+      requiresAuthenticationToComplete: requiresAuth ?? task.requiresAuthenticationToComplete,
+      // Ak resetujeme (vypnutý switch), pošleme null, inak novú hodnotu alebo tú starú
+      allowedDomain: resetDomain ? null : (allowedDomain ?? task.allowedDomain),
+        state: state
     );
 
     try {
@@ -142,6 +147,20 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
     } catch (e) {
       if (!mounted) return;
       AppSnackBar.showError(context, context.l10n.overview_err_update(e.toString()));
+    }
+  }
+
+  // Pomocná metóda pre zmazanie (volaná z Headeru)
+  Future<void> _deleteTask() async {
+    try {
+      await ref.read(taskApiServiceProvider).deleteTask(widget.taskId);
+      ref.invalidate(taskListProvider);
+      if (!mounted) return;
+
+      AppSnackBar.showSuccess(context, context.l10n.overview_msg_task_deleted);
+      context.go('/tasks');
+    } catch (e) {
+      if (mounted) AppSnackBar.showError(context, "Error: $e");
     }
   }
 
@@ -203,23 +222,27 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
                       ),
                       const SizedBox(height: 16),
 
-                      TaskActionButtons(
-                        taskId: widget.taskId,
-                        taskLink: taskLink,
-                        onDeleteSuccess: () {
-                          AppSnackBar.showSuccess(context, context.l10n.overview_msg_task_deleted);
-                          context.go('/tasks');
-                        },
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      TaskInfoHeader(
+                      TaskOverviewHeader(
                         createdDate: task.createdAt,
                         deadlineDate: task.deadLine,
                         requiresAuth: task.requiresAuthenticationToComplete,
                         lastModified: task.lastModifiedAt,
                         onDeadlineTap: () => _selectDeadline(context, task),
+                        taskId: task.id,
+                        currentState: task.state,
+                        onStateChanged: (newState) => _updateTask(context, task, state: newState),
+                        taskLink: taskLink,
+                        onAuthToggle: (bool value) =>
+                            _updateTask(context, task, requiresAuth: value),
+                        onDomainChanged: (String? domain) {
+                          _updateTask(
+                            context,
+                            task,
+                            allowedDomain: domain,
+                            resetDomain: domain == null,
+                          );
+                        },
+                        onDelete: _deleteTask,
                       ),
 
                       const SizedBox(height: 16),
@@ -262,16 +285,7 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
                                     taskId: widget.taskId,
                                   ),
                                   const SizedBox(height: 24),
-                                  const Divider(color: Colors.blueAccent),
-                                  const SizedBox(height: 24),
-                                  Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: Text(
-                                      context.l10n.overview_progress_title,
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 10),
+
                                   SubtaskProgressList(
                                     subtasks: instances,
                                     subtaskMode: task.subtaskMode,

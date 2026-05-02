@@ -16,6 +16,8 @@ public record SubtaskCombinedListModel : IEntityModel
     public Guid? CompletedByUserId { get; init; }
     public DateTime? CompletedAt { get; init; }
     public bool IsGeneratedFromTask { get; set; }
+    public DateTime CreatedAt { get; init; }
+    public DateTime Deadline { get; init; }
 
     // Dáta zo SubtaskTemplateEntity
     public required string Title { get; init; }

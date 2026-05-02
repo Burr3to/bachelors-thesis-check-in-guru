@@ -4,7 +4,6 @@ import 'package:checkin_frontend/core/api/api_providers.dart'; // Tu máš Dio
 import 'package:checkin_frontend/core/services/subtask_instance_api_service.dart';
 
 import '../models/task/task_public_detail_model.dart';
-import '../../features/auth/views/providers/auth_provider.dart';
 import '../services/task_api_service.dart';
 // Ak máš getPublicSubtasks tu
 
@@ -27,7 +26,7 @@ final publicTaskProvider = FutureProvider.family<TaskPublicDetailModel, String>(
   try {
     final response = await apiService.getPublicSubtasks(hash);
     return response;
-  } on DioException catch (e) {
+  } on DioException {
     rethrow;
   } catch (e) {
     rethrow;

@@ -20,6 +20,7 @@ sealed class TaskDetailModel with _$TaskDetailModel {
     required String createdById,
     required TaskState state,
     required SubtaskMode subtaskMode,
+    String? allowedDomain,
     @Default(true) bool requiresAuthenticationToComplete,
     @Default([]) List<InvitationListModel> invitations,
     @Default([]) List<SubtaskTemplateListModel> subtasks,

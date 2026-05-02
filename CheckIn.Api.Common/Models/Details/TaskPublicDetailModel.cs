@@ -22,5 +22,7 @@ public record TaskPublicDetailModel : IEntityModel
     public SubtaskMode SubtaskMode { get; init; }
     public bool RequiresAuthenticationToComplete { get; init; }
 
+    public string? AllowedDomain { get; init; }
+
     public List<SubtaskCombinedListModel> Subtasks { get; init; } = new();
 }

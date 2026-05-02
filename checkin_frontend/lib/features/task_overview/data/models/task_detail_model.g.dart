@@ -19,6 +19,7 @@ _TaskDetailModel _$TaskDetailModelFromJson(
   createdById: json['createdById'] as String,
   state: $enumDecode(_$TaskStateEnumMap, json['state']),
   subtaskMode: $enumDecode(_$SubtaskModeEnumMap, json['subtaskMode']),
+  allowedDomain: json['allowedDomain'] as String?,
   requiresAuthenticationToComplete:
       json['requiresAuthenticationToComplete'] as bool? ?? true,
   invitations:
@@ -48,6 +49,7 @@ Map<String, dynamic> _$TaskDetailModelToJson(
   'createdById': instance.createdById,
   'state': _$TaskStateEnumMap[instance.state]!,
   'subtaskMode': _$SubtaskModeEnumMap[instance.subtaskMode]!,
+  'allowedDomain': instance.allowedDomain,
   'requiresAuthenticationToComplete': instance.requiresAuthenticationToComplete,
   'invitations': instance.invitations,
   'subtasks': instance.subtasks,
@@ -57,6 +59,7 @@ const _$TaskStateEnumMap = {
   TaskState.todo: 0,
   TaskState.inProgress: 1,
   TaskState.completed: 2,
+  TaskState.missed: 3,
 };
 
 const _$SubtaskModeEnumMap = {SubtaskMode.shared: 0, SubtaskMode.individual: 1};

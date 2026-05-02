@@ -40,7 +40,34 @@ public class TaskFacade(
             filter = filter.And(entity => EF.Functions.ILike(entity.Title, $"%{query.NameContains}%"));
 
         if (query.Status.HasValue)
-            filter = filter.And(entity => entity.State == query.Status.Value);
+        {
+            filter = query.Status.Value switch
+            {
+                TaskState.InProgress => filter.And(e => e.State ==
+                    TaskState.InProgress && e.DeadLine >= DateTime.UtcNow),
+
+                TaskState.Completed => filter.And(e => e.State == TaskState.Completed),
+                TaskState.Missed => filter.And(e => e.State != TaskState.Completed && e.DeadLine < DateTime.UtcNow),
+
+                _ => filter.And(e => e.State == query.Status.Value)
+            };
+        }
+
+        if (!string.IsNullOrEmpty(query.RespondentEmail))
+        {
+            var email = query.RespondentEmail.Trim().ToLower();
+
+            filter = filter.And(entity =>
+                // 1. Čiastočná zhoda v pozvánkach
+                entity.Invitations.Any(i => i.Email.ToLower().Contains(email)) ||
+
+                // 2. Čiastočná zhoda v inštanciách (priradený mail alebo meno respondenta)
+                entity.Subtasks.Any(st => st.Instances.Any(inst =>
+                    (inst.AssignedToEmail != null && inst.AssignedToEmail.ToLower().Contains(email)) ||
+                    (inst.RespondentName != null && inst.RespondentName.ToLower().Contains(email))
+                ))
+            );
+        }
 
         if (query.DeadLineBefore.HasValue)
             filter = filter.And(entity => entity.DeadLine <= query.DeadLineBefore.Value);
@@ -57,11 +84,6 @@ public class TaskFacade(
         if (query.RequiresAuth.HasValue)
             filter = filter.And(entity => entity.RequiresAuthenticationToComplete == query.RequiresAuth.Value);
 
-        if (query.OnlyOverdue == true)
-            filter = filter.And(e => e.DeadLine < DateTime.UtcNow);
-
-        if (query.OnlyActive == true)
-            filter = filter.And(e => e.DeadLine >= DateTime.UtcNow && e.State != TaskState.Completed);
 
         Guid currentUserId = CurrentUserId;
         filter = filter.And(entity => entity.CreatedById == currentUserId);
@@ -105,7 +127,6 @@ public class TaskFacade(
         if (createModel is not null)
         {
             entity.CreatedById = CurrentUserId;
-            entity.State = TaskState.Todo;
 
             // Toto tu nechaj - ak používateľ nepridal žiadne subúlohy, 
             // vytvoríme aspoň jednu "hlavnú", aby sa mal kam podpísať.
@@ -183,7 +204,13 @@ public class TaskFacade(
         if (task is null)
             return Result<TaskDetailModel>.NotFound($"Task with ID {model.Id} not found.");
 
-        // 2. Aktualizácia skalárnych polí
+        if (task.State == TaskState.Completed && model.DeadLine > DateTime.UtcNow)
+            task.State = TaskState.InProgress;
+
+        if (model.State.HasValue)
+            task.State = model.State.Value;
+
+
         mapper.Map(model, task);
 
         task.LastModifiedAt = DateTime.UtcNow;
@@ -315,6 +342,7 @@ public class TaskFacade(
     {
         var instances = await dbContext.SubtaskInstances
             .Include(i => i.TemplateSubtask)
+            .ThenInclude(st => st.ParentTask)
             .Where(i => i.TemplateSubtask.ParentTaskId == taskId &&
                         i.TemplateSubtask.ParentTask.CreatedById == CurrentUserId)
             .ToListAsync();
@@ -357,14 +385,22 @@ public class TaskFacade(
             }
             else
             {
-                var userEmail = UserContext.GetEmail()?.ToLower().Trim();
-                var invitation = task.Invitations.FirstOrDefault(i => i.Email.ToLower().Trim() == userEmail);
+                var email = UserContext.GetEmail();
 
-                if (!invitation.IsAccepted)
+                // Ak používateľ nie je prihlásený, email bude null. 
+                // V tom prípade preskočíme logiku prijímania pozvánky.
+                if (!string.IsNullOrEmpty(email))
                 {
-                    invitation.IsAccepted = true;
-                    await dbContext.SaveChangesAsync();
-                    await hubContext.Clients.Group(task.Id.ToString()).SendAsync("TaskUpdated");
+                    var userEmail = email.ToLower().Trim();
+                    var invitation = task.Invitations.FirstOrDefault(i => i.Email.ToLower().Trim() == userEmail);
+
+                    // KĽÚČOVÁ OPRAVA: Skontrolujeme, či sme pozvánku vôbec našli
+                    if (invitation != null && !invitation.IsAccepted)
+                    {
+                        invitation.IsAccepted = true;
+                        await dbContext.SaveChangesAsync();
+                        await hubContext.Clients.Group(task.Id.ToString()).SendAsync("TaskUpdated");
+                    }
                 }
             }
         }
@@ -385,8 +421,7 @@ public class TaskFacade(
                 Description = st.Description,
                 IsCompleted = false,
                 IsGeneratedFromTask = st.IsGeneratedFromTask,
-                // Pridáme flag, aby frontend vedel, že toto je len "šablóna" na vyplnenie
-                // (voliteľné, ak to potrebuješ rozlíšiť)
+                Deadline = task.DeadLine
             }).ToList();
 
             var publicModel = mapper.Map<TaskPublicDetailModel>(task);

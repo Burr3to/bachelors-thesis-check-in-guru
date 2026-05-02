@@ -83,8 +83,7 @@ class _TaskApiService implements TaskApiService {
     int? mode,
     int? status,
     bool? requiresAuth,
-    bool? onlyOverdue,
-    bool? onlyActive,
+    String? respondentEmail,
   }) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{
@@ -96,8 +95,7 @@ class _TaskApiService implements TaskApiService {
       r'mode': mode,
       r'status': status,
       r'requiresAuth': requiresAuth,
-      r'onlyOverdue': onlyOverdue,
-      r'onlyActive': onlyActive,
+      r'respondentEmail': respondentEmail,
     };
     queryParameters.removeWhere((k, v) => v == null);
     final _headers = <String, dynamic>{};

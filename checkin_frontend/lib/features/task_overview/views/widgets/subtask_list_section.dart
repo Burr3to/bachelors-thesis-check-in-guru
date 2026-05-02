@@ -1,9 +1,9 @@
+import 'dart:math';
 import 'package:checkin_frontend/core/providers/task_providers.dart';
 import 'package:checkin_frontend/core/utils/app_snack_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/models/subtask_template/subtask_template_create_model.dart';
-import '../../../../core/models/subtask_template/subtask_template_list_model.dart';
 import '../../../../core/models/subtask_template/subtask_template_update_model.dart';
 import '../../../../core/utils/l10n_extensions.dart';
 import '../../data/models/subtask_combined_list_model.dart';
@@ -26,6 +26,7 @@ class SubtaskListSection extends ConsumerStatefulWidget {
 
 class _SubtaskListSectionState extends ConsumerState<SubtaskListSection> {
   bool _isEditMode = false;
+  bool _isExpanded = false;
   bool _isAddingNew = false;
 
   final _newTitleController = TextEditingController();
@@ -38,7 +39,7 @@ class _SubtaskListSectionState extends ConsumerState<SubtaskListSection> {
     super.dispose();
   }
 
-  // API VOLANIA
+  // --- API ACTIONS ---
   Future<void> _addTemplate() async {
     if (_newTitleController.text.trim().isEmpty) return;
     try {
@@ -48,305 +49,384 @@ class _SubtaskListSectionState extends ConsumerState<SubtaskListSection> {
         parentTaskId: widget.taskId,
       );
       await ref.read(subtaskTemplateApiServiceProvider).createTemplate(model);
-
       setState(() {
         _isAddingNew = false;
         _newTitleController.clear();
         _newDescController.clear();
       });
-      AppSnackBar.showSuccess(context, context.l10n.overview_msg_subtask_added);
       ref.invalidate(taskTemplatesProvider(widget.taskId));
     } catch (e) {
-      AppSnackBar.showError(context, "Failed to add subtask: $e");
+      AppSnackBar.showError(context, "Failed to add subtask");
     }
   }
 
   Future<void> _deleteTemplate(String id) async {
     try {
       await ref.read(subtaskTemplateApiServiceProvider).deleteTemplate(id);
-      AppSnackBar.showSuccess(context, context.l10n.overview_msg_subtask_deleted);
       ref.invalidate(taskTemplatesProvider(widget.taskId));
     } catch (e) {
-      AppSnackBar.showError(context, "Failed to delete: $e");
+      AppSnackBar.showError(context, "Failed to delete");
     }
   }
 
   Future<void> _updateTemplate(String id, {String? title, String? desc}) async {
     try {
-      final model = SubtaskTemplateUpdateModel(id: id, title: title ?? "", description: desc);
+      // Nájdeme aktuálny subtask v zozname, aby sme vedeli pôvodné hodnoty
+      final existing = widget.subtasks.firstWhere((s) => s.templateSubtaskId == id);
+
+      final model = SubtaskTemplateUpdateModel(
+        id: id,
+        title: title ?? existing.title, // Ak je title null, použi pôvodný
+        description: desc ?? existing.description, // Ak je desc null, použi pôvodný
+      );
+
       await ref.read(subtaskTemplateApiServiceProvider).updateTemplate(id, model);
-      AppSnackBar.showSuccess(context, context.l10n.overview_msg_changes_saved);
       ref.invalidate(taskTemplatesProvider(widget.taskId));
     } catch (e) {
-      AppSnackBar.showError(context, "Failed to update: $e");
+      AppSnackBar.showError(context, "Failed to update");
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
 
-    return SelectionArea( // Obalíme celú sekciu tu, aby bol text kopírovateľný globálne
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // HLAVIČKA SEKCIE
-          Row(
-            children: [
-              Text(widget.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-              const SizedBox(width: 12), // Medzera medzi titulom a tlačidlami
-              if (!_isEditMode)
-                TextButton.icon(
-                  onPressed: () => setState(() => _isEditMode = true),
-                  icon: const Icon(Icons.edit, size: 16),
-                  label: Text(context.l10n.common_edit), // Zmenené z Edit structure na Edit
-                  style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
-                )
-              else ...[
-                TextButton.icon(
-                  onPressed: () => setState(() => _isAddingNew = true),
-                  icon: const Icon(Icons.add, size: 16),
-                  label: Text(context.l10n.common_add),
-                  style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+    final int totalItems = widget.subtasks.length;
+    final int itemsToShow = _isEditMode || _isExpanded ? totalItems : min(3, totalItems);
+    final bool hasMore = totalItems > 3 && !_isEditMode;
+
+    return SelectionArea(
+      child: Container(
+        decoration: BoxDecoration(
+          color: cs.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: cs.primary, width: 1.2),
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildHeader(theme, cs, totalItems),
+            const SizedBox(height: 12),
+
+            // --- LIST ---
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: itemsToShow,
+              itemBuilder: (context, index) {
+                final subtask = widget.subtasks[index];
+                return _SubtaskRow(
+                  // OPRAVA GHOSTINGU: Každý riadok musí mať unikátny kľúč podľa ID databázy
+                  key: ValueKey(subtask.templateSubtaskId),
+                  index: index + 1,
+                  subtask: subtask,
+                  isEditMode: _isEditMode,
+                  onUpdate: _updateTemplate,
+                  onDelete: _deleteTemplate,
+                );
+              },
+            ),
+
+            if (hasMore)
+              _TextLinkButton(
+                label: _isExpanded ? "Show less" : "Show ${totalItems - 3} more subtasks",
+                isExpanded: _isExpanded,
+                onPressed: () => setState(() => _isExpanded = !_isExpanded),
+              ),
+
+            if (_isEditMode) _buildAddSection(cs),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(ThemeData theme, ColorScheme cs, int totalItems) {
+    return Row(
+      children: [
+        Text(
+          widget.title,
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: cs.onSurface,
+          ),
+        ),
+        const SizedBox(width: 12),
+        _HeaderEditButton(
+          isEditMode: _isEditMode,
+          onPressed: () => setState(() {
+            _isEditMode = !_isEditMode;
+            if (_isEditMode) _isExpanded = true;
+          }),
+        ),
+        const SizedBox(width: 12),
+        Text(
+          "$totalItems ${totalItems == 1 ? 'item' : 'items'}",
+          style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAddSection(ColorScheme cs) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 12),
+        Divider(color: cs.outlineVariant),
+        const SizedBox(height: 12),
+        if (!_isAddingNew)
+          _AddSubtaskTrigger(onPressed: () => setState(() => _isAddingNew = true))
+        else
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: cs.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: cs.outlineVariant.withAlpha(100)),
+            ),
+            child: Column(
+              children: [
+                TextField(
+                  controller: _newTitleController,
+                  autofocus: true,
+                  decoration: _inputDeco(context, "Subtask title"),
                 ),
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed: () => setState(() {
-                    _isEditMode = false;
-                    _isAddingNew = false;
-                  }),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: cs.primary,
-                    foregroundColor: cs.onPrimary,
-                    visualDensity: VisualDensity.compact,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                  child: Text(context.l10n.common_save),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _newDescController,
+                  decoration: _inputDeco(context, "Description (optional)"),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    ElevatedButton(
+                      onPressed: _addTemplate,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: cs.primary,
+                        foregroundColor: cs.onPrimary,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      child: const Text("Add"),
+                    ),
+                    const SizedBox(width: 8),
+                    TextButton(
+                      onPressed: () => setState(() {
+                        _isAddingNew = false;
+                        _newTitleController.clear();
+                        _newDescController.clear();
+                      }),
+                      style: TextButton.styleFrom(foregroundColor: cs.onSurfaceVariant),
+                      child: const Text("Cancel"),
+                    ),
+                  ],
                 ),
               ],
-              const Spacer(), // Spacer je teraz na konci, aby tlačidlá boli vľavo
-            ],
+            ),
           ),
-          const SizedBox(height: 12),
-
-          if (_isAddingNew) _buildNewSubtaskInput(cs),
-
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: widget.subtasks.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
-            itemBuilder: (context, index) {
-              final subtask = widget.subtasks[index];
-              return _buildSubtaskItem(subtask, cs);
-            },
-          ),
-        ],
-      ),
+      ],
     );
   }
 
-  Widget _buildSubtaskItem(SubtaskCombinedListModel subtask, ColorScheme cs) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 6), // Väčšia medzera medzi kartami
-      decoration: BoxDecoration(
-        color: cs.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: cs.outlineVariant.withAlpha(80)),
+  InputDecoration _inputDeco(BuildContext context, String hint) {
+    final cs = Theme.of(context).colorScheme;
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: TextStyle(fontSize: 14, color: cs.onSurfaceVariant.withAlpha(150)),
+      isDense: true,
+      filled: true,
+      fillColor: cs.surface,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(color: cs.outlineVariant),
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        title: _InlineEditableText(
-          isEditMode: _isEditMode,
-          initialValue: subtask.title,
-          hintText: "Title is required",
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-          onSave: (val) =>
-              _updateTemplate(subtask.templateSubtaskId, title: val, desc: subtask.description),
-        ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: _InlineEditableText(
-            isEditMode: _isEditMode,
-            initialValue: subtask.description ?? "",
-            hintText: "Add a description...",
-            style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
-            onSave: (val) =>
-                _updateTemplate(subtask.templateSubtaskId, title: subtask.title, desc: val),
-          ),
-        ),
-        trailing: _isEditMode
-            ? IconButton(
-                icon: const Icon(Icons.delete_outline, color: Colors.red, size: 22),
-                onPressed: () => _deleteTemplate(subtask.templateSubtaskId),
-              )
-            : null,
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(color: cs.outlineVariant),
       ),
-    );
-  }
-
-  Widget _buildNewSubtaskInput(ColorScheme cs) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        // Jemne zvýraznené pozadie, aby bolo jasné, že ide o nový záznam
-        color: cs.primaryContainer.withAlpha(25),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: cs.primary.withAlpha(80), width: 1.5),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "NEW SUBTASK",
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              color: cs.primary,
-              letterSpacing: 1.1,
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          // TITLE INPUT
-          TextField(
-            controller: _newTitleController,
-            autofocus: true,
-            maxLength: 255,
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-            decoration: InputDecoration(
-              hintText: "What needs to be done?",
-              isDense: true,
-              filled: true,
-              fillColor: cs.surface,
-              counterText: _newTitleController.text.length > 200 ? null : "",
-              contentPadding: const EdgeInsets.all(12),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: cs.outlineVariant),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: cs.primary, width: 2),
-              ),
-            ),
-            // Po stlačení Enter v Title preskočí na Description
-            onSubmitted: (_) => FocusScope.of(context).nextFocus(),
-          ),
-          const SizedBox(height: 12),
-
-          // DESCRIPTION INPUT
-          TextField(
-            controller: _newDescController,
-            maxLength: 255,
-            maxLines: null,
-            style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
-            decoration: InputDecoration(
-              hintText: "Add more details (optional)...",
-              isDense: true,
-              filled: true,
-              fillColor: cs.surface,
-              counterText: _newDescController.text.length > 200 ? null : "",
-              contentPadding: const EdgeInsets.all(12),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: cs.outlineVariant),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: cs.primary, width: 2),
-              ),
-            ),
-            // Enter v popise rovno odošle (uloží) subtask
-            onSubmitted: (_) => _addTemplate(),
-          ),
-          const SizedBox(height: 12),
-
-          // AKCIE
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              TextButton(
-                onPressed: () => setState(() {
-                  _isAddingNew = false;
-                  _newTitleController.clear();
-                  _newDescController.clear();
-                }),
-                child: const Text("Cancel"),
-              ),
-              const SizedBox(width: 8),
-              ElevatedButton.icon(
-                onPressed: _addTemplate,
-                icon: const Icon(Icons.check, size: 18),
-                label: const Text("Add Subtask"),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: cs.primary,
-                  foregroundColor: cs.onPrimary,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  elevation: 0,
-                ),
-              ),
-            ],
-          ),
-        ],
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(color: cs.primary, width: 1.5),
       ),
     );
   }
 }
 
-class _InlineEditableText extends StatefulWidget {
-  final String initialValue;
-  final TextStyle style;
-  final Function(String) onSave;
-  final String? hintText;
-  final bool isEditMode;
+// --- HELPER WIDGETS ---
 
-  const _InlineEditableText({
-    required this.initialValue,
-    required this.style,
-    required this.onSave,
-    this.isEditMode = false,
-    this.hintText,
+class _HeaderEditButton extends StatelessWidget {
+  final bool isEditMode;
+  final VoidCallback onPressed;
+
+  const _HeaderEditButton({required this.isEditMode, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return ElevatedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(isEditMode ? Icons.check : Icons.edit_outlined, size: 16),
+      label: Text(isEditMode ? "Done" : "Edit"),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: cs.onPrimary,
+        foregroundColor: cs.primary,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      ),
+    );
+  }
+}
+
+class _SubtaskRow extends StatefulWidget {
+  final int index;
+  final SubtaskCombinedListModel subtask;
+  final bool isEditMode;
+  final Function(String, {String? title, String? desc}) onUpdate;
+  final Function(String) onDelete;
+
+  const _SubtaskRow({
+    super.key,
+    required this.index,
+    required this.subtask,
+    required this.isEditMode,
+    required this.onUpdate,
+    required this.onDelete,
   });
 
   @override
-  State<_InlineEditableText> createState() => _InlineEditableTextState();
+  State<_SubtaskRow> createState() => _SubtaskRowState();
 }
 
-class _InlineEditableTextState extends State<_InlineEditableText> {
-  bool _editing = false;
-  bool _hovering = false;
-  late TextEditingController _ctrl;
-  final int _maxChars = 255;
+class _SubtaskRowState extends State<_SubtaskRow> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    // OPRAVA 1 & 2: GestureDetector na celom riadku
+    return GestureDetector(
+      onTap: widget.isEditMode
+          ? () {
+              // Ak klikne na riadok v edit móde, focusne sa primárne titul (rieši problém s prázdnym textom)
+            }
+          : null,
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          // TU SA NASTAVUJE PADDING MEDZI POLOŽKAMI (vertical: 4)
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          decoration: BoxDecoration(
+            color: _isHovered ? cs.primary.withAlpha(15) : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start, // Zarovnanie na vrch pri dlhých popisoch
+            children: [
+              SizedBox(
+                width: 24,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(
+                    "${widget.index}",
+                    textAlign: TextAlign.right,
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: cs.primary),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12), // MEDZERA MEDZI ČÍSLOM A TEXTOM
+              Expanded(
+                child: Column(
+                  crossAxisAlignment:
+                      CrossAxisAlignment.stretch, // Aby zabral celú šírku pre klikanie
+                  children: [
+                    _InlineInput(
+                      initialValue: widget.subtask.title,
+                      isEditMode: widget.isEditMode,
+                      placeholder: "Enter title...",
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: cs.onSurface,
+                      ),
+                      onSave: (val) =>
+                          widget.onUpdate(widget.subtask.templateSubtaskId, title: val),
+                    ),
+                    _InlineInput(
+                      initialValue: widget.subtask.description ?? "",
+                      placeholder: "Add description...",
+                      isEditMode: widget.isEditMode,
+                      isDescription: true,
+                      style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant.withAlpha(200)),
+                      onSave: (val) => widget.onUpdate(widget.subtask.templateSubtaskId, desc: val),
+                    ),
+                  ],
+                ),
+              ),
+              if (widget.isEditMode)
+                _DeleteIcon(onPressed: () => widget.onDelete(widget.subtask.templateSubtaskId)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InlineInput extends StatefulWidget {
+  final String initialValue;
+  final String? placeholder;
+  final bool isEditMode;
+  final bool isDescription;
+  final TextStyle style;
+  final Function(String) onSave;
+
+  const _InlineInput({
+    required this.initialValue,
+    this.placeholder,
+    required this.isEditMode,
+    this.isDescription = false,
+    required this.style,
+    required this.onSave,
+  });
+
+  @override
+  State<_InlineInput> createState() => _InlineInputState();
+}
+
+class _InlineInputState extends State<_InlineInput> {
+  bool _isEditing = false;
+  late TextEditingController _controller;
+  bool _isHovered = false;
 
   @override
   void initState() {
     super.initState();
-    _ctrl = TextEditingController(text: widget.initialValue);
-    _ctrl.addListener(() { if (_editing) setState(() {}); });
+    _controller = TextEditingController(text: widget.initialValue);
   }
 
-  // KĽÚČOVÁ OPRAVA BUGU: Ak rodič vypne edit mode, musíme vypnúť lokálnu editáciu
   @override
-  void didUpdateWidget(_InlineEditableText oldWidget) {
+  void didUpdateWidget(_InlineInput oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.isEditMode && !widget.isEditMode) {
-      _editing = false;
-      _ctrl.text = widget.initialValue; // Reset textu na pôvodný, ak user neuložil
+    // OPRAVA GHOSTINGU: Ak sa zmenia dáta zvonku, okamžite aktualizujeme controller
+    if (oldWidget.initialValue != widget.initialValue) {
+      _controller.text = widget.initialValue;
     }
   }
 
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  void _submit() {
-    if (_ctrl.text.trim().isNotEmpty) {
-      widget.onSave(_ctrl.text.trim());
-      setState(() => _editing = false);
+  void _handleSave() {
+    if (!_isEditing) return;
+    setState(() => _isEditing = false);
+    // Uložíme len ak sa hodnota naozaj zmenila
+    if (_controller.text != widget.initialValue) {
+      widget.onSave(_controller.text);
     }
   }
 
@@ -354,68 +434,219 @@ class _InlineEditableTextState extends State<_InlineEditableText> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    if (_editing && widget.isEditMode) {
-      return Container(
-        margin: const EdgeInsets.symmetric(vertical: 4),
+    if (!widget.isEditMode) {
+      if (widget.isDescription && widget.initialValue.isEmpty) return const SizedBox.shrink();
+      return Text(
+        widget.initialValue,
+        style: widget.style,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      );
+    }
+
+    if (_isEditing) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 1),
         child: TextField(
-          controller: _ctrl,
+          controller: _controller,
           autofocus: true,
           style: widget.style,
-          maxLength: 255,
-          maxLines: null,
-          textInputAction: TextInputAction.done,
-          onSubmitted: (_) => _submit(),
           decoration: InputDecoration(
             isDense: true,
-            hintText: widget.hintText,
-            contentPadding: const EdgeInsets.all(12),
-            counterText: _ctrl.text.length > 200 ? null : "",
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: cs.primary, width: 2),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            fillColor: cs.primary.withAlpha(20),
+            filled: true,
+            suffixIcon: Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: Icon(Icons.keyboard_return, size: 14, color: cs.primary.withAlpha(150)),
             ),
-            suffixIcon: IconButton(
-              icon: const Icon(Icons.check, color: Colors.green),
-              onPressed: _submit,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(4),
+              borderSide: BorderSide(color: cs.primary.withAlpha(100)),
             ),
           ),
+          onSubmitted: (_) => _handleSave(),
+          onTapOutside: (_) => _handleSave(),
         ),
       );
     }
 
     return MouseRegion(
-      onEnter: (_) => setState(() => _hovering = true),
-      onExit: (_) => setState(() => _hovering = false),
-      cursor: widget.isEditMode ? SystemMouseCursors.click : SystemMouseCursors.basic,
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      cursor: SystemMouseCursors.click,
       child: GestureDetector(
-        behavior: HitTestBehavior.opaque, // Dôležité: kliknutie zachytí celú plochu
-        onTap: widget.isEditMode ? () => setState(() => _editing = true) : null,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
+        onTap: () => setState(() => _isEditing = true),
+        behavior: HitTestBehavior.opaque,
+        child: Container(
           width: double.infinity,
-          padding: widget.isEditMode
-              ? const EdgeInsets.symmetric(horizontal: 10, vertical: 8)
-              : EdgeInsets.zero,
-          decoration: BoxDecoration(
-            color: widget.isEditMode && _hovering
-                ? cs.primary.withAlpha(20)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: widget.isEditMode
-                  ? (_hovering ? cs.primary : cs.outlineVariant.withAlpha(100))
-                  : Colors.transparent,
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: Text(
+            widget.initialValue.isEmpty ? (widget.placeholder ?? "") : widget.initialValue,
+            style: widget.style.copyWith(
+              // LOGIKA FARBY PLACEHODLERA:
+              color: widget.initialValue.isEmpty
+                  ? (_isHovered ? cs.primary : cs.onSurfaceVariant.withAlpha(110))
+                  : (_isHovered ? cs.primary : widget.style.color),
+
+              // Mierne tenšie písmo pre placeholder, aby nekričalo
+              fontWeight: widget.initialValue.isEmpty ? FontWeight.w300 : widget.style.fontWeight,
+
+              // Môžeš nechať alebo odstrániť kurzívu podľa vkusu
+              fontStyle: widget.initialValue.isEmpty ? FontStyle.italic : null,
             ),
           ),
-          // TU UŽ NIE JE SelectionArea, aby nekazila gestá.
-          // Výber textu rieši SelectionArea nad celým ListView.
-          child: Text(
-            widget.initialValue.isEmpty ? (widget.hintText ?? "Edit...") : widget.initialValue,
-            style: widget.initialValue.isEmpty
-                ? widget.style.copyWith(color: cs.onSurfaceVariant.withAlpha(150), fontStyle: FontStyle.italic)
-                : widget.style,
-          ),
         ),
+      ),
+    );
+  }
+}
+
+class _DeleteIcon extends StatelessWidget {
+  final VoidCallback onPressed;
+  const _DeleteIcon({required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(4),
+      child: Container(
+        padding: const EdgeInsets.all(4),
+        child: Icon(Icons.delete_outline, size: 18, color: cs.error),
+      ),
+    );
+  }
+}
+
+class _TextLinkButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onPressed;
+  final bool isExpanded; // Nový parameter
+
+  const _TextLinkButton({required this.label, required this.onPressed, required this.isExpanded});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return SizedBox(
+      width: double.infinity,
+      child: TextButton(
+        onPressed: onPressed,
+        style: TextButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+          foregroundColor: cs.onSurfaceVariant,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center, // Vycentrovanie obsahu
+          mainAxisSize:
+              MainAxisSize.min, // Zaberá len toľko miesta, koľko potrebuje vnútri SizedBoxu
+          children: [
+            Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+            const SizedBox(width: 4),
+            // Animovaná ikona šípky
+            Icon(isExpanded ? Icons.expand_less : Icons.expand_more, size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AddSubtaskTrigger extends StatelessWidget {
+  final VoidCallback onPressed;
+  const _AddSubtaskTrigger({required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(6),
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Row(
+          children: [
+            Icon(Icons.add, size: 18, color: cs.primary),
+            const SizedBox(width: 8),
+            Text("Add subtask", style: TextStyle(fontSize: 14, color: cs.primary)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AddSubtaskForm extends StatelessWidget {
+  final TextEditingController titleController;
+  final TextEditingController descController;
+  final VoidCallback onCancel;
+  final VoidCallback onAdd;
+
+  const _AddSubtaskForm({
+    required this.titleController,
+    required this.descController,
+    required this.onCancel,
+    required this.onAdd,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return Column(
+      children: [
+        TextField(
+          controller: titleController,
+          autofocus: true,
+          decoration: _inputDeco(context, "Subtask title"),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: descController,
+          decoration: _inputDeco(context, "Description (optional)"),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            ElevatedButton(
+              onPressed: onAdd,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: cs.primary,
+                foregroundColor: cs.onPrimary,
+                elevation: 0,
+              ),
+              child: const Text("Add"),
+            ),
+            const SizedBox(width: 8),
+            TextButton(
+              onPressed: onCancel,
+              style: TextButton.styleFrom(foregroundColor: cs.onSurfaceVariant),
+              child: const Text("Cancel"),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  InputDecoration _inputDeco(BuildContext context, String hint) {
+    final cs = Theme.of(context).colorScheme;
+    return InputDecoration(
+      hintText: hint,
+      isDense: true,
+      filled: true,
+      fillColor: cs.surfaceContainerHigh,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(6),
+        borderSide: BorderSide(color: cs.outlineVariant),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(6),
+        borderSide: BorderSide(color: cs.primary, width: 2),
       ),
     );
   }

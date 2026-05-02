@@ -7,13 +7,16 @@ enum TaskState {
   @JsonValue(1)
   inProgress,
   @JsonValue(2)
-  completed;
+  completed,
+  @JsonValue(3)
+  missed;
 
   String get label {
     return switch (this) {
       TaskState.todo => "ToDo",
       TaskState.inProgress => "In Progress",
       TaskState.completed => "Completed",
+      TaskState.missed => "Missed",
     };
   }
 
@@ -22,6 +25,7 @@ enum TaskState {
       TaskState.todo => Color.fromRGBO(155, 29, 219, 1.0),
       TaskState.inProgress => Colors.blue,
       TaskState.completed => Colors.green,
+      TaskState.missed => Colors.red,
     };
   }
 }

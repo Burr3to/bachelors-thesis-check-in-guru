@@ -99,12 +99,7 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
   }
 
   DateTime _normalizeToEndOfDay(DateTime date) {
-    return DateTime(
-      date.year,
-      date.month,
-      date.day,
-      23, 59, 59, 999,
-    );
+    return DateTime(date.year, date.month, date.day, 23, 59, 59, 999);
   }
 
   @override
@@ -133,14 +128,14 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
           title: const Text("Domain Warning"),
           content: Text(
             "We couldn't verify that '${taskData.allowedDomain}' is a valid mail domain."
-                " If it's incorrect, invited respondents won't be able to access the task. Do you want to proceed anyway?",
+            " If it's incorrect, invited respondents won't be able to access the task. Do you want to proceed anyway?",
           ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("CANCEL")),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              child: const Text("PROCEED", style: TextStyle(color: Colors.white),),
+              child: const Text("PROCEED", style: TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -172,9 +167,16 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final screenWidth = MediaQuery.of(context).size.width;
-    double responsiveMaxWidth = screenWidth < 600
-        ? screenWidth
-        : (screenWidth * 0.35).clamp(650.0, 1000.0);
+
+    // Definujeme fixné šírky pre rôzne zariadenia
+    double contentWidth;
+    if (screenWidth < 600) {
+      contentWidth = screenWidth; // Mobil: na celú šírku
+    } else if (screenWidth < 1200) {
+      contentWidth = 700; // Tablet/Menší notebook: fixných 700px
+    } else {
+      contentWidth = 800; // Veľký desktop: fixných 800px
+    }
 
     final deadline = ref.watch(taskCreateProvider.select((s) => s.deadLine));
     final requiresAuth = ref.watch(
@@ -192,7 +194,7 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
         padding: const EdgeInsets.only(top: 40, bottom: 20, left: 16, right: 16),
         child: Center(
           child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: responsiveMaxWidth),
+            constraints: BoxConstraints(maxWidth: contentWidth),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -247,7 +249,7 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
                         ],
                       ),
 
-                      const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Divider()),
+                      const Padding(padding: EdgeInsets.symmetric(vertical: 10)),
 
                       // SECTION 3: SETTINGS
                       TaskSettingsSection(
@@ -277,7 +279,7 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
                         },
                       ),
 
-                      const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Divider()),
+                      const Padding(padding: EdgeInsets.symmetric(vertical: 10)),
 
                       // SECTION 4: SUBMIT
                       PrimaryButton(

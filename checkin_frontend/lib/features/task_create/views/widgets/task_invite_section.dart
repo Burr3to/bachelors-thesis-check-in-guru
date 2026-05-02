@@ -66,7 +66,7 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: cs.surfaceContainerLow,
+        color: cs.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: cs.outlineVariant),
       ),
@@ -81,6 +81,7 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
               IconButton(
                 onPressed: widget.onCollapse,
                 icon: const Icon(Icons.close, size: 20),
+                color: cs.error,
                 visualDensity: VisualDensity.compact,
               ),
             ],
@@ -99,6 +100,8 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
                   decoration: InputDecoration(
                     hintText: "Emails in any format test@gmail.com; test2@vutbr.com - test3...",
                     hintStyle: TextStyle(fontSize: 12, color: cs.onSurfaceVariant.withAlpha(150)),
+                    fillColor: cs.surfaceContainerLow,
+                    filled: true,
                     prefixIcon: const Icon(Icons.mail_outline, size: 20),
                     isDense: true,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
@@ -165,7 +168,7 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
               const SizedBox(width: 12),
               _buildTimingOption(
                 timing: InviteTiming.later,
-                label: "Later manually in detail",
+                label: "Later manually",
                 icon: Icons.timer_outlined,
                 cs: cs,
               ),

@@ -42,6 +42,7 @@ const _$TaskStateEnumMap = {
   TaskState.todo: 0,
   TaskState.inProgress: 1,
   TaskState.completed: 2,
+  TaskState.missed: 3,
 };
 
 const _$SubtaskModeEnumMap = {SubtaskMode.shared: 0, SubtaskMode.individual: 1};

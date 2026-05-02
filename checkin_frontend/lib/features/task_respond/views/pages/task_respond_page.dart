@@ -28,6 +28,7 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
   final _nameCtrl = TextEditingController();
   final Set<String> _selectedIds = {};
   bool _isLoading = false;
+  bool _isSubmittedSuccess = false;
 
   @override
   void dispose() {
@@ -55,6 +56,7 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
           _selectedIds.clear();
           _nameCtrl.clear();
         });
+        ref.invalidate(publicTaskProvider(widget.taskHash));
       }
     } catch (e) {
       if (mounted) AppSnackBar.showError(context, "Error: $e");
@@ -81,16 +83,24 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
           publicTask.subtasks,
         );
 
-        final bool hasAnyCompleted = subtasks.any((SubtaskCombinedListModel s) => s.isCompleted);
+        final bool hasAnyCompletedInCloud = subtasks.any((s) => s.isCompleted);
+
+        // LOGIKA PRE APPBAR:
+        // Ukážeme plný AppTopBar ak:
+        // 1. Používateľ je prihlásený (vždy chceme navigáciu)
+        // 2. ALEBO ak už v tejto session anonymný user odoslal úlohu
+        // 3. ALEBO ak dáta z cloudu hovoria, že je niečo hotové (Shared mód)
+        final bool showFullAppBar = (auth != null) || _isSubmittedSuccess || hasAnyCompletedInCloud;
 
         if (publicTask.requiresAuthenticationToComplete && auth == null) {
-          return const Scaffold(appBar: _SimpleAppBar(), body: LoginRequiredView());
+          return Scaffold(
+              appBar: showFullAppBar ? const AppTopBar() : const _SimpleAppBar(),
+              body: const LoginRequiredView()
+          );
         }
 
-        // --- HLAVNÁ ZMENA: Prepínanie AppBar-u ---
         return Scaffold(
-          // ZMENA: hasAnyCompleted namiesto allCompleted
-          appBar: hasAnyCompleted ? const AppTopBar() : const _SimpleAppBar(),
+          appBar: showFullAppBar ? const AppTopBar() : const _SimpleAppBar(),
           backgroundColor: cs.surface,
           body: _buildTaskBody(publicTask, auth, cs),
         );
@@ -108,17 +118,17 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
         subtasks.isNotEmpty &&
         subtasks.every((SubtaskCombinedListModel s) => s.isGeneratedFromTask);
 
-    if (isMainTaskOnly && subtasks.isNotEmpty && !subtasks.first.isCompleted) {
+    if (isMainTaskOnly && subtasks.isNotEmpty && !subtasks.first.isCompleted && !_isSubmittedSuccess) {
       if (!_selectedIds.contains(subtasks.first.id)) {
-        Future.microtask(
-          () => setState(() {
-            _selectedIds.add(subtasks.first.id);
-          }),
-        );
+        Future.microtask(() {
+          if (mounted) setState(() => _selectedIds.add(subtasks.first.id));
+        });
       }
     }
 
-    final bool hasPendingTasks = subtasks.any((SubtaskCombinedListModel s) => !s.isCompleted);
+
+    final bool isEffectivelyCompleted = subtasks.every((s) => s.isCompleted) || _isSubmittedSuccess;
+    final bool hasPendingTasks = !isEffectivelyCompleted;
 
     return Center(
       child: ConstrainedBox(
@@ -308,19 +318,30 @@ class _SimpleAppBar extends StatelessWidget implements PreferredSizeWidget {
       elevation: 0,
       scrolledUnderElevation: 0,
       automaticallyImplyLeading: false,
-      centerTitle: false, // Logo ostane vľavo
-      title: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.check_circle_outline_rounded, size: 32, color: Colors.blueAccent),
-          const SizedBox(width: 10),
-          Text(
-            'CheckInGuru',
-            style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.bold, fontSize: 18),
+      centerTitle: false,
+      title: InkWell(
+        // Kliknutie hodí používateľa na zoznam úloh
+        onTap: () => context.go('/tasks'),
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.check_circle_outline_rounded, size: 32, color: Colors.blueAccent),
+              const SizedBox(width: 10),
+              Text(
+                'CheckInGuru',
+                style: TextStyle(
+                  color: cs.onSurface,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
-      // Ak by si chcel aj tu prepínač témy, môžeš ho pridať do actions: []
     );
   }
 }

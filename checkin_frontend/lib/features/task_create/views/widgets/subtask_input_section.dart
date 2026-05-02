@@ -39,7 +39,7 @@ class _SubtaskInputSectionState extends ConsumerState<SubtaskInputSection> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: cs.surfaceContainerLow,
+        color: cs.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: cs.outlineVariant),
       ),
@@ -52,8 +52,16 @@ class _SubtaskInputSectionState extends ConsumerState<SubtaskInputSection> {
               Text(context.l10n.task_create_subtasks_title,
                   style: TextStyle(fontWeight: FontWeight.bold, color: cs.onSurface)),
               IconButton(
-                onPressed: widget.onRemoveSection,
+                onPressed: () {
+                  // 1. Vymažeme všetky podúlohy v provideri
+                  // Predpokladám, že tvoj notifier má metódu na reset/set zoznamu
+                  ref.read(taskCreateProvider.notifier).clearSubtasks();
+
+                  // 2. Schováme sekciu (pôvodná logika)
+                  widget.onRemoveSection();
+                },
                 icon: const Icon(Icons.close, size: 20),
+                color: cs.error,
                 visualDensity: VisualDensity.compact,
               ),
             ],
@@ -69,6 +77,8 @@ class _SubtaskInputSectionState extends ConsumerState<SubtaskInputSection> {
                   onSubmitted: (_) => _submitSubtask(),
                   decoration: InputDecoration(
                     hintText: context.l10n.task_create_subtasks_hint,
+                    fillColor: cs.surfaceContainerLow,
+                    filled: true,
                     isDense: true,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -116,8 +126,11 @@ class _SubtaskInputSectionState extends ConsumerState<SubtaskInputSection> {
                           ),
                           onPressed: () {
                             setState(() {
-                              if (isExpanded) _expandedIndices.remove(index);
-                              else _expandedIndices.add(index);
+                              if (isExpanded) {
+                                _expandedIndices.remove(index);
+                              } else {
+                                _expandedIndices.add(index);
+                              }
                             });
                           },
                         ),
@@ -149,7 +162,11 @@ class _SubtaskInputSectionState extends ConsumerState<SubtaskInputSection> {
                             initialValue: subtask.description,
                             maxLines: null,
                             keyboardType: TextInputType.multiline,
+                            textInputAction: TextInputAction.done,
                             style: const TextStyle(fontSize: 13),
+                            onFieldSubmitted: (_) {
+                              _inputFocusNode.requestFocus(); // Vráti focus na horný input
+                            },
                             onChanged: (val) => ref.read(taskCreateProvider.notifier).updateSubtaskDescription(index, val),
                             decoration: InputDecoration(
                               hintText: "Add detailed notes or instructions...", // context.l10n.task_create_subtasks_desc_hint

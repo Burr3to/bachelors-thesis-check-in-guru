@@ -34,7 +34,8 @@ public class SubtaskTemplateMapperProfile : Profile
         // EF Core sleduje zmeny, ID sa zachová.
         CreateMap<SubtaskTemplateUpdateModel, SubtaskTemplateEntity>()
             // Ignorujeme ParentTaskId, aby sme ho nechtiac nezmenili
-            .ForMember(dest => dest.ParentTaskId, opt => opt.Ignore());
+            .ForMember(dest => dest.ParentTaskId, opt => opt.Ignore())
+            .ForMember(dest => dest.CreatedAt, opt => opt.Ignore());
 
         CreateMap<SubtaskTemplateEntity, SubtaskCombinedListModel>()
             .ForMember(dest => dest.TemplateSubtaskId,
@@ -42,6 +43,8 @@ public class SubtaskTemplateMapperProfile : Profile
             .ForMember(dest => dest.Id, opt => opt.Ignore()) // Inštancia zatiaľ neexistuje (ak mapujeme čistú šablónu)
             .ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Title))
             .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
-            .ForMember(dest => dest.IsGeneratedFromTask, opt => opt.MapFrom(src => src.IsGeneratedFromTask));
+            .ForMember(dest => dest.Deadline, opt => opt.MapFrom(src => src.ParentTask.DeadLine))
+            .ForMember(dest => dest.IsGeneratedFromTask, opt => opt.MapFrom(src => src.IsGeneratedFromTask))
+            .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt));
     }
 }

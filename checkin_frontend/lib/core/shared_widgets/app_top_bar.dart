@@ -15,45 +15,43 @@ class AppTopBar extends ConsumerWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final userState = ref.watch(authProvider).user;
-    final themeMode = ref.watch(themeProvider);
     final colorScheme = Theme.of(context).colorScheme;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 800; // Breakpoint pre mobil/tablet
 
     return AppBar(
       backgroundColor: colorScheme.surface,
       surfaceTintColor: Colors.transparent,
-      // Tieň pri scrollovaní
       elevation: 0,
       scrolledUnderElevation: 3,
-      shadowColor: colorScheme.shadow.withAlpha(200),
-      automaticallyImplyLeading: false,
+      // Na mobile ukážeme leading (hamburger), na webe ho vypneme
+      automaticallyImplyLeading: isMobile,
       title: Row(
         children: [
           const _LogoSection(),
-          const Spacer(),
-          const _NavigationSection(),
-          const Spacer(),
+          if (!isMobile) ...[
+            const Spacer(),
+            const _NavigationSection(),
+            const Spacer(),
+          ] else
+            const Spacer(), // Na mobile len odtlačíme ikony doprava
 
-          // JAZYK
-          const _LanguageSwitch(),
+          // JAZYK (na mobile ho môžeme nechať alebo schovať do Draweru)
+          if (!isMobile) const _LanguageSwitch(),
 
           // THEME SWITCH
           IconButton(
             icon: Icon(
-              themeMode == ThemeMode.light ? Icons.dark_mode : Icons.light_mode,
+              ref.watch(themeProvider) == ThemeMode.light ? Icons.dark_mode : Icons.light_mode,
               color: Colors.blueAccent,
             ),
-            onPressed: () {
-              ref.read(themeProvider.notifier).toggleTheme();
-            },
+            onPressed: () => ref.read(themeProvider.notifier).toggleTheme(),
           ),
 
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
 
-          // PROFIL / LOGIN
-          userState != null
-              ? _UserAccountSection(user: userState)
-              : const _LoginButtonSection(),
+          // PROFIL (na mobile zjednodušený)
+          _UserAccountSection(isMobile: isMobile),
         ],
       ),
     );
@@ -159,57 +157,36 @@ class _NavigationSection extends StatelessWidget {
 
 // --- PROFIL PRIHLÁSENÉHO POUŽÍVATEĽA (UPRAVENÉ) ---
 class _UserAccountSection extends ConsumerWidget {
-  final dynamic user;
-  const _UserAccountSection({required this.user});
+  final bool isMobile;
+  const _UserAccountSection({required this.isMobile});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final user = ref.watch(authProvider).user;
+    if (user == null) return const _LoginButtonSection();
 
     return Row(
-      mainAxisSize: MainAxisSize.min,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              user.name ?? "",
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: colorScheme.onSurface,
-              ),
-            ),
-            Text(
-              user.email ?? "",
-              style: TextStyle(
-                fontSize: 13,
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(width: 12),
-        // Elegantný Avatar namiesto bordera
-        CircleAvatar(
-          radius: 18,
-          backgroundColor: Colors.blueAccent.withAlpha(40),
-          child: Text(
-            (user.name ?? "U").substring(0, 1).toUpperCase(),
-            style: const TextStyle(
-              color: Colors.blueAccent,
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
-            ),
+        if (!isMobile) // Meno a email ukážeme len na desktope
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(user.name ?? "", style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+              Text(user.email ?? "", style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+            ],
           ),
+        const SizedBox(width: 10),
+        CircleAvatar(
+          radius: 16,
+          backgroundColor: Colors.blueAccent.withAlpha(40),
+          child: Text((user.name ?? "U")[0].toUpperCase(), style: const TextStyle(fontSize: 12, color: Colors.blueAccent)),
         ),
-        const SizedBox(width: 4),
-        IconButton(
-          icon: Icon(Icons.logout_rounded, color: colorScheme.onSurfaceVariant, size: 20),
-          tooltip: 'Logout',
-          onPressed: () => ref.read(authProvider.notifier).signOut(),
-        ),
+        if (!isMobile) // Logout tlačidlo priamo v bare len na desktope
+          IconButton(
+            icon: const Icon(Icons.logout, size: 18),
+            onPressed: () => ref.read(authProvider.notifier).signOut(),
+          ),
       ],
     );
   }
@@ -233,6 +210,7 @@ class _LoginButtonSection extends ConsumerWidget {
     );
   }
 }
+
 
 // --- PREPÍNAČ JAZYKA (Nezmenené) ---
 class _LanguageSwitch extends ConsumerWidget {

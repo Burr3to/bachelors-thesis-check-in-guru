@@ -107,7 +107,7 @@ class TaskProgressBar extends ConsumerWidget {
         children: [
           Text("${stats.totalRespondents}", style: textStyle),
           const SizedBox(width: 2),
-          Icon(Icons.person_outline, size: 12, color: colorScheme.onSurfaceVariant),
+          Icon(Icons.person_outline, size: 16, color: colorScheme.onSurfaceVariant),
         ],
       );
     }

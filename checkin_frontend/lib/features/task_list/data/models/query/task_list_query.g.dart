@@ -22,8 +22,7 @@ _TaskListQuery _$TaskListQueryFromJson(Map<String, dynamic> json) =>
           : DateTime.parse(json['deadLineAfter'] as String),
       mode: $enumDecodeNullable(_$SubtaskModeEnumMap, json['mode']),
       requiresAuth: json['requiresAuth'] as bool?,
-      onlyOverdue: json['onlyOverdue'] as bool?,
-      onlyActive: json['onlyActive'] as bool?,
+      respondentEmail: json['respondentEmail'] as String?,
     );
 
 Map<String, dynamic> _$TaskListQueryToJson(_TaskListQuery instance) =>
@@ -38,14 +37,14 @@ Map<String, dynamic> _$TaskListQueryToJson(_TaskListQuery instance) =>
       'deadLineAfter': instance.deadLineAfter?.toIso8601String(),
       'mode': _$SubtaskModeEnumMap[instance.mode],
       'requiresAuth': instance.requiresAuth,
-      'onlyOverdue': instance.onlyOverdue,
-      'onlyActive': instance.onlyActive,
+      'respondentEmail': instance.respondentEmail,
     };
 
 const _$TaskStateEnumMap = {
   TaskState.todo: 0,
   TaskState.inProgress: 1,
   TaskState.completed: 2,
+  TaskState.missed: 3,
 };
 
 const _$SubtaskModeEnumMap = {SubtaskMode.shared: 0, SubtaskMode.individual: 1};

@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$TaskListQuery {
 
- int get pageNumber; int get pageSize; String get sortBy; bool get sortDesc; String? get nameContains; TaskState? get status; DateTime? get deadLineBefore; DateTime? get deadLineAfter; SubtaskMode? get mode; bool? get requiresAuth; bool? get onlyOverdue; bool? get onlyActive;
+ int get pageNumber; int get pageSize; String get sortBy; bool get sortDesc; String? get nameContains; TaskState? get status; DateTime? get deadLineBefore; DateTime? get deadLineAfter; SubtaskMode? get mode; bool? get requiresAuth; String? get respondentEmail;
 /// Create a copy of TaskListQuery
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $TaskListQueryCopyWith<TaskListQuery> get copyWith => _$TaskListQueryCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is TaskListQuery&&(identical(other.pageNumber, pageNumber) || other.pageNumber == pageNumber)&&(identical(other.pageSize, pageSize) || other.pageSize == pageSize)&&(identical(other.sortBy, sortBy) || other.sortBy == sortBy)&&(identical(other.sortDesc, sortDesc) || other.sortDesc == sortDesc)&&(identical(other.nameContains, nameContains) || other.nameContains == nameContains)&&(identical(other.status, status) || other.status == status)&&(identical(other.deadLineBefore, deadLineBefore) || other.deadLineBefore == deadLineBefore)&&(identical(other.deadLineAfter, deadLineAfter) || other.deadLineAfter == deadLineAfter)&&(identical(other.mode, mode) || other.mode == mode)&&(identical(other.requiresAuth, requiresAuth) || other.requiresAuth == requiresAuth)&&(identical(other.onlyOverdue, onlyOverdue) || other.onlyOverdue == onlyOverdue)&&(identical(other.onlyActive, onlyActive) || other.onlyActive == onlyActive));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TaskListQuery&&(identical(other.pageNumber, pageNumber) || other.pageNumber == pageNumber)&&(identical(other.pageSize, pageSize) || other.pageSize == pageSize)&&(identical(other.sortBy, sortBy) || other.sortBy == sortBy)&&(identical(other.sortDesc, sortDesc) || other.sortDesc == sortDesc)&&(identical(other.nameContains, nameContains) || other.nameContains == nameContains)&&(identical(other.status, status) || other.status == status)&&(identical(other.deadLineBefore, deadLineBefore) || other.deadLineBefore == deadLineBefore)&&(identical(other.deadLineAfter, deadLineAfter) || other.deadLineAfter == deadLineAfter)&&(identical(other.mode, mode) || other.mode == mode)&&(identical(other.requiresAuth, requiresAuth) || other.requiresAuth == requiresAuth)&&(identical(other.respondentEmail, respondentEmail) || other.respondentEmail == respondentEmail));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,pageNumber,pageSize,sortBy,sortDesc,nameContains,status,deadLineBefore,deadLineAfter,mode,requiresAuth,onlyOverdue,onlyActive);
+int get hashCode => Object.hash(runtimeType,pageNumber,pageSize,sortBy,sortDesc,nameContains,status,deadLineBefore,deadLineAfter,mode,requiresAuth,respondentEmail);
 
 @override
 String toString() {
-  return 'TaskListQuery(pageNumber: $pageNumber, pageSize: $pageSize, sortBy: $sortBy, sortDesc: $sortDesc, nameContains: $nameContains, status: $status, deadLineBefore: $deadLineBefore, deadLineAfter: $deadLineAfter, mode: $mode, requiresAuth: $requiresAuth, onlyOverdue: $onlyOverdue, onlyActive: $onlyActive)';
+  return 'TaskListQuery(pageNumber: $pageNumber, pageSize: $pageSize, sortBy: $sortBy, sortDesc: $sortDesc, nameContains: $nameContains, status: $status, deadLineBefore: $deadLineBefore, deadLineAfter: $deadLineAfter, mode: $mode, requiresAuth: $requiresAuth, respondentEmail: $respondentEmail)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $TaskListQueryCopyWith<$Res>  {
   factory $TaskListQueryCopyWith(TaskListQuery value, $Res Function(TaskListQuery) _then) = _$TaskListQueryCopyWithImpl;
 @useResult
 $Res call({
- int pageNumber, int pageSize, String sortBy, bool sortDesc, String? nameContains, TaskState? status, DateTime? deadLineBefore, DateTime? deadLineAfter, SubtaskMode? mode, bool? requiresAuth, bool? onlyOverdue, bool? onlyActive
+ int pageNumber, int pageSize, String sortBy, bool sortDesc, String? nameContains, TaskState? status, DateTime? deadLineBefore, DateTime? deadLineAfter, SubtaskMode? mode, bool? requiresAuth, String? respondentEmail
 });
 
 
@@ -65,7 +65,7 @@ class _$TaskListQueryCopyWithImpl<$Res>
 
 /// Create a copy of TaskListQuery
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? pageNumber = null,Object? pageSize = null,Object? sortBy = null,Object? sortDesc = null,Object? nameContains = freezed,Object? status = freezed,Object? deadLineBefore = freezed,Object? deadLineAfter = freezed,Object? mode = freezed,Object? requiresAuth = freezed,Object? onlyOverdue = freezed,Object? onlyActive = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? pageNumber = null,Object? pageSize = null,Object? sortBy = null,Object? sortDesc = null,Object? nameContains = freezed,Object? status = freezed,Object? deadLineBefore = freezed,Object? deadLineAfter = freezed,Object? mode = freezed,Object? requiresAuth = freezed,Object? respondentEmail = freezed,}) {
   return _then(_self.copyWith(
 pageNumber: null == pageNumber ? _self.pageNumber : pageNumber // ignore: cast_nullable_to_non_nullable
 as int,pageSize: null == pageSize ? _self.pageSize : pageSize // ignore: cast_nullable_to_non_nullable
@@ -77,9 +77,8 @@ as TaskState?,deadLineBefore: freezed == deadLineBefore ? _self.deadLineBefore :
 as DateTime?,deadLineAfter: freezed == deadLineAfter ? _self.deadLineAfter : deadLineAfter // ignore: cast_nullable_to_non_nullable
 as DateTime?,mode: freezed == mode ? _self.mode : mode // ignore: cast_nullable_to_non_nullable
 as SubtaskMode?,requiresAuth: freezed == requiresAuth ? _self.requiresAuth : requiresAuth // ignore: cast_nullable_to_non_nullable
-as bool?,onlyOverdue: freezed == onlyOverdue ? _self.onlyOverdue : onlyOverdue // ignore: cast_nullable_to_non_nullable
-as bool?,onlyActive: freezed == onlyActive ? _self.onlyActive : onlyActive // ignore: cast_nullable_to_non_nullable
-as bool?,
+as bool?,respondentEmail: freezed == respondentEmail ? _self.respondentEmail : respondentEmail // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -161,10 +160,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int pageNumber,  int pageSize,  String sortBy,  bool sortDesc,  String? nameContains,  TaskState? status,  DateTime? deadLineBefore,  DateTime? deadLineAfter,  SubtaskMode? mode,  bool? requiresAuth,  bool? onlyOverdue,  bool? onlyActive)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int pageNumber,  int pageSize,  String sortBy,  bool sortDesc,  String? nameContains,  TaskState? status,  DateTime? deadLineBefore,  DateTime? deadLineAfter,  SubtaskMode? mode,  bool? requiresAuth,  String? respondentEmail)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _TaskListQuery() when $default != null:
-return $default(_that.pageNumber,_that.pageSize,_that.sortBy,_that.sortDesc,_that.nameContains,_that.status,_that.deadLineBefore,_that.deadLineAfter,_that.mode,_that.requiresAuth,_that.onlyOverdue,_that.onlyActive);case _:
+return $default(_that.pageNumber,_that.pageSize,_that.sortBy,_that.sortDesc,_that.nameContains,_that.status,_that.deadLineBefore,_that.deadLineAfter,_that.mode,_that.requiresAuth,_that.respondentEmail);case _:
   return orElse();
 
 }
@@ -182,10 +181,10 @@ return $default(_that.pageNumber,_that.pageSize,_that.sortBy,_that.sortDesc,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int pageNumber,  int pageSize,  String sortBy,  bool sortDesc,  String? nameContains,  TaskState? status,  DateTime? deadLineBefore,  DateTime? deadLineAfter,  SubtaskMode? mode,  bool? requiresAuth,  bool? onlyOverdue,  bool? onlyActive)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int pageNumber,  int pageSize,  String sortBy,  bool sortDesc,  String? nameContains,  TaskState? status,  DateTime? deadLineBefore,  DateTime? deadLineAfter,  SubtaskMode? mode,  bool? requiresAuth,  String? respondentEmail)  $default,) {final _that = this;
 switch (_that) {
 case _TaskListQuery():
-return $default(_that.pageNumber,_that.pageSize,_that.sortBy,_that.sortDesc,_that.nameContains,_that.status,_that.deadLineBefore,_that.deadLineAfter,_that.mode,_that.requiresAuth,_that.onlyOverdue,_that.onlyActive);}
+return $default(_that.pageNumber,_that.pageSize,_that.sortBy,_that.sortDesc,_that.nameContains,_that.status,_that.deadLineBefore,_that.deadLineAfter,_that.mode,_that.requiresAuth,_that.respondentEmail);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -199,10 +198,10 @@ return $default(_that.pageNumber,_that.pageSize,_that.sortBy,_that.sortDesc,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int pageNumber,  int pageSize,  String sortBy,  bool sortDesc,  String? nameContains,  TaskState? status,  DateTime? deadLineBefore,  DateTime? deadLineAfter,  SubtaskMode? mode,  bool? requiresAuth,  bool? onlyOverdue,  bool? onlyActive)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int pageNumber,  int pageSize,  String sortBy,  bool sortDesc,  String? nameContains,  TaskState? status,  DateTime? deadLineBefore,  DateTime? deadLineAfter,  SubtaskMode? mode,  bool? requiresAuth,  String? respondentEmail)?  $default,) {final _that = this;
 switch (_that) {
 case _TaskListQuery() when $default != null:
-return $default(_that.pageNumber,_that.pageSize,_that.sortBy,_that.sortDesc,_that.nameContains,_that.status,_that.deadLineBefore,_that.deadLineAfter,_that.mode,_that.requiresAuth,_that.onlyOverdue,_that.onlyActive);case _:
+return $default(_that.pageNumber,_that.pageSize,_that.sortBy,_that.sortDesc,_that.nameContains,_that.status,_that.deadLineBefore,_that.deadLineAfter,_that.mode,_that.requiresAuth,_that.respondentEmail);case _:
   return null;
 
 }
@@ -214,7 +213,7 @@ return $default(_that.pageNumber,_that.pageSize,_that.sortBy,_that.sortDesc,_tha
 @JsonSerializable()
 
 class _TaskListQuery implements TaskListQuery {
-  const _TaskListQuery({this.pageNumber = 1, this.pageSize = 12, this.sortBy = "createdat", this.sortDesc = true, this.nameContains, this.status, this.deadLineBefore, this.deadLineAfter, this.mode, this.requiresAuth, this.onlyOverdue, this.onlyActive});
+  const _TaskListQuery({this.pageNumber = 1, this.pageSize = 12, this.sortBy = "createdat", this.sortDesc = true, this.nameContains, this.status, this.deadLineBefore, this.deadLineAfter, this.mode, this.requiresAuth, this.respondentEmail});
   factory _TaskListQuery.fromJson(Map<String, dynamic> json) => _$TaskListQueryFromJson(json);
 
 @override@JsonKey() final  int pageNumber;
@@ -227,8 +226,7 @@ class _TaskListQuery implements TaskListQuery {
 @override final  DateTime? deadLineAfter;
 @override final  SubtaskMode? mode;
 @override final  bool? requiresAuth;
-@override final  bool? onlyOverdue;
-@override final  bool? onlyActive;
+@override final  String? respondentEmail;
 
 /// Create a copy of TaskListQuery
 /// with the given fields replaced by the non-null parameter values.
@@ -243,16 +241,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TaskListQuery&&(identical(other.pageNumber, pageNumber) || other.pageNumber == pageNumber)&&(identical(other.pageSize, pageSize) || other.pageSize == pageSize)&&(identical(other.sortBy, sortBy) || other.sortBy == sortBy)&&(identical(other.sortDesc, sortDesc) || other.sortDesc == sortDesc)&&(identical(other.nameContains, nameContains) || other.nameContains == nameContains)&&(identical(other.status, status) || other.status == status)&&(identical(other.deadLineBefore, deadLineBefore) || other.deadLineBefore == deadLineBefore)&&(identical(other.deadLineAfter, deadLineAfter) || other.deadLineAfter == deadLineAfter)&&(identical(other.mode, mode) || other.mode == mode)&&(identical(other.requiresAuth, requiresAuth) || other.requiresAuth == requiresAuth)&&(identical(other.onlyOverdue, onlyOverdue) || other.onlyOverdue == onlyOverdue)&&(identical(other.onlyActive, onlyActive) || other.onlyActive == onlyActive));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TaskListQuery&&(identical(other.pageNumber, pageNumber) || other.pageNumber == pageNumber)&&(identical(other.pageSize, pageSize) || other.pageSize == pageSize)&&(identical(other.sortBy, sortBy) || other.sortBy == sortBy)&&(identical(other.sortDesc, sortDesc) || other.sortDesc == sortDesc)&&(identical(other.nameContains, nameContains) || other.nameContains == nameContains)&&(identical(other.status, status) || other.status == status)&&(identical(other.deadLineBefore, deadLineBefore) || other.deadLineBefore == deadLineBefore)&&(identical(other.deadLineAfter, deadLineAfter) || other.deadLineAfter == deadLineAfter)&&(identical(other.mode, mode) || other.mode == mode)&&(identical(other.requiresAuth, requiresAuth) || other.requiresAuth == requiresAuth)&&(identical(other.respondentEmail, respondentEmail) || other.respondentEmail == respondentEmail));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,pageNumber,pageSize,sortBy,sortDesc,nameContains,status,deadLineBefore,deadLineAfter,mode,requiresAuth,onlyOverdue,onlyActive);
+int get hashCode => Object.hash(runtimeType,pageNumber,pageSize,sortBy,sortDesc,nameContains,status,deadLineBefore,deadLineAfter,mode,requiresAuth,respondentEmail);
 
 @override
 String toString() {
-  return 'TaskListQuery(pageNumber: $pageNumber, pageSize: $pageSize, sortBy: $sortBy, sortDesc: $sortDesc, nameContains: $nameContains, status: $status, deadLineBefore: $deadLineBefore, deadLineAfter: $deadLineAfter, mode: $mode, requiresAuth: $requiresAuth, onlyOverdue: $onlyOverdue, onlyActive: $onlyActive)';
+  return 'TaskListQuery(pageNumber: $pageNumber, pageSize: $pageSize, sortBy: $sortBy, sortDesc: $sortDesc, nameContains: $nameContains, status: $status, deadLineBefore: $deadLineBefore, deadLineAfter: $deadLineAfter, mode: $mode, requiresAuth: $requiresAuth, respondentEmail: $respondentEmail)';
 }
 
 
@@ -263,7 +261,7 @@ abstract mixin class _$TaskListQueryCopyWith<$Res> implements $TaskListQueryCopy
   factory _$TaskListQueryCopyWith(_TaskListQuery value, $Res Function(_TaskListQuery) _then) = __$TaskListQueryCopyWithImpl;
 @override @useResult
 $Res call({
- int pageNumber, int pageSize, String sortBy, bool sortDesc, String? nameContains, TaskState? status, DateTime? deadLineBefore, DateTime? deadLineAfter, SubtaskMode? mode, bool? requiresAuth, bool? onlyOverdue, bool? onlyActive
+ int pageNumber, int pageSize, String sortBy, bool sortDesc, String? nameContains, TaskState? status, DateTime? deadLineBefore, DateTime? deadLineAfter, SubtaskMode? mode, bool? requiresAuth, String? respondentEmail
 });
 
 
@@ -280,7 +278,7 @@ class __$TaskListQueryCopyWithImpl<$Res>
 
 /// Create a copy of TaskListQuery
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? pageNumber = null,Object? pageSize = null,Object? sortBy = null,Object? sortDesc = null,Object? nameContains = freezed,Object? status = freezed,Object? deadLineBefore = freezed,Object? deadLineAfter = freezed,Object? mode = freezed,Object? requiresAuth = freezed,Object? onlyOverdue = freezed,Object? onlyActive = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? pageNumber = null,Object? pageSize = null,Object? sortBy = null,Object? sortDesc = null,Object? nameContains = freezed,Object? status = freezed,Object? deadLineBefore = freezed,Object? deadLineAfter = freezed,Object? mode = freezed,Object? requiresAuth = freezed,Object? respondentEmail = freezed,}) {
   return _then(_TaskListQuery(
 pageNumber: null == pageNumber ? _self.pageNumber : pageNumber // ignore: cast_nullable_to_non_nullable
 as int,pageSize: null == pageSize ? _self.pageSize : pageSize // ignore: cast_nullable_to_non_nullable
@@ -292,9 +290,8 @@ as TaskState?,deadLineBefore: freezed == deadLineBefore ? _self.deadLineBefore :
 as DateTime?,deadLineAfter: freezed == deadLineAfter ? _self.deadLineAfter : deadLineAfter // ignore: cast_nullable_to_non_nullable
 as DateTime?,mode: freezed == mode ? _self.mode : mode // ignore: cast_nullable_to_non_nullable
 as SubtaskMode?,requiresAuth: freezed == requiresAuth ? _self.requiresAuth : requiresAuth // ignore: cast_nullable_to_non_nullable
-as bool?,onlyOverdue: freezed == onlyOverdue ? _self.onlyOverdue : onlyOverdue // ignore: cast_nullable_to_non_nullable
-as bool?,onlyActive: freezed == onlyActive ? _self.onlyActive : onlyActive // ignore: cast_nullable_to_non_nullable
-as bool?,
+as bool?,respondentEmail: freezed == respondentEmail ? _self.respondentEmail : respondentEmail // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
