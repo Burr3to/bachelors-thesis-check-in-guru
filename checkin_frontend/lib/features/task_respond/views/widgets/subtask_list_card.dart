@@ -1,4 +1,4 @@
-import 'package:checkin_frontend/features/task_overview/data/models/subtask_combined_list_model.dart';
+import 'package:checkin_frontend/core/models/subtask_instance/subtask_combined_list_model.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/utils/l10n_extensions.dart';
 

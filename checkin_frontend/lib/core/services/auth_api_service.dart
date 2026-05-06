@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:retrofit/retrofit.dart';
-import 'models/auth_dtos.dart';
+import '../models/auth/auth_dtos.dart';
 
 part 'auth_api_service.g.dart';
 

@@ -10,7 +10,7 @@ import '../../../../core/providers/task_providers.dart';
 import '../../../../core/services/signalr_service.dart';
 import '../../../../core/shared_widgets/invalid_emails_dialog.dart';
 import '../../../../core/shared_widgets/primary_button.dart';
-import '../../../../core/utils/app_snack_bar.dart';
+import '../../../../core/shared_widgets/app_snack_bar.dart';
 import '../../../../core/utils/l10n_extensions.dart';
 import '../../../../core/utils/quill_utils.dart';
 import '../widgets/subtask_input_section.dart';

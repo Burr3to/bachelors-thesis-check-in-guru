@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/models/enums/task_enums.dart';
+import '../../../../core/models/task/query/task_list_query.dart';
 import '../../../../core/providers/task_providers.dart';
 import '../../../../core/utils/l10n_extensions.dart';
-import '../../data/models/query/task_list_query.dart';
 
 class TaskFiltersDrawer extends ConsumerWidget {
   const TaskFiltersDrawer({super.key});

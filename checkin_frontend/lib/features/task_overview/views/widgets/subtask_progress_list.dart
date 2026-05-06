@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:collection/collection.dart';
 import '../../../../core/shared_widgets/segmented_progress_bar.dart';
 import '../../../../core/utils/l10n_extensions.dart';
-import '../../data/models/subtask_combined_list_model.dart';
+import '../../../../core/models/subtask_instance/subtask_combined_list_model.dart';
 
 class SubtaskProgressList extends ConsumerStatefulWidget {
   final List<SubtaskCombinedListModel> subtasks;

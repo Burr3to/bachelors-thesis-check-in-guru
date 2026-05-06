@@ -1,12 +1,11 @@
 import 'dart:math';
 import 'package:checkin_frontend/core/providers/task_providers.dart';
-import 'package:checkin_frontend/core/utils/app_snack_bar.dart';
+import 'package:checkin_frontend/core/shared_widgets/app_snack_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/models/subtask_template/subtask_template_create_model.dart';
 import '../../../../core/models/subtask_template/subtask_template_update_model.dart';
-import '../../../../core/utils/l10n_extensions.dart';
-import '../../data/models/subtask_combined_list_model.dart';
+import '../../../../core/models/subtask_instance/subtask_combined_list_model.dart';
 
 class SubtaskListSection extends ConsumerStatefulWidget {
   final String title;

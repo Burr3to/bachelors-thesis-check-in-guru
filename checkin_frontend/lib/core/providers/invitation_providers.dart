@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:checkin_frontend/core/api/api_providers.dart';
 import '../models/invitations/invitation_list_model.dart';
 import '../services/invitation_api_service.dart';
-import '../../features/task_list/data/models/query/query_result.dart';
+import '../models/task/query/query_result.dart';
 
 final invitationApiServiceProvider = Provider<InvitationApiService>((ref) {
   final dio = ref.watch(dioProvider);

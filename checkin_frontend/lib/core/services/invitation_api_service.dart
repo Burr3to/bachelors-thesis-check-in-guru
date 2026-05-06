@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:retrofit/retrofit.dart';
-import '../../features/task_list/data/models/query/query_result.dart';
+import '../models/task/query/query_result.dart';
 import '../models/invitations/invitation_create_model.dart';
 import '../models/invitations/invitation_list_model.dart';
 

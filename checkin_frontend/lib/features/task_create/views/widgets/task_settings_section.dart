@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/models/enums/task_enums.dart';
 import '../../../../core/providers/task_create/task_create_provider.dart';
-import '../../../../core/utils/l10n_extensions.dart';
 
 class TaskSettingsSection extends ConsumerStatefulWidget {
   final DateTime? selectedDeadline;
@@ -287,7 +286,7 @@ class _TaskSettingsSectionState extends ConsumerState<TaskSettingsSection> {
                 color: _isDomainValid == false ? cs.error : cs.onSurface,
               ),
               decoration: InputDecoration(
-                hintText: "stud.fit.vutbr.cz",
+                hintText: "vutbr.cz",
                 prefixIcon: Padding(
                   padding: const EdgeInsets.all(10),
                   child: Text("@", style: TextStyle(

@@ -172,15 +172,15 @@ class _UserAccountSection extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(user.name ?? "", style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-              Text(user.email ?? "", style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+              Text(user.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+              Text(user.email, style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
             ],
           ),
         const SizedBox(width: 10),
         CircleAvatar(
           radius: 16,
           backgroundColor: Colors.blueAccent.withAlpha(40),
-          child: Text((user.name ?? "U")[0].toUpperCase(), style: const TextStyle(fontSize: 12, color: Colors.blueAccent)),
+          child: Text((user.name)[0].toUpperCase(), style: const TextStyle(fontSize: 12, color: Colors.blueAccent)),
         ),
         if (!isMobile) // Logout tlačidlo priamo v bare len na desktope
           IconButton(

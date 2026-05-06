@@ -1,5 +1,4 @@
-import 'package:checkin_frontend/core/models/subtask_instance/subtask_instance_list_model.dart';
-import 'package:checkin_frontend/features/task_overview/data/models/subtask_combined_list_model.dart';
+import 'package:checkin_frontend/core/models/subtask_instance/subtask_combined_list_model.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';

@@ -2,11 +2,11 @@ import 'package:checkin_frontend/core/models/Statistics/task_summary_stats.dart'
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:checkin_frontend/core/api/api_providers.dart';
 import 'package:flutter_riverpod/legacy.dart';
-import '../../features/task_list/data/models/query/task_list_query.dart';
-import '../../features/task_overview/data/models/subtask_combined_list_model.dart';
-import '../../features/task_overview/data/models/task_detail_model.dart';
-import '../../features/task_list/data/models/query/query_result.dart';
-import '../../features/task_list/data/models/task_list_model.dart';
+import '../models/subtask_instance/subtask_combined_list_model.dart';
+import '../models/task/query/task_list_query.dart';
+import '../models/task/task_detail_model.dart';
+import '../models/task/query/query_result.dart';
+import '../models/task/task_list_model.dart';
 import '../models/enums/task_enums.dart';
 import '../services/subtask_instance_api_service.dart';
 import '../services/subtask_template_api_service.dart';

@@ -1,6 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-import '../../../../core/models/enums/task_enums.dart';
+import '../enums/task_enums.dart';
 
 part 'task_list_model.freezed.dart';
 part 'task_list_model.g.dart';

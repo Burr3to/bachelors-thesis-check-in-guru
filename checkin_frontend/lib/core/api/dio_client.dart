@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:firebase_performance_dio/firebase_performance_dio.dart';
 import 'package:flutter/foundation.dart';
 
-import '../../features/auth/data/auth_interceptor.dart';
+import '../services/auth_interceptor.dart';
 
 class DioClient {
   // Singleton alebo len getter, záleží ako to chceš používať.

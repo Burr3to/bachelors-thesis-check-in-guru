@@ -3,9 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:checkin_frontend/core/models/user/user_profile.dart';
-import '../../data/auth_api_service.dart';
-import '../../data/auth_providers.dart'; // Import providera pre service
-import '../../data/models/auth_dtos.dart';
+import '../../../../core/services/auth_api_service.dart';
+import '../../../../core/providers/auth_providers.dart'; // Import providera pre service
+import '../../../../core/models/auth/auth_dtos.dart';
 
 // Provider pre Storage (aby sme mohli ukladať token)
 final storageProvider = Provider((ref) => const FlutterSecureStorage());

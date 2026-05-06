@@ -5,7 +5,7 @@ import '../../../../core/models/invitations/invitation_list_model.dart';
 import '../../../../core/models/task/task_update_model.dart';
 import '../../../../core/providers/invitation_providers.dart';
 import '../../../../core/providers/task_providers.dart';
-import '../../../../core/utils/app_snack_bar.dart';
+import '../../../../core/shared_widgets/app_snack_bar.dart';
 import '../../../../core/utils/l10n_extensions.dart';
 
 enum EditToolbarState { none, defaultEdit, addMode, removeMode }

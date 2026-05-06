@@ -1,6 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-import '../../../features/task_overview/data/models/subtask_combined_list_model.dart';
+import '../subtask_instance/subtask_combined_list_model.dart';
 import '../enums/task_enums.dart';
 
 part 'task_public_detail_model.freezed.dart';

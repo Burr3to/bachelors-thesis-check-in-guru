@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:checkin_frontend/features/auth/views/providers/auth_provider.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../../core/providers/signalr_provider.dart';
 import '../../../../core/services/signalr_service.dart';
-import '../../../../core/shared_widgets/primary_button.dart';
 import '../../../../core/providers/task_providers.dart';
 import '../../../../core/utils/l10n_extensions.dart';
 import '../widgets/task_card.dart';

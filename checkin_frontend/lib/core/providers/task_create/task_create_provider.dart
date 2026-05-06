@@ -1,4 +1,4 @@
-import '../../../features/task_create/data/models/task_create_model.dart';
+import '../../models/task/task_create_model.dart';
 import '../../../../core/models/enums/task_enums.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';

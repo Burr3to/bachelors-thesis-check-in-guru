@@ -1,5 +1,4 @@
-import 'package:checkin_frontend/core/utils/quill_viewer.dart';
-import 'package:checkin_frontend/features/task_list/data/models/task_list_model.dart';
+import 'package:checkin_frontend/core/models/task/task_list_model.dart';
 import 'package:checkin_frontend/features/task_list/views/widgets/task_progress_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
