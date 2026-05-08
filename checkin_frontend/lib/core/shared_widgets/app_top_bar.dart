@@ -163,11 +163,17 @@ class _UserAccountSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authProvider).user;
-    if (user == null) return const _LoginButtonSection();
 
+    // AK POUŽÍVATEĽ NIE JE PRIHLÁSENÝ (PC aj MOBIL)
+    if (user == null) {
+      return const _LoginButtonSection();
+    }
+
+    // AK JE PRIHLÁSENÝ
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        if (!isMobile) // Meno a email ukážeme len na desktope
+        if (!isMobile)
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             mainAxisSize: MainAxisSize.min,
@@ -182,7 +188,7 @@ class _UserAccountSection extends ConsumerWidget {
           backgroundColor: Colors.blueAccent.withAlpha(40),
           child: Text((user.name)[0].toUpperCase(), style: const TextStyle(fontSize: 12, color: Colors.blueAccent)),
         ),
-        if (!isMobile) // Logout tlačidlo priamo v bare len na desktope
+        if (!isMobile)
           IconButton(
             icon: const Icon(Icons.logout, size: 18),
             onPressed: () => ref.read(authProvider.notifier).signOut(),
@@ -192,12 +198,14 @@ class _UserAccountSection extends ConsumerWidget {
   }
 }
 
+
 // --- LOGIN (Nezmenené) ---
 class _LoginButtonSection extends ConsumerWidget {
   const _LoginButtonSection();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Toto tlačidlo sa teraz zobrazí na PC aj Mobile
     return OutlinedButton.icon(
       onPressed: () => ref.read(authProvider.notifier).signInWithGoogle(),
       icon: const Icon(Icons.login, size: 18),
@@ -205,12 +213,12 @@ class _LoginButtonSection extends ConsumerWidget {
       style: OutlinedButton.styleFrom(
         foregroundColor: Colors.blueAccent,
         side: const BorderSide(color: Colors.blueAccent),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
   }
 }
-
 
 // --- PREPÍNAČ JAZYKA (Nezmenené) ---
 class _LanguageSwitch extends ConsumerWidget {

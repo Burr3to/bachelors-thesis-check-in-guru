@@ -11,6 +11,7 @@ sealed class InvitationListModel with _$InvitationListModel {
     required String taskId,
     required bool isAccepted,
     required bool isSent,
+    required bool isCompleted,
     DateTime? sentAt
   }) = _InvitationListModel;
 

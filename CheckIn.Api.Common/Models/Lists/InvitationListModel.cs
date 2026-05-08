@@ -10,5 +10,6 @@ public record InvitationListModel : IEntityModel
     public string? TaskTitle { get; init; }
     public bool IsSent { get; init; }
     public bool IsAccepted { get; init; }
+    public bool IsCompleted { get; init; }
     public DateTime? SentAt { get; init; }
 }

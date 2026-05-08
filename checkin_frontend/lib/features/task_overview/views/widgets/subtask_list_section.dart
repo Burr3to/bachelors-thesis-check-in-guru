@@ -100,7 +100,7 @@ class _SubtaskListSectionState extends ConsumerState<SubtaskListSection> {
         decoration: BoxDecoration(
           color: cs.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: cs.primary, width: 1.2),
+          border: Border.all(color: cs.primary, width: 0.8),
         ),
         padding: const EdgeInsets.all(16),
         child: Column(

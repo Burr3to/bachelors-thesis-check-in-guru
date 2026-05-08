@@ -45,19 +45,15 @@ class _SubtaskInputSectionState extends ConsumerState<SubtaskInputSection> {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+        children:[
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
+            children:[
               Text(context.l10n.task_create_subtasks_title,
                   style: TextStyle(fontWeight: FontWeight.bold, color: cs.onSurface)),
               IconButton(
                 onPressed: () {
-                  // 1. Vymažeme všetky podúlohy v provideri
-                  // Predpokladám, že tvoj notifier má metódu na reset/set zoznamu
                   ref.read(taskCreateProvider.notifier).clearSubtasks();
-
-                  // 2. Schováme sekciu (pôvodná logika)
                   widget.onRemoveSection();
                 },
                 icon: const Icon(Icons.close, size: 20),
@@ -69,11 +65,11 @@ class _SubtaskInputSectionState extends ConsumerState<SubtaskInputSection> {
           const SizedBox(height: 8),
 
           Row(
-            children: [
+            children:[
               Expanded(
                 child: TextField(
                   controller: _inputController,
-                  focusNode: _inputFocusNode, // Priradený focus node
+                  focusNode: _inputFocusNode,
                   onSubmitted: (_) => _submitSubtask(),
                   decoration: InputDecoration(
                     hintText: context.l10n.task_create_subtasks_hint,
@@ -115,7 +111,7 @@ class _SubtaskInputSectionState extends ConsumerState<SubtaskInputSection> {
                     border: Border.all(color: cs.outlineVariant.withAlpha(125)),
                   ),
                   child: Column(
-                    children: [
+                    children:[
                       ListTile(
                         visualDensity: VisualDensity.compact,
                         contentPadding: const EdgeInsets.only(left: 4, right: 8),
@@ -135,7 +131,7 @@ class _SubtaskInputSectionState extends ConsumerState<SubtaskInputSection> {
                           },
                         ),
                         title: Row(
-                          children: [
+                          children:[
                             Text(subtask.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
                             if (!isExpanded && hasDescription)
                               Expanded(
@@ -165,17 +161,21 @@ class _SubtaskInputSectionState extends ConsumerState<SubtaskInputSection> {
                             textInputAction: TextInputAction.done,
                             style: const TextStyle(fontSize: 13),
                             onFieldSubmitted: (_) {
-                              _inputFocusNode.requestFocus(); // Vráti focus na horný input
+                              // TOTO JE TÁ ZMENA:
+                              // Odoberie index z otvorených a tým sa políčko vizuálne zatvorí
+                              setState(() {
+                                _expandedIndices.remove(index);
+                              });
+                              _inputFocusNode.requestFocus(); // Voliteľne vráti focus hore
                             },
                             onChanged: (val) => ref.read(taskCreateProvider.notifier).updateSubtaskDescription(index, val),
                             decoration: InputDecoration(
-                              hintText: "Add detailed notes or instructions...", // context.l10n.task_create_subtasks_desc_hint
+                              hintText: "Add detailed notes or instructions...",
                               hintStyle: TextStyle(fontSize: 12, color: cs.onSurfaceVariant.withAlpha(160)),
                               isDense: true,
                               fillColor: cs.surfaceContainerHigh.withAlpha(100),
                               filled: true,
                               contentPadding: const EdgeInsets.all(12),
-                              // Tu je ten obdĺžnik namiesto riadku:
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
                                 borderSide: BorderSide(color: cs.outlineVariant),

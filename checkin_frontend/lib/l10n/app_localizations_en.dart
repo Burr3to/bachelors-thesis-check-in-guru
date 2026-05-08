@@ -468,7 +468,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get nav_introduction => 'Introduction';
 
   @override
-  String get nav_my_tasks => 'My Tasks';
+  String get nav_my_tasks => 'Tasks';
 
   @override
   String get dialog_invalid_emails_title => 'Invalid Domains Found';

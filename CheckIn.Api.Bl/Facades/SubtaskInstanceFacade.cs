@@ -48,6 +48,7 @@ public class SubtaskInstanceFacade(
     public async Task<Result<int>> BulkCompleteAsync(BulkSubtaskCompleteModel model)
     {
         var currentUserId = OptionalUserId;
+        var currentUserEmail = userContext.GetEmail();
         Guid? taskId = null;
 
         // Ak je zoznam prázdny, vrátime BadRequest (alebo 0)
@@ -92,7 +93,10 @@ public class SubtaskInstanceFacade(
             instance.CompletedByUserId = currentUserId;
             instance.CompletedAt = DateTime.UtcNow;
             instance.RespondentName = model.RespondentName;
-            //instance.Comment = model.CommonComment;
+            if (!string.IsNullOrEmpty(currentUserEmail))
+            {
+                instance.AssignedToEmail = currentUserEmail;
+            }
 
             completedCount++;
         }
@@ -127,13 +131,14 @@ public class SubtaskInstanceFacade(
                     {
                         TemplateSubtaskId = template.Id,
                         ResponseGroupId = anonymousResponseGroupId,
-
-                        // Ak je ID v liste od užívateľa, je splnená. Ak nie je, vytvoríme ju nesplnenú (IsCompleted = false).
                         IsCompleted = isActuallyCompletedInThisRequest,
-
                         RespondentName = model.RespondentName,
                         CompletedAt = isActuallyCompletedInThisRequest ? DateTime.UtcNow : null,
-                        CompletedByUserId = currentUserId
+                        CompletedByUserId = currentUserId,
+
+                        AssignedToEmail = isActuallyCompletedInThisRequest && !string.IsNullOrEmpty(currentUserEmail)
+                            ? currentUserEmail
+                            : null
                     };
 
                     await dbContext.Set<SubtaskInstanceEntity>().AddAsync(newInstance);
@@ -148,42 +153,110 @@ public class SubtaskInstanceFacade(
             }
         }
 
+
         if (taskId.HasValue)
         {
-            // PRIDANÉ: Skontrolujeme, či táto zmena nedokončila celý Task
-            await CheckAndSetTaskCompletionAsync(taskId.Value);
-        }
+            // 1. KROK: Uložíme splnené inštancie (aby ich kontrolné funkcie videli v DB)
+            await dbContext.SaveChangesAsync();
 
-        await dbContext.SaveChangesAsync();
-        Console.WriteLine($"[BULK] Zmeny uložené do DB. TaskId: {taskId}");
+            // 2. KROK: Spustíme kontrolné mechanizmy
+            await CheckAndSetTaskCompletionAsync(taskId.Value); // Zmení Task.State na Completed (ak treba)
+            await UpdateInvitationStatusAsync(taskId.Value); // Zmení Invitation.IsCompleted na true (ak treba)
 
-        //SignalR
-        if (taskId.HasValue)
-        {
+            // 3. KROK: Uložíme zmeny, ktoré spravili kontrolné mechanizmy
+            await dbContext.SaveChangesAsync();
+
+            // --- SIGNALR NOTIFIKÁCIE ---
             var taskAuthorId = await dbContext.Set<TaskEntity>()
                 .Where(t => t.Id == taskId.Value)
                 .Select(t => t.CreatedById)
                 .FirstOrDefaultAsync();
 
             var roomName = taskId.Value.ToString().ToLower().Trim();
-            Console.WriteLine($"[SIGNALR] Odosielam signál do ROOM: '{roomName}'");
 
+            // A. Notifikácia pre DETAIL úlohy (obnoví checklist a čipy pozvánok)
             await hubContext.Clients.Group(roomName).SendAsync("TaskInstancesChanged");
+            await hubContext.Clients.Group(roomName).SendAsync("TaskUpdated"); // Ak meníme stav tasku na Completed
 
+            // B. Notifikácia pre DASHBOARD autora (obnoví riadok v zozname úloh)
             if (taskAuthorId != Guid.Empty)
             {
                 var userGroupName = $"User_{taskAuthorId.ToString().ToLower()}";
                 await hubContext.Clients.Group(userGroupName).SendAsync("AuthorTaskUpdated", taskId.Value.ToString());
-                Console.WriteLine($"[SIGNALR] Odoslaný signál pre LIST autorovi v grupe: {userGroupName}");
+            }
+
+            Console.WriteLine($"[BULK & SIGNALR] Všetko spracované pre TaskId: {taskId}");
+        }
+        else
+        {
+            // Toto sa stane len ak niekto pošle prázdny zoznam ID
+            await dbContext.SaveChangesAsync();
+        }
+
+        return Result<int>.Success(completedCount);
+    }
+
+    private async Task UpdateInvitationStatusAsync(Guid taskId)
+    {
+        var currentUserId = OptionalUserId;
+        var userEmail = userContext.GetEmail();
+
+        if (string.IsNullOrEmpty(userEmail)) return;
+
+        var normalizedEmail = userEmail.ToLower().Trim();
+
+        var invitation = await dbContext.Set<InvitationEntity>()
+            .FirstOrDefaultAsync(i => i.TaskId == taskId && i.Email.ToLower() == normalizedEmail);
+
+        if (invitation == null || invitation.IsCompleted) return;
+
+        var taskMode = await dbContext.Set<TaskEntity>()
+            .Where(t => t.Id == taskId)
+            .Select(t => t.SubtaskMode)
+            .FirstOrDefaultAsync();
+
+        bool hasPendingWork;
+
+        if (taskMode == SubtaskMode.Individual)
+        {
+            if (currentUserId.HasValue)
+            {
+                // Registrovaný používateľ: kontrolujeme len tie, čo sú priradené jemu
+                hasPendingWork = await dbContext.Set<SubtaskInstanceEntity>()
+                    .AnyAsync(i => i.TemplateSubtask.ParentTaskId == taskId &&
+                                   i.AssignedToUserId == currentUserId.Value &&
+                                   !i.IsCompleted);
+            }
+            else
+            {
+                // ANONYMNÝ používateľ v Individual móde: 
+                // Tu je to zložitejšie. Ak je to "Main Task Only", tak po SaveChanges 
+                // a pri správnom priradení ResponseGroupId by sme mali hľadať 
+                // podľa mena respondenta alebo v rámci tejto session.
+
+                // NAJJEDNODUCHŠIA LOGIKA pre "Main Task Only": 
+                // Ak sme v tejto funkcii a práve sme niečo úspešne uložili, 
+                // a v zozname inštancií pre tento task a toto MENO už nie je nič voľné.
+                hasPendingWork = await dbContext.Set<SubtaskInstanceEntity>()
+                    .AnyAsync(i => i.TemplateSubtask.ParentTaskId == taskId &&
+                                   i.RespondentName ==
+                                   invitation.Email && // Použijeme email ako identifikátor v inštancii
+                                   !i.IsCompleted);
             }
         }
         else
         {
-            Console.WriteLine("[SIGNALR] VAROVANIE: Signál neodoslaný, taskId je NULL!");
+            // Shared Mode: tu nás zaujíma celkový stav úloh v tasku
+            hasPendingWork = await dbContext.Set<SubtaskInstanceEntity>()
+                .AnyAsync(i => i.TemplateSubtask.ParentTaskId == taskId && !i.IsCompleted);
         }
 
+        if (!hasPendingWork)
+        {
+            invitation.IsCompleted = true;
 
-        return Result<int>.Success(completedCount);
+            await hubContext.Clients.Group(taskId.ToString().ToLower()).SendAsync("TaskInvitationsChanged");
+        }
     }
 
 
@@ -198,45 +271,50 @@ public class SubtaskInstanceFacade(
         if (task == null || task.State == TaskState.Completed) return;
 
         bool isAllDone = false;
+        var now = DateTime.UtcNow;
 
         if (task.SubtaskMode == SubtaskMode.Shared)
         {
-            // SHARED: Každá šablóna musí mať aspoň jednu splnenú inštanciu
+            // SHARED: Ostáva rovnaké (každý subtask splnený aspoň raz)
             isAllDone = task.Subtasks.All(st => st.Instances.Any(i => i.IsCompleted));
         }
-        else
+        else // INDIVIDUAL
         {
-            // INDIVIDUAL: Všetci pozvaní respondenti musia mať hotovo
-            // (Zisťujeme, či každý Invitation má ResponseGroup, kde sú všetky subtasky hotové)
-            var invitations = task.Invitations.Select(i => i.Email).ToList();
+            int invitedCount = task.Invitations.Count;
 
-            // Získame všetky unikátne ResponseGroupIds pre tento task
-            var groups = task.Subtasks.SelectMany(st => st.Instances)
-                .GroupBy(i => i.ResponseGroupId)
-                .Select(g => new
-                {
-                    GroupId = g.Key,
-                    AllCompleted = g.All(i => i.IsCompleted),
-                    Count = g.Count()
-                })
-                .Where(g => g.AllCompleted && g.Count == task.Subtasks.Count)
-                .ToList();
-
-            // Task je hotový, ak počet úspešných skupín zodpovedá počtu pozvánok 
-            // (Ak je task otvorený "Anyone", Completed stav v Individual móde nedáva zmysel automaticky, 
-            //  vtedy by ho musel autor zavrieť manuálne, alebo to necháme InProgress)
-            if (invitations.Any())
+            if (invitedCount == 0)
             {
-                isAllDone = groups.Count >= invitations.Count;
+                // NOVÁ LOGIKA: Verejný individuálny task
+                // Ak je aktuálny čas po deadline, tento posledný respondent task "uzamkol"
+                isAllDone = now > task.DeadLine;
+            }
+            else
+            {
+                // Pozvaní respondenti: Task je hotový, ak všetci pozvaní odovzdali
+                var completedGroupsCount = task.Subtasks
+                    .SelectMany(st => st.Instances)
+                    .GroupBy(i => i.ResponseGroupId)
+                    .Count(g => g.Count() == task.Subtasks.Count && g.All(i => i.IsCompleted));
+
+                isAllDone = completedGroupsCount >= invitedCount;
+
+                // BONUS: Ak chceš, aby sa aj pri pozvaných ľuďoch task zavrel po deadline, 
+                // keď niekto odpovie neskoro, pridaj:
+                if (!isAllDone && now > task.DeadLine)
+                {
+                    isAllDone = true;
+                }
             }
         }
 
         if (isAllDone)
         {
             task.State = TaskState.Completed;
-            task.LastModifiedAt = DateTime.UtcNow;
-            // Tu netreba SaveChanges, ak to voláme pred hlavným uložením, 
-            // alebo ho zavoláme explicitne, ak to voláme po ňom.
+            task.LastModifiedAt = now;
+
+            // SignalR notifikácia
+            var userGroupName = $"User_{task.CreatedById.ToString().ToLower()}";
+            await hubContext.Clients.Group(userGroupName).SendAsync("AuthorTaskUpdated", task.Id.ToString());
         }
     }
 }

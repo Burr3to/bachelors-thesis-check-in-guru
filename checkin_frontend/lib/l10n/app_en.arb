@@ -180,7 +180,7 @@
             "error_not_found_msg": "The link is invalid or the task has been deleted.",
             "common_back_to_home": "Back to Home",
             "nav_introduction": "Introduction",
-            "nav_my_tasks": "My Tasks",
+            "nav_my_tasks": "Tasks",
             "dialog_invalid_emails_title": "Invalid Domains Found",
             "dialog_invalid_emails_msg": "The following emails were ignored because their domains do not exist:",
             "dialog_invalid_emails_footer": "Please check for typos.",

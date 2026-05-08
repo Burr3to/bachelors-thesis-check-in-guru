@@ -50,6 +50,7 @@ public class SubtaskInstanceMapperProfile : Profile
             .ForMember(dest => dest.CompletedByUserId, opt => opt.MapFrom(src => src.CompletedByUserId))
             .ForMember(dest => dest.CompletedAt, opt => opt.MapFrom(src => src.CompletedAt))
             .ForMember(dest => dest.Deadline, opt => opt.MapFrom(src => src.TemplateSubtask.ParentTask.DeadLine))
+            .ForMember(dest => dest.AssignedToEmail, opt => opt.MapFrom(src => src.AssignedToEmail))
             // Mapovanie zo šablóny
             .ForMember(dest => dest.Title,
                 opt => opt.MapFrom(src => src.TemplateSubtask!.Title))

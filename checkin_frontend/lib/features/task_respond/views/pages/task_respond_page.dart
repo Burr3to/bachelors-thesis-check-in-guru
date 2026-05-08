@@ -4,6 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:checkin_frontend/core/providers/respond_providers.dart';
 import 'package:go_router/go_router.dart';
+// Importy pre SignalR
+import '../../../../core/services/signalr_service.dart';
+import '../../../../core/providers/signalr_provider.dart';
+
 import '../../../../core/models/subtask_instance/bulk_subtask_complete_model.dart';
 import '../../../../core/models/user/user_profile.dart';
 import '../../../../core/shared_widgets/primary_button.dart';
@@ -30,14 +34,94 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
   bool _isLoading = false;
   bool _isSubmittedSuccess = false;
 
+  late SignalRService _signalRService;
+  String? _joinedTaskIdRoom;
+
+  @override
+  void initState() {
+    super.initState();
+    _signalRService = ref.read(signalRProvider);
+
+    // Spustíme nastavenie SignalR hneď po prvom vykreslení
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _setupSignalR();
+    });
+  }
+
+  Future<void> _setupSignalR() async {
+    try {
+      print("SignalR (Respond): Začínam setup pre hash ${widget.taskHash}");
+
+      final publicTask = await ref.read(publicTaskProvider(widget.taskHash).future);
+
+      if (publicTask.id == null || publicTask.id.isEmpty) {
+        print("SignalR ERROR: publicTask.id je prázdne! Backend ho asi neposiela.");
+        return;
+      }
+
+      final roomName = publicTask.id.toLowerCase().trim();
+      print("SignalR (Respond): Pokúšam sa pripojiť do miestnosti: $roomName");
+
+      // Tu sa uisti, že SignalR je "Connected", ak máš na to metódu
+      // napr. await _signalRService.ensureConnection();
+
+      _joinedTaskIdRoom = roomName;
+      await _signalRService.joinTaskRoom(roomName);
+
+      _signalRService.connection?.on("TaskInstancesChanged", _handleDataChanged);
+      _signalRService.connection?.on("TaskUpdated", _handleDataChanged);
+
+      print("SignalR (Respond): Úspešne pripojené do miestnosti: $roomName");
+    } catch (e, stacktrace) {
+      print("SignalR (Respond) CRITICAL ERROR: $e");
+      print(stacktrace);
+    }
+  }
+
+  void _handleDataChanged(List<Object?>? arguments) {
+    if (!mounted) return;
+    print("SignalR: Prijatý signál o zmene pre TaskHash: ${widget.taskHash}");
+
+    // Obnovíme dáta zo servera (to automaticky prekreslí UI)
+    ref.invalidate(publicTaskProvider(widget.taskHash));
+
+    setState(() {
+      // Ak mal používateľ niečo zakliknuté, radšej to zrušíme a ukážeme notifikáciu
+      if (_selectedIds.isNotEmpty) {
+        _selectedIds.clear();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Dáta boli aktualizované iným používateľom."),
+            backgroundColor: Colors.blueAccent,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    });
+  }
+
   @override
   void dispose() {
     _nameCtrl.dispose();
+
+    // Odstránime listenerov
+    _signalRService.connection?.off("TaskInstancesChanged", method: _handleDataChanged);
+    _signalRService.connection?.off("TaskUpdated", method: _handleDataChanged);
+    _signalRService.connection?.off("TaskInvitationsChanged", method: _handleDataChanged);
+
+    // Odpojíme sa od skupiny
+    if (_joinedTaskIdRoom != null) {
+      _signalRService.leaveTaskRoom(_joinedTaskIdRoom!);
+    }
+
     super.dispose();
   }
 
   void _submit(UserProfile? auth) async {
-    final String respondentName = auth != null ? auth.name : _nameCtrl.text;
+    if (_isLoading) return;
+
+    final String respondentName = auth != null ? auth.name : _nameCtrl.text.trim();
     if (respondentName.isEmpty || _selectedIds.isEmpty) return;
 
     setState(() => _isLoading = true);
@@ -51,11 +135,22 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
 
       if (mounted) {
         AppSnackBar.showSuccess(context, context.l10n.overview_msg_task_updated);
-        ref.invalidate(publicTaskProvider(widget.taskHash));
+
+        final asyncData = ref.read(publicTaskProvider(widget.taskHash));
+        bool isNowEverythingDone = false;
+        if (asyncData.hasValue) {
+          final List<SubtaskCombinedListModel> subtasks = List.from(asyncData.value!.subtasks);
+          final remainingCount = subtasks.where((s) => !s.isCompleted).length;
+          if (remainingCount <= _selectedIds.length) isNowEverythingDone = true;
+        }
+
         setState(() {
           _selectedIds.clear();
-          _nameCtrl.clear();
+          if (isNowEverythingDone) _nameCtrl.clear();
+          _isSubmittedSuccess = isNowEverythingDone;
         });
+
+        // Toto vyvolá refresh aj u nás, akurát backend nás medzitým tiež notifikuje
         ref.invalidate(publicTaskProvider(widget.taskHash));
       }
     } catch (e) {
@@ -67,40 +162,36 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(authProvider, (previous, next) {
+      if (previous?.user != next.user) {
+        ref.invalidate(publicTaskProvider(widget.taskHash));
+      }
+    });
+
     final asyncData = ref.watch(publicTaskProvider(widget.taskHash));
     final auth = ref.watch(authProvider).user;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
     return asyncData.when(
-      loading: () => Scaffold(
-        appBar: const _SimpleAppBar(), // Kým sa načítava, ukážeme aspoň logo
-        body: const Center(child: CircularProgressIndicator()),
+      loading: () => const Scaffold(
+        appBar: AppTopBar(),
+        body: Center(child: CircularProgressIndicator()),
       ),
-      error: (e, s) => Scaffold(appBar: const _SimpleAppBar(), body: _buildErrorState(ref, e)),
+      error: (e, s) => Scaffold(
+        appBar: const AppTopBar(),
+        body: _buildErrorState(ref, e),
+      ),
       data: (dynamic publicTask) {
-        final List<SubtaskCombinedListModel> subtasks = List<SubtaskCombinedListModel>.from(
-          publicTask.subtasks,
-        );
-
-        final bool hasAnyCompletedInCloud = subtasks.any((s) => s.isCompleted);
-
-        // LOGIKA PRE APPBAR:
-        // Ukážeme plný AppTopBar ak:
-        // 1. Používateľ je prihlásený (vždy chceme navigáciu)
-        // 2. ALEBO ak už v tejto session anonymný user odoslal úlohu
-        // 3. ALEBO ak dáta z cloudu hovoria, že je niečo hotové (Shared mód)
-        final bool showFullAppBar = (auth != null) || _isSubmittedSuccess || hasAnyCompletedInCloud;
-
         if (publicTask.requiresAuthenticationToComplete && auth == null) {
-          return Scaffold(
-              appBar: showFullAppBar ? const AppTopBar() : const _SimpleAppBar(),
-              body: const LoginRequiredView()
+          return const Scaffold(
+              appBar: AppTopBar(),
+              body: LoginRequiredView()
           );
         }
 
         return Scaffold(
-          appBar: showFullAppBar ? const AppTopBar() : const _SimpleAppBar(),
+          appBar: const AppTopBar(),
           backgroundColor: cs.surface,
           body: _buildTaskBody(publicTask, auth, cs),
         );
@@ -108,7 +199,6 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
     );
   }
 
-  // Vyčlenil som body do samostatnej metódy pre lepšiu prehľadnosť
   Widget _buildTaskBody(dynamic publicTask, UserProfile? auth, ColorScheme cs) {
     final List<SubtaskCombinedListModel> subtasks = List<SubtaskCombinedListModel>.from(
       publicTask.subtasks,
@@ -116,7 +206,7 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
 
     final bool isMainTaskOnly =
         subtasks.isNotEmpty &&
-        subtasks.every((SubtaskCombinedListModel s) => s.isGeneratedFromTask);
+            subtasks.every((SubtaskCombinedListModel s) => s.isGeneratedFromTask);
 
     if (isMainTaskOnly && subtasks.isNotEmpty && !subtasks.first.isCompleted && !_isSubmittedSuccess) {
       if (!_selectedIds.contains(subtasks.first.id)) {
@@ -126,9 +216,12 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
       }
     }
 
+    final bool allFinishedInDb = subtasks.isNotEmpty && subtasks.every((s) => s.isCompleted);
+    final bool showCompletedBadge = isMainTaskOnly
+        ? (allFinishedInDb || _isSubmittedSuccess)
+        : allFinishedInDb;
 
-    final bool isEffectivelyCompleted = subtasks.every((s) => s.isCompleted) || _isSubmittedSuccess;
-    final bool hasPendingTasks = !isEffectivelyCompleted;
+    final bool hasPendingTasks = !showCompletedBadge;
 
     return Center(
       child: ConstrainedBox(
@@ -137,7 +230,7 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
           padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+            children:[
               TaskHeader(
                 title: publicTask.title,
                 notes: publicTask.notes,
@@ -176,6 +269,7 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
                   auth: auth,
                   controller: _nameCtrl,
                   onChanged: () => setState(() {}),
+                  onSubmitted: () => _submit(auth),
                 ),
                 const SizedBox(height: 24),
                 _buildSubmitButton(auth, isMainTaskOnly, cs),
@@ -202,7 +296,7 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
       child: ElevatedButton(
         onPressed: isDisabled ? null : () => _submit(auth),
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.green[600], // Zelená je dobrá pre submit
+          backgroundColor: Colors.green[600],
           foregroundColor: Colors.white,
           disabledBackgroundColor: cs.onSurface.withAlpha(30),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -226,7 +320,7 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
         padding: const EdgeInsets.all(16.0),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: [
+          children:[
             const Icon(Icons.check_circle, color: Colors.green),
             const SizedBox(width: 8),
             Text(
@@ -240,6 +334,7 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
   }
 
   Widget _buildErrorState(WidgetRef ref, Object error) {
+    // Kód pre chybový stav ostáva nezmenený
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
@@ -250,7 +345,6 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
 
     if (error is DioException) {
       final statusCode = error.response?.statusCode;
-      // Tu spracujeme ten 403, čo vidíš v Network tabe
       if (statusCode == 403) {
         title = context.l10n.error_not_on_list;
         message = context.l10n.error_not_on_list_msg;
@@ -272,7 +366,7 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: [
+          children:[
             Icon(icon, size: 80, color: cs.primary),
             const SizedBox(height: 24),
             Text(
@@ -297,49 +391,6 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
                 child: Text(context.l10n.common_back_to_home),
               ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SimpleAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const _SimpleAppBar();
-
-  @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
-    return AppBar(
-      backgroundColor: cs.surface,
-      elevation: 0,
-      scrolledUnderElevation: 0,
-      automaticallyImplyLeading: false,
-      centerTitle: false,
-      title: InkWell(
-        // Kliknutie hodí používateľa na zoznam úloh
-        onTap: () => context.go('/tasks'),
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.check_circle_outline_rounded, size: 32, color: Colors.blueAccent),
-              const SizedBox(width: 10),
-              Text(
-                'CheckInGuru',
-                style: TextStyle(
-                  color: cs.onSurface,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );

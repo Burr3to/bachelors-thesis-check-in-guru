@@ -85,7 +85,9 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
     if (rawText.isEmpty) return;
     setState(() => _isProcessing = true);
     try {
-      final List<String> newEmails = await ref.read(invitationApiServiceProvider).parseEmails('"$rawText"');
+      final List<String> newEmails = await ref
+          .read(invitationApiServiceProvider)
+          .parseEmails('"$rawText"');
       if (newEmails.isEmpty) {
         AppSnackBar.showInfo(context, "No valid new emails found.");
         return;
@@ -130,6 +132,9 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
     try {
       await ref.read(taskApiServiceProvider).removeInvitations(widget.taskId, [email]);
       _refreshAll();
+      if (mounted) {
+        AppSnackBar.showSuccess(context, "Invitation for $email removed");
+      }
     } catch (e) {
       AppSnackBar.showError(context, "Failed to delete.");
     } finally {
@@ -152,7 +157,7 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
       decoration: BoxDecoration(
         color: cs.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: cs.primary, width: 1.2),
+        border: Border.all(color: cs.primary, width: 0.8),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -162,20 +167,33 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
             children: [
               Icon(Icons.people_outline, size: 20, color: cs.onSurfaceVariant),
               const SizedBox(width: 8),
-              Text("Invited", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: cs.onSurface)),
+              Text(
+                "Invited",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: cs.onSurface),
+              ),
               const SizedBox(width: 12),
               TextButton(
-                onPressed: () => setState(() => _toolbarState = isEditMode ? EditToolbarState.none : EditToolbarState.defaultEdit),
+                onPressed: () => setState(
+                  () => _toolbarState = isEditMode
+                      ? EditToolbarState.none
+                      : EditToolbarState.defaultEdit,
+                ),
                 style: TextButton.styleFrom(
                   foregroundColor: cs.primary,
                   padding: const EdgeInsets.symmetric(horizontal: 8),
-                  minimumSize: Size.zero,
+                  //minimumSize: Size.zero,
                   visualDensity: VisualDensity.compact,
                 ),
-                child: Text(isEditMode ? "Done" : "Edit", style: const TextStyle(fontWeight: FontWeight.bold)),
+                child: Text(
+                  isEditMode ? "Done" : "Edit",
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
               const SizedBox(width: 8),
-              Text("$totalInvited Invited • $completed Completed", style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+              Text(
+                "$totalInvited Invited • $completed Completed",
+                style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+              ),
               const Spacer(),
               if (!isEditMode) ...[
                 Tooltip(
@@ -202,17 +220,14 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
                     isPrimary: true,
                   ),
                 ),
-              ]
+              ],
             ],
           ),
           const SizedBox(height: 12),
           Divider(height: 1, color: cs.outlineVariant),
 
           // --- ROW 2: EDIT TOOLBAR ---
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 200),
-            child: _buildToolbar(cs),
-          ),
+          AnimatedSwitcher(duration: const Duration(milliseconds: 200), child: _buildToolbar(cs)),
 
           const SizedBox(height: 16),
 
@@ -235,9 +250,17 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
           key: const ValueKey('defaultEdit'),
           child: Row(
             children: [
-              _ToolbarBtn(label: "Add Emails", icon: Icons.add, onTap: () => setState(() => _toolbarState = EditToolbarState.addMode)),
+              _ToolbarBtn(
+                label: "Add Emails",
+                icon: Icons.add,
+                onTap: () => setState(() => _toolbarState = EditToolbarState.addMode),
+              ),
               const SizedBox(width: 8),
-              _ToolbarBtn(label: "Select to Remove", icon: Icons.delete_outline, onTap: () => setState(() => _toolbarState = EditToolbarState.removeMode)),
+              _ToolbarBtn(
+                label: "Select to Remove",
+                icon: Icons.delete_outline,
+                onTap: () => setState(() => _toolbarState = EditToolbarState.removeMode),
+              ),
             ],
           ),
         );
@@ -258,14 +281,21 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
                     filled: true,
                     fillColor: cs.surfaceContainerLow,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: cs.outlineVariant)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: cs.outlineVariant),
+                    ),
                   ),
                 ),
               ),
               const SizedBox(width: 8),
               ElevatedButton(
                 onPressed: _isProcessing ? null : _handleParseAndAdd,
-                style: ElevatedButton.styleFrom(backgroundColor: cs.primary, foregroundColor: cs.onPrimary, elevation: 0),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: cs.primary,
+                  foregroundColor: cs.onPrimary,
+                  elevation: 0,
+                ),
                 child: const Text("Add"),
               ),
               TextButton(
@@ -282,14 +312,24 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
           child: Row(
             children: [
               Text(
-                _selectedEmails.isEmpty ? "Click chips to select for deletion" : "${_selectedEmails.length} selected",
-                style: TextStyle(fontSize: 14, color: _selectedEmails.isEmpty ? cs.onSurfaceVariant : cs.error, fontWeight: FontWeight.bold),
+                _selectedEmails.isEmpty
+                    ? "Click chips to select for deletion"
+                    : "${_selectedEmails.length} selected",
+                style: TextStyle(
+                  fontSize: 14,
+                  color: _selectedEmails.isEmpty ? cs.onSurfaceVariant : cs.error,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const Spacer(),
               if (_selectedEmails.isNotEmpty)
                 ElevatedButton(
                   onPressed: _isProcessing ? null : _handleBulkDelete,
-                  style: ElevatedButton.styleFrom(backgroundColor: cs.error, foregroundColor: cs.onError, elevation: 0),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: cs.error,
+                    foregroundColor: cs.onError,
+                    elevation: 0,
+                  ),
                   child: const Text("Confirm Delete"),
                 ),
               TextButton(
@@ -314,32 +354,37 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
     final bool isDefaultEdit = _toolbarState == EditToolbarState.defaultEdit;
     final bool isSelected = _selectedEmails.contains(inv.email);
 
-    // Defaultný štát (Pending)
+    // Farby stavov
     Color bgColor = cs.surfaceContainerHigh;
     Color textColor = cs.onSurfaceVariant;
     IconData icon = Icons.circle_outlined;
 
+    if (inv.isSent) {
+      bgColor = cs.primary.withAlpha(25);
+      textColor = cs.primary;
+      icon = Icons.send_rounded;
+    }
     if (inv.isAccepted) {
-      // Úspech (Zelená zostáva pre logiku stavu, ale jemne prispôsobená)
-      bgColor = Colors.green.withOpacity(0.1);
+      bgColor = Colors.indigo.withAlpha(25);
+      textColor = Colors.indigo[700]!;
+      icon = Icons.visibility_outlined;
+    }
+    if (inv.isCompleted) {
+      bgColor = Colors.green.withAlpha(25);
       textColor = Colors.green[700]!;
       icon = Icons.check_circle_outline;
-    } else if (inv.isSent) {
-      // Poslané (Modrá téma)
-      bgColor = cs.primary.withOpacity(0.1);
-      textColor = cs.primary;
-      icon = Icons.mail_outline;
     }
 
     if (isRemoveMode && isSelected) {
-      // Výber na zmazanie (Chyba)
       bgColor = cs.errorContainer;
       textColor = cs.onErrorContainer;
     }
 
     return GestureDetector(
       onTap: isRemoveMode
-          ? () => setState(() => isSelected ? _selectedEmails.remove(inv.email) : _selectedEmails.add(inv.email))
+          ? () => setState(() => isSelected
+          ? _selectedEmails.remove(inv.email)
+          : _selectedEmails.add(inv.email))
           : null,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
@@ -356,16 +401,32 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, size: 16, color: textColor),
-            const SizedBox(width: 6),
-            Text(inv.email, style: TextStyle(fontSize: 14, color: textColor, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+            const SizedBox(width: 8),
+
+            // --- PRIDANÁ SELECTION AREA PRE EMAIL ---
+            SelectionArea(
+              child: Text(
+                inv.email,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: textColor,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            ),
+
             if (isDefaultEdit) ...[
-              const SizedBox(width: 6),
-              GestureDetector(
-                onTap: () => _handleSingleDelete(inv.email),
-                child: Container(
-                  padding: const EdgeInsets.all(2),
-                  decoration: BoxDecoration(color: cs.onSurface.withOpacity(0.1), shape: BoxShape.circle),
-                  child: Icon(Icons.close, size: 12, color: cs.onSurfaceVariant),
+              const SizedBox(width: 4),
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => _handleSingleDelete(inv.email),
+                  borderRadius: BorderRadius.circular(100),
+                  hoverColor: cs.error.withAlpha(30),
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: Icon(Icons.delete_outline, size: 16, color: cs.error),
+                  ),
                 ),
               ),
             ],
@@ -382,14 +443,27 @@ class _ActionBtn extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool isPrimary;
 
-  const _ActionBtn({required this.label, required this.icon, required this.onPressed, required this.isPrimary});
+  const _ActionBtn({
+    required this.label,
+    required this.icon,
+    required this.onPressed,
+    required this.isPrimary,
+  });
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final style = isPrimary
-        ? ElevatedButton.styleFrom(backgroundColor: cs.primary, foregroundColor: cs.onPrimary, elevation: 0)
-        : ElevatedButton.styleFrom(backgroundColor: cs.surfaceContainerHigh, foregroundColor: cs.onSurfaceVariant, elevation: 0);
+        ? ElevatedButton.styleFrom(
+            backgroundColor: cs.primary,
+            foregroundColor: cs.onPrimary,
+            elevation: 0,
+          )
+        : ElevatedButton.styleFrom(
+            backgroundColor: cs.surfaceContainerHigh,
+            foregroundColor: cs.onSurfaceVariant,
+            elevation: 0,
+          );
 
     return Opacity(
       opacity: onPressed == null ? 0.5 : 1.0,
@@ -418,12 +492,18 @@ class _ToolbarBtn extends StatelessWidget {
       borderRadius: BorderRadius.circular(8),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(color: cs.surfaceContainerHigh, borderRadius: BorderRadius.circular(8)),
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(8),
+        ),
         child: Row(
           children: [
             Icon(icon, size: 16, color: cs.onSurfaceVariant),
             const SizedBox(width: 6),
-            Text(label, style: TextStyle(fontSize: 13, color: cs.onSurface, fontWeight: FontWeight.w600)),
+            Text(
+              label,
+              style: TextStyle(fontSize: 13, color: cs.onSurface, fontWeight: FontWeight.w600),
+            ),
           ],
         ),
       ),

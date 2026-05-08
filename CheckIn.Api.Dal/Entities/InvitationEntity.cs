@@ -11,5 +11,7 @@ public class InvitationEntity : IEntity
 
     public bool IsSent { get; set; }
     public bool IsAccepted { get; set; }
+
+    public bool IsCompleted { get; set; }
     public DateTime? SentAt { get; set; }
 }

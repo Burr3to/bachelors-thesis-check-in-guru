@@ -129,7 +129,7 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
             decoration: BoxDecoration(
               color: cs.surface,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: cs.primary, width: 1.2),
+              border: Border.all(color: cs.primary, width: 0.8),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -178,7 +178,7 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
             decoration: BoxDecoration(
               color: cs.surface,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: cs.primary, width: 1.2),
+              border: Border.all(color: cs.primary, width: 0.8),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,

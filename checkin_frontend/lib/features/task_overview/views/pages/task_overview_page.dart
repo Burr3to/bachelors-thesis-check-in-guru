@@ -1,4 +1,3 @@
-import 'package:checkin_frontend/features/task_overview/views/widgets/main_task_results.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -143,6 +142,7 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
       if (!mounted) return;
 
       ref.invalidate(taskDetailProvider(widget.taskId));
+      ref.invalidate(taskListProvider);
       AppSnackBar.showSuccess(context, context.l10n.overview_msg_task_updated);
     } catch (e) {
       if (!mounted) return;
@@ -195,6 +195,11 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
         error: (error, stack) => _buildErrorState(ref, error),
         data: (task) {
           final taskLink = "${Uri.base.origin}/checkin/p/${task.hash}";
+          final bool isCompleted = task.state == TaskState.completed;
+          final Color statusBorderColor = isCompleted
+              ? Colors.green
+              : Theme.of(context).colorScheme.primary;
+
           return SingleChildScrollView(
             padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 16),
             child: Center(
@@ -204,7 +209,7 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.surfaceContainer,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Theme.of(context).colorScheme.primary),
+                    border: Border.all(color: statusBorderColor, width: 1.2),
                   ),
                   padding: const EdgeInsets.all(24),
                   child: Column(
@@ -262,38 +267,36 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
                           final bool isMainTaskOnly =
                               templates.isNotEmpty && templates.every((t) => t.isGeneratedFromTask);
 
+                          // V TaskOverviewPage.dart
                           return asyncInstances.when(
-                            loading: () => const LinearProgressIndicator(),
-                            error: (e, s) => Text(context.l10n.overview_err_load_progress),
-                            data: (instances) {
-                              if (isMainTaskOnly) {
-                                // Scenár 1 & 2: Zobrazíme len výsledky podpisov
-                                return MainTaskResults(
-                                  subtask: templates.first, // Kvôli title/desc
-                                  subtaskMode: task.subtaskMode,
-                                  allInstances: instances, // Zoznam všetkých podpisov
+                              loading: () => const LinearProgressIndicator(),
+                              error: (e, s) => Text(context.l10n.overview_err_load_progress),
+                              data: (instances) {
+                                // VŠETKY SCENÁRE (Main Task aj Podúlohy)
+                                return Column(
+                                  children: [
+                                    // Zoznam šablón ukážeme LEN vtedy, ak je to skutočný checklist (nie Main Task Only)
+                                    if (!isMainTaskOnly) ...[
+                                      const SizedBox(height: 24),
+                                      SubtaskListSection(
+                                        title: context.l10n.overview_checklist_title,
+                                        subtasks: templates,
+                                        taskId: widget.taskId,
+                                      ),
+                                    ],
+
+                                    const SizedBox(height: 24),
+
+                                    // Progress List ukážeme vždy
+                                    SubtaskProgressList(
+                                      subtasks: instances,
+                                      subtaskMode: task.subtaskMode,
+                                      templates: templates,
+                                      isMainTaskOnly: isMainTaskOnly, // Posielame nový parameter
+                                    )
+                                  ],
                                 );
                               }
-
-                              // Scenár 3 & 4: Zobrazíme Checklist (Templates) a Progress (Instances)
-                              return Column(
-                                children: [
-                                  const SizedBox(height: 24),
-                                  SubtaskListSection(
-                                    title: context.l10n.overview_checklist_title,
-                                    subtasks: templates,
-                                    taskId: widget.taskId,
-                                  ),
-                                  const SizedBox(height: 24),
-
-                                  SubtaskProgressList(
-                                    subtasks: instances,
-                                    subtaskMode: task.subtaskMode,
-                                    templates: templates,
-                                  ),
-                                ],
-                              );
-                            },
                           );
                         },
                       ),

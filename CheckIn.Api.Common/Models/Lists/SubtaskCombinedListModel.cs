@@ -12,6 +12,7 @@ public record SubtaskCombinedListModel : IEntityModel
     [MaxLength(255)] public string? RespondentName { get; init; }
     [MaxLength(255)] public string? Comment { get; init; }
     public Guid? AssignedToUserId { get; init; }
+
     [MaxLength(255)] public string? AssignedToEmail { get; set; }
     public Guid? CompletedByUserId { get; init; }
     public DateTime? CompletedAt { get; init; }

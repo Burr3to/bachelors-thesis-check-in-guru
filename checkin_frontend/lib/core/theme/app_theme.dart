@@ -1,12 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+// Provider pre SharedPreferences (inicializujeme ho v main.dart)
+final sharedPrefsProvider = Provider<SharedPreferences>((ref) => throw UnimplementedError());
 
 class ThemeNotifier extends Notifier<ThemeMode> {
+  static const _key = 'theme_mode_key';
+
   @override
-  ThemeMode build() => ThemeMode.light;
+  ThemeMode build() {
+    final prefs = ref.watch(sharedPrefsProvider);
+    final savedTheme = prefs.getString(_key);
+
+    if (savedTheme == 'dark') return ThemeMode.dark;
+    if (savedTheme == 'light') return ThemeMode.light;
+
+    return ThemeMode.system; // Predvolené podľa systému, ak nič nie je uložené
+  }
 
   void toggleTheme() {
-    state = (state == ThemeMode.light) ? ThemeMode.dark : ThemeMode.light;
+    final prefs = ref.read(sharedPrefsProvider);
+    if (state == ThemeMode.dark) {
+      state = ThemeMode.light;
+      prefs.setString(_key, 'light');
+    } else {
+      state = ThemeMode.dark;
+      prefs.setString(_key, 'dark');
+    }
   }
 }
 

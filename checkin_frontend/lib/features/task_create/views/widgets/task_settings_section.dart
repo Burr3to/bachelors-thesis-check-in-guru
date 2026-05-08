@@ -121,7 +121,7 @@ class _TaskSettingsSectionState extends ConsumerState<TaskSettingsSection> {
                 const SizedBox(height: 8),
                 _OptionButton(
                   title: "Collaborative",
-                  subtitle: "Everyone shares one list",
+                  subtitle: "Everyone shares shares",
                   icon: Icons.groups_outlined,
                   isSelected: widget.currentMode == SubtaskMode.shared,
                   onTap: () => widget.onModeChanged(SubtaskMode.shared),

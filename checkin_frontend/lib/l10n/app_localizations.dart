@@ -959,7 +959,7 @@ abstract class AppLocalizations {
   /// No description provided for @nav_my_tasks.
   ///
   /// In en, this message translates to:
-  /// **'My Tasks'**
+  /// **'Tasks'**
   String get nav_my_tasks;
 
   /// No description provided for @dialog_invalid_emails_title.

@@ -148,7 +148,7 @@
             "error_not_found_msg": "Odkaz je neplatný alebo úloha bola zmazaná.",
             "common_back_to_home": "Späť na úvod",
             "nav_introduction": "Úvod",
-            "nav_my_tasks": "Moje úlohy",
+            "nav_my_tasks": "Úlohy",
             "dialog_invalid_emails_title": "Nájdené neplatné domény",
             "dialog_invalid_emails_msg": "Nasledujúce e-maily boli ignorované, pretože ich domény neexistujú:",
             "dialog_invalid_emails_footer": "Skontrolujte si prosím preklepy.",

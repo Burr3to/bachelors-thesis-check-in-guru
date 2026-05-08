@@ -42,25 +42,34 @@ class TaskCard extends StatelessWidget {
                   // Skupina ikoniek na pravej strane
                   Row(
                     children: [
-                      // Ikona overenia (vľavo od módu subtaskov)
-                      Icon(
-                        task.requiresAuthenticationToComplete
-                            ? Icons.verified_user
-                            : Icons.no_encryption_outlined,
-                        size: 19,
-                        // Ak je true, použije primary farbu, inak šedú
-                        color: task.requiresAuthenticationToComplete
-                            ? cs.primary
-                            : cs.onSurfaceVariant.withAlpha(125),
+                      // Ikona overenia s tooltipom
+                      Tooltip(
+                        message: task.requiresAuthenticationToComplete
+                            ? "Vyžaduje sa prihlásenie" // Alebo použi: context.l10n.tooltip_auth_required
+                            : "Anonymný prístup povolený",
+                        child: Icon(
+                          task.requiresAuthenticationToComplete
+                              ? Icons.verified_user
+                              : Icons.no_encryption_outlined,
+                          size: 19,
+                          color: task.requiresAuthenticationToComplete
+                              ? cs.primary
+                              : cs.onSurfaceVariant.withAlpha(125),
+                        ),
                       ),
 
-                      const SizedBox(width: 8), // Medzera medzi ikonkami
+                      const SizedBox(width: 8),
 
-                      // Ikona módu (pôvodná)
-                      Icon(
-                        task.subtaskMode == SubtaskMode.shared ? Icons.groups : Icons.person,
-                        size: 19,
-                        color: cs.onSurfaceVariant.withAlpha(125),
+                      // Ikona módu s tooltipom
+                      Tooltip(
+                        message: task.subtaskMode == SubtaskMode.shared
+                            ? "Zdieľaný režim (spoločné úlohy pre všetkých)"
+                            : "Individuálny režim (každý respondent má vlastné úlohy)",
+                        child: Icon(
+                          task.subtaskMode == SubtaskMode.shared ? Icons.groups : Icons.person,
+                          size: 19,
+                          color: cs.onSurfaceVariant.withAlpha(125),
+                        ),
                       ),
                     ],
                   ),
@@ -147,7 +156,7 @@ class TaskCard extends StatelessWidget {
             // Ak je Completed, môžeme napísať "COMPLETED"
             // alebo nechať dátum. Navrhujem:
             state == TaskState.completed
-                ? context.l10n.nav_my_tasks.toUpperCase() // alebo len "DONE"
+                ? "Finished"
                 : DateFormatter.formatRelativeDeadline(context, task.deadLine),
             style: TextStyle(
               fontSize: 12,

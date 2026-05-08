@@ -33,7 +33,6 @@ public class TaskFacade(
 {
     protected override Expression<Func<TaskEntity, bool>> CreateFilter(TaskListQuery query)
     {
-        // Základný filter, ktorý všetko vráti
         Expression<Func<TaskEntity, bool>> filter = entity => true;
 
         if (!string.IsNullOrEmpty(query.NameContains))
@@ -43,12 +42,10 @@ public class TaskFacade(
         {
             filter = query.Status.Value switch
             {
-                TaskState.InProgress => filter.And(e => e.State ==
-                    TaskState.InProgress && e.DeadLine >= DateTime.UtcNow),
-
+                TaskState.InProgress => filter.And(e =>
+                    e.State == TaskState.InProgress && e.DeadLine >= DateTime.UtcNow),
                 TaskState.Completed => filter.And(e => e.State == TaskState.Completed),
                 TaskState.Missed => filter.And(e => e.State != TaskState.Completed && e.DeadLine < DateTime.UtcNow),
-
                 _ => filter.And(e => e.State == query.Status.Value)
             };
         }
@@ -56,12 +53,8 @@ public class TaskFacade(
         if (!string.IsNullOrEmpty(query.RespondentEmail))
         {
             var email = query.RespondentEmail.Trim().ToLower();
-
             filter = filter.And(entity =>
-                // 1. Čiastočná zhoda v pozvánkach
                 entity.Invitations.Any(i => i.Email.ToLower().Contains(email)) ||
-
-                // 2. Čiastočná zhoda v inštanciách (priradený mail alebo meno respondenta)
                 entity.Subtasks.Any(st => st.Instances.Any(inst =>
                     (inst.AssignedToEmail != null && inst.AssignedToEmail.ToLower().Contains(email)) ||
                     (inst.RespondentName != null && inst.RespondentName.ToLower().Contains(email))
@@ -84,7 +77,6 @@ public class TaskFacade(
         if (query.RequiresAuth.HasValue)
             filter = filter.And(entity => entity.RequiresAuthenticationToComplete == query.RequiresAuth.Value);
 
-
         Guid currentUserId = CurrentUserId;
         filter = filter.And(entity => entity.CreatedById == currentUserId);
 
@@ -93,30 +85,19 @@ public class TaskFacade(
 
     protected override Func<IQueryable<TaskEntity>, IOrderedQueryable<TaskEntity>> CreateOrderBy(TaskListQuery query)
     {
-        // Ak používateľ nezadal kritérium triedenia, použijeme default Id
         if (string.IsNullOrWhiteSpace(query.SortBy))
-        {
             return q => q.OrderBy(e => e.Id);
-        }
 
         return query.SortBy.ToLower() switch
         {
-            "title" => query.SortDesc
-                ? q => q.OrderByDescending(e => e.Title)
-                : q => q.OrderBy(e => e.Title),
-
-            "deadline" => query.SortDesc
-                ? q => q.OrderByDescending(e => e.DeadLine)
-                : q => q.OrderBy(e => e.DeadLine),
-
+            "title" => query.SortDesc ? q => q.OrderByDescending(e => e.Title) : q => q.OrderBy(e => e.Title),
+            "deadline" => query.SortDesc ? q => q.OrderByDescending(e => e.DeadLine) : q => q.OrderBy(e => e.DeadLine),
             "createdat" => query.SortDesc
                 ? q => q.OrderByDescending(e => e.CreatedAt)
                 : q => q.OrderBy(e => e.CreatedAt),
-
             "lastmodifiedat" => query.SortDesc
                 ? q => q.OrderByDescending(e => e.LastModifiedAt)
                 : q => q.OrderBy(e => e.LastModifiedAt),
-
             _ => q => q.OrderBy(e => e.Id)
         };
     }
@@ -128,8 +109,6 @@ public class TaskFacade(
         {
             entity.CreatedById = CurrentUserId;
 
-            // Toto tu nechaj - ak používateľ nepridal žiadne subúlohy, 
-            // vytvoríme aspoň jednu "hlavnú", aby sa mal kam podpísať.
             if (entity.Subtasks is null || entity.Subtasks.Count == 0)
             {
                 entity.Subtasks.Add(new SubtaskTemplateEntity
@@ -142,9 +121,7 @@ public class TaskFacade(
         }
 
         if (updateModel is not null)
-        {
             entity.LastModifiedAt = DateTime.UtcNow;
-        }
     }
 
     public override async Task<Result<TaskDetailModel>> SaveCreateModelAsync(TaskCreateModel model)
@@ -153,52 +130,31 @@ public class TaskFacade(
         AddContextualData(task, model, default);
         if (task.Id == Guid.Empty) task.Id = Guid.NewGuid();
 
-        // A. Ak je Shared mode, vytvoríme JEDNU spoločnú skupinu inštancií
         if (task.SubtaskMode == SubtaskMode.Shared)
         {
-            var sharedGroupId = Guid.NewGuid();
-            foreach (var subtaskTemplate in task.Subtasks)
-            {
-                subtaskTemplate.Instances.Add(new SubtaskInstanceEntity
-                {
-                    Id = Guid.NewGuid(),
-                    ResponseGroupId = sharedGroupId,
-                    IsCompleted = false
-                });
-            }
+            CreateInstancesForTemplates(task.Subtasks, Guid.NewGuid(), null, null, addToContext: false);
         }
 
-        // B. Spracujeme pozvánky (a individuálne inštancie, ak je mode Individual)
-        // Táto metóda pridá InvitationEntity pre oba módy
-        await ProcessNewInvitations(task, model.InvitedEmails);
+        await ProcessNewInvitations(task, model.InvitedEmails, isNewTask: true);
 
         await dbContext.Tasks.AddAsync(task);
         await dbContext.SaveChangesAsync();
 
-        // Spustenie mailov na pozadí...
         if (model.SendInvitesImmediately && model.InvitedEmails.Count != 0)
         {
             var author = await dbContext.Users.FindAsync(CurrentUserId);
             var authorName = author?.Name ?? "Váš kolega";
 
             invitationFacade.StartEmailSendingBackground(
-                model.InvitedEmails,
-                task.Hash,
-                authorName,
-                task.Title,
-                task.Notes,
-                task.CreatedById,
-                task.Id
+                model.InvitedEmails, task.Hash, authorName, task.Title, task.Notes, task.CreatedById, task.Id
             );
         }
 
         return await GetByIdAsync(task.Id);
     }
 
-
     public override async Task<Result<TaskDetailModel>> SaveUpdateModelAsync(TaskUpdateModel model)
     {
-        // 1. Načítame IBA čistý Task (bez Include kolekcií, aby sme neplnili Tracker)
         var task = await dbContext.Tasks.FirstOrDefaultAsync(t => t.Id == model.Id);
 
         if (task is null)
@@ -210,35 +166,83 @@ public class TaskFacade(
         if (model.State.HasValue)
             task.State = model.State.Value;
 
+        await ProcessNewInvitations(task, model.InvitedEmails, isNewTask: false);
 
-        mapper.Map(model, task);
+        await dbContext.SaveChangesAsync();
 
-        task.LastModifiedAt = DateTime.UtcNow;
+        var roomName = task.Id.ToString().ToLower();
+        await hubContext.Clients.Group(roomName).SendAsync("TaskInvitationsChanged");
+        await hubContext.Clients.Group(roomName).SendAsync("TaskInstancesChanged");
 
-        // 3. Spracovanie nových pozvánok a inštancií
-        await ProcessNewInvitations(task, model.InvitedEmails);
-
-        try
-        {
-            await dbContext.SaveChangesAsync();
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine($"DB ERROR: {e.Message}");
-            return Result<TaskDetailModel>.Failure(ErrorType.InternalError, "Chyba pri zápise do databázy.");
-        }
-
-        // Vrátime čerstvé dáta (GetByIdAsync si načíta všetko potrebné vrátane nových pozvánok)
         return await GetByIdAsync(task.Id);
     }
 
-    private async Task ProcessNewInvitations(TaskEntity task, List<string> emailsToInvite)
+    // =========================================================
+    // --- REFACTORED SHARED LOGIC FOR INSTANCES & TEMPLATES ---
+    // =========================================================
+
+    private void CreateInstancesForTemplates(
+        IEnumerable<SubtaskTemplateEntity> templates, Guid responseGroupId, string? email, Guid? userId,
+        bool addToContext)
     {
-        // A. Zistíme, kto už je pozvaný (rýchly query bez trackingu)
-        var existingEmails = await dbContext.Invitations
-            .Where(i => i.TaskId == task.Id)
-            .Select(i => i.Email.ToLower().Trim())
-            .ToListAsync();
+        foreach (var template in templates)
+        {
+            var instance = new SubtaskInstanceEntity
+            {
+                Id = Guid.NewGuid(),
+                ResponseGroupId = responseGroupId,
+                AssignedToEmail = email,
+                AssignedToUserId = userId,
+                IsCompleted = false,
+                TemplateSubtaskId = template.Id
+            };
+
+            if (addToContext) dbContext.SubtaskInstances.Add(instance);
+            else template.Instances.Add(instance);
+        }
+    }
+
+    private void SyncUserInstances(
+        IEnumerable<SubtaskTemplateEntity> templates,
+        List<SubtaskInstanceEntity> existingUserInstances,
+        string? email, Guid? userId, bool addToContext)
+    {
+        if (!existingUserInstances.Any())
+        {
+            CreateInstancesForTemplates(templates, Guid.NewGuid(), email, userId, addToContext);
+        }
+        else
+        {
+            var existingTemplateIds = existingUserInstances.Select(i => i.TemplateSubtaskId).ToHashSet();
+            var missingTemplates = templates.Where(t => !existingTemplateIds.Contains(t.Id)).ToList();
+
+            if (missingTemplates.Any())
+            {
+                var existingGroupId = existingUserInstances.First().ResponseGroupId;
+                CreateInstancesForTemplates(missingTemplates, existingGroupId, email, userId, addToContext);
+            }
+
+            // Adopt anonymous instances if user has registered
+            if (userId != null && userId != Guid.Empty)
+            {
+                foreach (var inst in existingUserInstances.Where(i => i.AssignedToUserId == null))
+                {
+                    inst.AssignedToUserId = userId;
+                }
+            }
+        }
+    }
+
+    // =========================================================
+
+    private async Task ProcessNewInvitations(TaskEntity task, List<string> emailsToInvite, bool isNewTask)
+    {
+        var existingEmails = isNewTask
+            ? new List<string>()
+            : await dbContext.Invitations
+                .Where(i => i.TaskId == task.Id)
+                .Select(i => i.Email.ToLower().Trim())
+                .ToListAsync();
 
         var newEmails = emailsToInvite
             .Select(e => e.ToLower().Trim())
@@ -248,42 +252,50 @@ public class TaskFacade(
 
         if (!newEmails.Any()) return;
 
-        // B. Ak je mód Individual, načítame šablóny pre tvorbu inštancií
-        List<SubtaskTemplateEntity> templates = new();
-        if (task.SubtaskMode == SubtaskMode.Individual)
-        {
-            templates = await dbContext.Subtasks
-                .Where(s => s.ParentTaskId == task.Id)
+        var templates = isNewTask
+            ? task.Subtasks.ToList()
+            : await dbContext.Subtasks.Where(s => s.ParentTaskId == task.Id).ToListAsync();
+
+        var templatesCount = templates.Count;
+
+        var newEmailsUsers = await dbContext.Users
+            .Where(u => newEmails.Contains(u.Email.ToLower()))
+            .ToListAsync();
+
+        // Optimized batch loading - Fetch ALL relevant instances at once instead of N+1
+        var allTaskInstances = isNewTask
+            ? new List<SubtaskInstanceEntity>()
+            : await dbContext.SubtaskInstances
+                .Where(i => i.TemplateSubtask.ParentTaskId == task.Id)
                 .ToListAsync();
-        }
 
         foreach (var email in newEmails)
         {
-            // C. Pridáme pozvánku priamo do DbSetu
+            var user = newEmailsUsers.FirstOrDefault(u => u.Email.ToLower() == email);
+
+            var existingUserInstances = allTaskInstances
+                .Where(i => (i.AssignedToEmail != null && i.AssignedToEmail.ToLower() == email) ||
+                            (user != null && i.AssignedToUserId == user.Id))
+                .ToList();
+
+            bool hasAnyCompleted = existingUserInstances.Any(i => i.IsCompleted);
+            bool isFullyCompleted =
+                hasAnyCompleted && existingUserInstances.Count(i => i.IsCompleted) >= templatesCount;
+
             dbContext.Invitations.Add(new InvitationEntity
             {
                 Id = Guid.NewGuid(),
                 Email = email,
                 IsSent = false,
                 SentAt = null,
-                TaskId = task.Id
+                TaskId = task.Id,
+                IsAccepted = hasAnyCompleted,
+                IsCompleted = isFullyCompleted
             });
 
-            // D. Vytvoríme inštancie (len pre Individual mód)
             if (task.SubtaskMode == SubtaskMode.Individual)
             {
-                var userGroupId = Guid.NewGuid();
-                foreach (var template in templates)
-                {
-                    dbContext.SubtaskInstances.Add(new SubtaskInstanceEntity
-                    {
-                        Id = Guid.NewGuid(),
-                        ResponseGroupId = userGroupId,
-                        AssignedToEmail = email,
-                        IsCompleted = false,
-                        TemplateSubtaskId = template.Id
-                    });
-                }
+                SyncUserInstances(templates, existingUserInstances, email, user?.Id, addToContext: !isNewTask);
             }
         }
     }
@@ -292,16 +304,13 @@ public class TaskFacade(
     {
         var normalizedEmails = emails.Select(e => e.ToLower().Trim()).ToList();
 
-        // 1. Nájdeme pozvánky, ktoré chceme vymazať
         var invitationsToRemove = await dbContext.Invitations
             .Where(i => i.TaskId == taskId && normalizedEmails.Contains(i.Email.ToLower()))
             .ToListAsync();
 
         if (!invitationsToRemove.Any())
-            return Result<bool>.Success(true); // Nič sa nenašlo, považujeme za vybavené
+            return Result<bool>.Success(true);
 
-        // 2. Nájdeme všetky inštancie (SubtaskInstance), ktoré patria k tomuto tasku 
-        // a sú priradené k daným emailom
         var instancesToRemove = await dbContext.SubtaskInstances
             .Where(si => si.TemplateSubtask.ParentTaskId == taskId &&
                          si.AssignedToEmail != null &&
@@ -310,11 +319,8 @@ public class TaskFacade(
 
         try
         {
-            // 3. Odstránime záznamy z kontextu
             dbContext.Invitations.RemoveRange(invitationsToRemove);
             dbContext.SubtaskInstances.RemoveRange(instancesToRemove);
-
-            // 4. Uložíme zmeny
             await dbContext.SaveChangesAsync();
             return Result<bool>.Success(true);
         }
@@ -352,18 +358,15 @@ public class TaskFacade(
         return Result<List<SubtaskCombinedListModel>>.Success(result);
     }
 
-
     public async Task<Result<TaskPublicDetailModel>> GetTaskPublicDetailByHashAsync(string hash)
     {
-        // Kľúčové: Používame OptionalUserId, pretože anonymný prístup je povolený.
         var currentUserId = OptionalUserId;
 
-        // 1. Načítanie Tasku podľa Hashu a jeho Subtaskov/Inštancií
         var task = await dbContext.Set<TaskEntity>()
             .Include(t => t.Subtasks)
             .ThenInclude(st => st.Instances)
             .Include(t => t.Invitations)
-            .Where(t => t.Hash == hash) // FILTER JE PODĽA HASHU
+            .Where(t => t.Hash == hash)
             .FirstOrDefaultAsync();
 
         if (task == null)
@@ -377,45 +380,29 @@ public class TaskFacade(
                 "Authentication is required to view the details of this task.");
         }
 
-        if (task.Invitations.Count != 0)
+        if (task.Invitations.Count != 0 && task.CreatedById != currentUserId)
         {
-            if (task.CreatedById == currentUserId)
+            var email = UserContext.GetEmail();
+            if (!string.IsNullOrEmpty(email))
             {
-                // Autor má prístup vždy
-            }
-            else
-            {
-                var email = UserContext.GetEmail();
+                var userEmail = email.ToLower().Trim();
+                var invitation = task.Invitations.FirstOrDefault(i => i.Email.ToLower().Trim() == userEmail);
 
-                // Ak používateľ nie je prihlásený, email bude null. 
-                // V tom prípade preskočíme logiku prijímania pozvánky.
-                if (!string.IsNullOrEmpty(email))
+                if (invitation != null && !invitation.IsAccepted)
                 {
-                    var userEmail = email.ToLower().Trim();
-                    var invitation = task.Invitations.FirstOrDefault(i => i.Email.ToLower().Trim() == userEmail);
-
-                    // KĽÚČOVÁ OPRAVA: Skontrolujeme, či sme pozvánku vôbec našli
-                    if (invitation != null && !invitation.IsAccepted)
-                    {
-                        invitation.IsAccepted = true;
-                        await dbContext.SaveChangesAsync();
-                        await hubContext.Clients.Group(task.Id.ToString()).SendAsync("TaskUpdated");
-                    }
+                    invitation.IsAccepted = true;
+                    await dbContext.SaveChangesAsync();
+                    await hubContext.Clients.Group(task.Id.ToString()).SendAsync("TaskUpdated");
                 }
             }
         }
 
         IEnumerable<SubtaskInstanceEntity> instancesToShow;
 
-        // 2. Filtrácia inštancií
         if (task.SubtaskMode == SubtaskMode.Individual && !currentUserId.HasValue)
         {
-            // Individuálny režim a ANONYMNÝ používateľ:
-            // Nemá žiadne inštancie, tak mu vrátime "prázdne" inštancie vytvorené zo šablón.
             var subtasks = task.Subtasks.Select(st => new SubtaskCombinedListModel
             {
-                // Tu je dôležitý trik: Keďže inštancia neexistuje, 
-                // môžeme poslať ID šablóny, aby frontend vedel, k čomu sa podpisuje.
                 Id = st.Id,
                 Title = st.Title,
                 Description = st.Description,
@@ -429,70 +416,38 @@ public class TaskFacade(
         }
         else if (task.SubtaskMode == SubtaskMode.Individual && currentUserId.HasValue)
         {
-            // Individuálny režim a PRIHLÁSENÝ používateľ: Filtrujeme podľa ID
             await EnsureIndividualInstancesExist(task, currentUserId.Value, UserContext.GetEmail());
 
             instancesToShow = await dbContext.Set<SubtaskInstanceEntity>()
-                .Include(i => i.TemplateSubtask) // Tu môžeme includnuť šablónu, lebo ideme smerom "hore"
+                .Include(i => i.TemplateSubtask)
                 .Where(i => i.TemplateSubtask.ParentTaskId == task.Id && i.AssignedToUserId == currentUserId.Value)
                 .ToListAsync();
         }
         else // Shared Mode
         {
-            // Zdieľaný režim: Všetci vidia všetky inštancie
             instancesToShow = task.Subtasks.SelectMany(s => s.Instances);
         }
 
-        // 3. Projekcia Subtaskov
         var subtasksList = instancesToShow
             .AsQueryable()
             .ProjectTo<SubtaskCombinedListModel>(mapper.ConfigurationProvider)
             .ToList();
 
-        // 4. Mapovanie a návrat
         var publicModelBase = mapper.Map<TaskPublicDetailModel>(task);
         var finalModel = publicModelBase with { Subtasks = subtasksList };
 
         return Result<TaskPublicDetailModel>.Success(finalModel);
     }
 
-    public async Task EnsureIndividualInstancesExist(TaskEntity task, Guid userId, string userEmail)
+    public async Task EnsureIndividualInstancesExist(TaskEntity task, Guid userId, string? userEmail)
     {
-        // 1. Skontrolujeme, či už existujú inštancie priradené priamo tomuto UserId
-        var hasUserIdInstances = task.Subtasks.SelectMany(st => st.Instances)
-            .Any(i => i.AssignedToUserId == userId);
-
-        if (hasUserIdInstances) return;
-
-        // 2. Skontrolujeme, či existujú inštancie priradené tomuto EMAILU (pozvánky)
-        var emailInstances = await dbContext.Set<SubtaskInstanceEntity>()
-            .Where(i => i.TemplateSubtask.ParentTaskId == task.Id && i.AssignedToEmail == userEmail)
+        // Now extremely simplified by reusing our helper
+        var existingUserInstances = await dbContext.Set<SubtaskInstanceEntity>()
+            .Where(i => i.TemplateSubtask.ParentTaskId == task.Id &&
+                        (i.AssignedToUserId == userId || (userEmail != null && i.AssignedToEmail == userEmail)))
             .ToListAsync();
 
-        if (emailInstances.Count != 0)
-        {
-            // Ak existujú, "adoptujeme" ich – priradíme im UserId
-            foreach (var instance in emailInstances)
-            {
-                instance.AssignedToUserId = userId;
-            }
-
-            await dbContext.SaveChangesAsync();
-            return;
-        }
-
-        // 3. Ak nie je ani jedno (náhodný prihlásený človek, čo nebol pozvaný), 
-        // vytvoríme mu nové (tvoja pôvodná logika)
-        var userResponseGroupId = Guid.NewGuid();
-        foreach (var subtaskTemplate in task.Subtasks)
-        {
-            subtaskTemplate.Instances.Add(new SubtaskInstanceEntity
-            {
-                ResponseGroupId = userResponseGroupId,
-                AssignedToUserId = userId,
-                IsCompleted = false
-            });
-        }
+        SyncUserInstances(task.Subtasks, existingUserInstances, userEmail, userId, addToContext: true);
 
         await dbContext.SaveChangesAsync();
     }
@@ -564,6 +519,5 @@ public class TaskFacade(
         }
 
         return Result<List<TaskSummaryStats>>.Success(results);
-        ;
     }
 }

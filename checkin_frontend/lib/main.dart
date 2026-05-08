@@ -7,6 +7,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'core/providers/locale_provider.dart';
 import 'core/routing/app_router.dart';
 import 'firebase_options.dart';
@@ -14,17 +15,27 @@ import 'l10n/app_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // 1. Inicializuj SharedPreferences
+  final prefs = await SharedPreferences.getInstance();
+
   await Firebase.initializeApp(options: DefaultFirebaseOptions.web);
 
   if (kReleaseMode) {
     await FirebasePerformance.instance.setPerformanceCollectionEnabled(true);
-    print("Firebase Performance Monitoring Enabled");
   }
-
 
   usePathUrlStrategy();
 
-  runApp(const ProviderScope(child: MyApp()));
+  runApp(
+    ProviderScope(
+      overrides: [
+        // 2. Prekryjeme provider reálnou inštanciou prefs
+        sharedPrefsProvider.overrideWithValue(prefs),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 

@@ -11,12 +11,14 @@ class SubtaskProgressList extends ConsumerStatefulWidget {
   final List<SubtaskCombinedListModel> subtasks;
   final List<SubtaskCombinedListModel> templates;
   final SubtaskMode subtaskMode;
+  final bool isMainTaskOnly;
 
   const SubtaskProgressList({
     super.key,
     required this.subtasks,
     required this.templates,
     required this.subtaskMode,
+    this.isMainTaskOnly = false,
   });
 
   @override
@@ -24,9 +26,9 @@ class SubtaskProgressList extends ConsumerStatefulWidget {
 }
 
 class _SubtaskProgressListState extends ConsumerState<SubtaskProgressList> {
-  // Mapa pre sledovanie stavu otvorenia harmoník (pre Individual mode)
   final Map<String, bool> _expandedStates = {};
 
+  // Táto metóda teraz funguje správne, vďaka nahradeniu ExpansionTile
   void _setAllExpanded(bool expanded, List<String> groupIds) {
     setState(() {
       for (var id in groupIds) {
@@ -39,13 +41,12 @@ class _SubtaskProgressListState extends ConsumerState<SubtaskProgressList> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    // Celý widget obalíme do Containeru s borderom
     return Container(
-      padding: const EdgeInsets.all(16), // Konzistentný padding vnútri boxu
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: cs.surface, // Čisté pozadie celého bloku
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: cs.primary, width: 1), // Modrý border podľa zadania
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: cs.primary, width: 0.8),
       ),
       child: _buildContent(context, cs),
     );
@@ -67,51 +68,38 @@ class _SubtaskProgressListState extends ConsumerState<SubtaskProgressList> {
   }
 
   // --- INDIVIDUAL MODE ---
-
   Widget _buildIndividualMode(BuildContext context, ColorScheme cs) {
     final grouped = groupBy(widget.subtasks, (s) => s.responseGroupId);
     final groupIds = grouped.keys.map((e) => e.toString()).toList();
     final int respondentCount = grouped.length;
 
     return Column(
+
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Header s ovládacími prvkami
         Row(
           children: [
-            Text(
-              "Individual Progress",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: cs.onSurface),
-            ),
+            Text("Individual Progress", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: cs.onSurface)),
             const Spacer(),
-            Text(
-              "$respondentCount Respondents",
-              style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
-            ),
-            const SizedBox(width: 8),
-            IconButton(
-              icon: const Icon(Icons.unfold_more, size: 20),
-              onPressed: () => _setAllExpanded(true, groupIds),
-              tooltip: "Expand All",
-            ),
-            IconButton(
-              icon: const Icon(Icons.unfold_less, size: 20),
-              onPressed: () => _setAllExpanded(false, groupIds),
-              tooltip: "Collapse All",
-            ),
+            Text("$respondentCount Respondents", style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+
+            // Expand / Collapse
+            if (!widget.isMainTaskOnly) ...[
+              const SizedBox(width: 8),
+              IconButton(icon: const Icon(Icons.unfold_more, size: 20), onPressed: () => _setAllExpanded(true, groupIds), tooltip: "Expand All"),
+              IconButton(icon: const Icon(Icons.unfold_less, size: 20), onPressed: () => _setAllExpanded(false, groupIds), tooltip: "Collapse All"),
+            ],
           ],
         ),
         const SizedBox(height: 12),
-        // Zoznam respondentov
         ...grouped.entries.map((entry) {
-          final groupId = entry.key;
-          final items = entry.value;
-          return _RespondentAccordion(
-            groupId: groupId,
-            items: items,
+          return _RespondentCard(
+            groupId: entry.key,
+            items: entry.value,
             totalTemplates: widget.templates.length,
-            isExpanded: _expandedStates[groupId] ?? false,
-            onToggle: (val) => setState(() => _expandedStates[groupId] = val),
+            isExpanded: _expandedStates[entry.key] ?? false,
+            onToggle: (val) => setState(() => _expandedStates[entry.key] = val),
+            isMainTaskOnly: widget.isMainTaskOnly,
           );
         }),
       ],
@@ -119,40 +107,42 @@ class _SubtaskProgressListState extends ConsumerState<SubtaskProgressList> {
   }
 
   // --- SHARED MODE ---
-
   Widget _buildSharedMode(BuildContext context, ColorScheme cs) {
-    final int completed = widget.subtasks.where((s) => s.isCompleted).length;
-    final int total = widget.subtasks.length;
+    final displayTasks = widget.isMainTaskOnly
+        ? widget.subtasks.where((s) => s.isCompleted).toList()
+        : widget.subtasks;
+
+    final int completed = displayTasks.where((s) => s.isCompleted).length;
+    final int total = displayTasks.length;
     final int remaining = total - completed;
     final int percent = total > 0 ? ((completed / total) * 100).toInt() : 0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // RIADOK NAD BAROM (Text vpravo hore)
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
-              "Shared Progress",
+              widget.isMainTaskOnly ? "Signatures / Completions" : "Shared Progress",
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: cs.onSurface),
             ),
-            // Tento text bude vpravo hore nad barom
-            Text(
-              "$completed/$total ($percent%)",
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: cs.primary),
-            ),
+            if (!widget.isMainTaskOnly)
+              Text("$completed/$total ($percent%)", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: cs.primary)),
           ],
         ),
-        const SizedBox(height: 8), // Medzera medzi textom a barom
-        SegmentedProgressBar(
-          green: completed,
-          grey: remaining,
-          height: 12, // Výška baru
-        ),
+
+        if (!widget.isMainTaskOnly) ...[
+          const SizedBox(height: 8),
+          SegmentedProgressBar(green: completed, grey: remaining, height: 12),
+        ],
+
         const SizedBox(height: 24),
-        ...widget.subtasks.map((s) => _SharedTaskCard(subtask: s)),
+        if (displayTasks.isEmpty && widget.isMainTaskOnly)
+          _buildEmptyState(cs)
+        else
+          ...displayTasks.map((s) => _SharedTaskCard(subtask: s, isMainTaskOnly: widget.isMainTaskOnly)),
       ],
     );
   }
@@ -170,51 +160,128 @@ class _SubtaskProgressListState extends ConsumerState<SubtaskProgressList> {
   }
 }
 
-// --- POMOCNÉ KOMPONENTY PRE INDIVIDUAL MODE ---
-
-class _RespondentAccordion extends StatelessWidget {
+// --- KARTA PRE RESPONDENTA (Individual Mode) ---
+class _RespondentCard extends StatelessWidget {
   final String groupId;
   final List<SubtaskCombinedListModel> items;
   final int totalTemplates;
   final bool isExpanded;
   final ValueChanged<bool> onToggle;
+  final bool isMainTaskOnly;
 
-  const _RespondentAccordion({
+  const _RespondentCard({
     required this.groupId,
     required this.items,
     required this.totalTemplates,
     required this.isExpanded,
     required this.onToggle,
+    required this.isMainTaskOnly,
   });
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final respondentName =
-        items.firstWhereOrNull((s) => s.respondentName != null)?.respondentName ?? "Not started";
+    final firstItem = items.first;
+
+    final respondentName = firstItem.respondentName ?? "Not started";
+    // Uistite sa, že máte 'respondentEmail' v modeli, inak tu dajte null.
+    // Ak to tvoj model nepodporuje, zakomentuj riadok nižšie a nechaj respondentEmail = null.
+    final respondentEmail = items.firstWhereOrNull((s) => true)?.assignedToEmail;
+
     final isVerified = items.any((s) => s.completedByUserId != null);
-
-    // Logika pre statusy
     final int completedCount = items.where((s) => s.isCompleted).length;
-    final bool hasOverdue = items.any((s) => !s.isCompleted && s.deadline.isBefore(DateTime.now()));
-    final double percent = totalTemplates > 0 ? completedCount / totalTemplates : 0;
 
+    final bool hasOverdue = items.any((s) => !s.isCompleted && s.deadline.isBefore(DateTime.now()));
+    final isLate = isMainTaskOnly && firstItem.isCompleted && firstItem.completedAt != null && firstItem.completedAt!.isAfter(firstItem.deadline);
+
+    // Zisťovanie farieb a statusov
     Color progressColor = cs.primary;
-    String statusLabel = "In Progress";
-    Color statusColor = Colors.orange;
+    String? statusLabel;
+    IconData? statusIcon;
+    Color? statusColor;
 
     if (completedCount == totalTemplates) {
-      progressColor = Colors.green;
-      statusLabel = "Complete";
-      statusColor = Colors.green;
+      progressColor = isLate ? Colors.red : Colors.green;
+      if (isLate) {
+        statusLabel = "Late";
+        statusIcon = Icons.access_time_filled;
+        statusColor = Colors.red;
+      } else {
+        statusLabel = "Complete";
+        statusIcon = Icons.check_circle;
+        statusColor = Colors.green;
+      }
     } else if (hasOverdue) {
       progressColor = cs.error;
-      int overdueCount = items
-          .where((s) => !s.isCompleted && s.deadline.isBefore(DateTime.now()))
-          .length;
+      int overdueCount = items.where((s) => !s.isCompleted && s.deadline.isBefore(DateTime.now())).length;
       statusLabel = "$overdueCount Overdue";
+      statusIcon = Icons.error_outline;
       statusColor = cs.error;
     }
+
+    // HLAVIČKA KARTY (Dizajn podľa obrázka)
+    Widget headerContent = Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        _AvatarCircle(name: respondentName),
+        const SizedBox(width: 14),
+
+        // Stredná časť: Meno, E-mail, Odznaky a Progress bar
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 6,
+                runSpacing: 4,
+                children: [
+                  Text(respondentName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+
+                  // E-mail (ak existuje)
+                  if (respondentEmail != null && respondentEmail.isNotEmpty)
+                    Text("($respondentEmail)", style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+
+                  // Odznak: Verified
+                  if (isVerified)
+                    _PillBadge(icon: Icons.shield_outlined, text: "Verified", color: Colors.blueAccent),
+
+                  // Odznak: Status (Overdue/Late/Complete)
+                  if (statusLabel != null && statusColor != null)
+                    _PillBadge(icon: statusIcon!, text: statusLabel, color: statusColor),
+                ],
+              ),
+              const SizedBox(height: 8),
+
+              // Progress Bar presne pod menom ako na obrázku
+              if (!isMainTaskOnly)
+                SegmentedProgressBar(green: completedCount, grey: totalTemplates - completedCount, height: 6),
+            ],
+          ),
+        ),
+
+        const SizedBox(width: 16),
+
+        // Pravá časť: Skóre (4/6) alebo Čas splnenia
+        if (!isMainTaskOnly) ...[
+          Text(
+              "$completedCount/$totalTemplates",
+              style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: progressColor // Zafarbí sa podľa toho či je to ok alebo overdue
+              )
+          ),
+          const SizedBox(width: 8),
+          Icon(isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down, color: cs.onSurfaceVariant),
+        ] else if (firstItem.isCompleted && firstItem.completedAt != null) ...[
+          Text(
+            DateFormat('dd.MM HH:mm').format(firstItem.completedAt!.toLocal()),
+            style: TextStyle(fontSize: 12, color: progressColor, fontWeight: FontWeight.bold),
+          ),
+        ]
+      ],
+    );
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -223,81 +290,49 @@ class _RespondentAccordion extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(color: cs.outlineVariant.withAlpha(100)),
       ),
-      child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          key: PageStorageKey(groupId),
-          initiallyExpanded: isExpanded,
-          onExpansionChanged: onToggle,
-          leading: _AvatarCircle(name: respondentName),
-          title: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(respondentName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                        if (isVerified) ...[
-                          const SizedBox(width: 4),
-                          Icon(Icons.verified, size: 14, color: cs.primary),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    _StatusBadge(label: statusLabel, color: statusColor),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              // PRAVÁ ČASŤ S TEXTOM HORE A BAROM DOLE
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+      child: Column(
+        children: [
+          // Klikateľná hlavička
+          InkWell(
+            onTap: isMainTaskOnly ? null : () => onToggle(!isExpanded),
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: headerContent,
+            ),
+          ),
+
+          // Animované rozbalenie subtaskov (nahrádza ExpansionTile)
+          if (!isMainTaskOnly)
+            AnimatedCrossFade(
+              firstChild: const SizedBox(width: double.infinity, height: 0),
+              secondChild: Column(
                 children: [
-                  Text(
-                    "$completedCount/$totalTemplates",
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 4),
-                  SizedBox(
-                    width: 80,
-                    child: SegmentedProgressBar(
-                      green: completedCount,
-                      orange: 0, // Tu môžeš pridať logic pre inProgress ak chceš
-                      grey: totalTemplates - completedCount,
-                      height: 6,
-                    ),
-                  ),
+                  Divider(height: 1, color: cs.outlineVariant.withAlpha(100)),
+                  ...items.map((s) => _TaskItemRow(subtask: s)),
                 ],
               ),
-            ],
-          ),
-          children: [
-            const Divider(height: 1),
-            ...items.map((s) => _TaskItemRow(subtask: s)),
-          ],
-        ),
+              crossFadeState: isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+              duration: const Duration(milliseconds: 200),
+            ),
+        ],
       ),
     );
   }
 }
 
-// --- POMOCNÉ KOMPONENTY PRE SHARED MODE ---
-
+// --- SHARED TASK CARD ---
 class _SharedTaskCard extends StatelessWidget {
   final SubtaskCombinedListModel subtask;
+  final bool isMainTaskOnly;
 
-  const _SharedTaskCard({required this.subtask});
+  const _SharedTaskCard({required this.subtask, this.isMainTaskOnly = false});
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final isOverdue = !subtask.isCompleted && subtask.deadline.isBefore(DateTime.now());
-    final isLate =
-        subtask.isCompleted &&
-        subtask.completedAt != null &&
-        subtask.completedAt!.isAfter(subtask.deadline);
+    final isLate = subtask.isCompleted && subtask.completedAt != null && subtask.completedAt!.isAfter(subtask.deadline);
 
     Color bgColor = cs.surface;
     Color borderColor = cs.outlineVariant;
@@ -312,7 +347,6 @@ class _SharedTaskCard extends StatelessWidget {
     } else if (isOverdue) {
       bgColor = Colors.red.withOpacity(0.05);
       borderColor = Colors.red;
-      //icon = Icons.warning_rounded;
       iconColor = Colors.red;
     }
 
@@ -325,49 +359,71 @@ class _SharedTaskCard extends StatelessWidget {
         border: Border.all(color: borderColor, width: 1.2),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: iconColor, size: 24),
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Icon(icon, color: iconColor, size: 24),
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  subtask.title,
+                  isMainTaskOnly ? (subtask.respondentName ?? "Unknown") : subtask.title,
                   style: TextStyle(
                     fontSize: 16,
-                    fontWeight: isOverdue ? FontWeight.bold : FontWeight.normal,
-                    decoration: subtask.isCompleted ? TextDecoration.lineThrough : null,
+                    fontWeight: isMainTaskOnly ? FontWeight.bold : (isOverdue ? FontWeight.bold : FontWeight.normal),
+                    decoration: (!isMainTaskOnly && subtask.isCompleted) ? TextDecoration.lineThrough : null,
                     color: subtask.isCompleted ? iconColor : cs.onSurface,
                   ),
                 ),
-                if (subtask.description != null)
-                  Text(
-                    subtask.description!,
-                    style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+                if (!isMainTaskOnly && subtask.description != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(subtask.description!, style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
                   ),
               ],
             ),
           ),
+
           if (subtask.isCompleted) ...[
             const SizedBox(width: 12),
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Row(
-                  children: [
-                    if (subtask.completedByUserId != null)
-                      Icon(Icons.verified, size: 16, color: cs.primary),
-                    const SizedBox(width: 4),
-                    Text(
-                      subtask.respondentName ?? "Unknown",
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: iconColor),
-                    ),
-                  ],
-                ),
+                // Štítky a E-mail pre Shared Mode
+                if (!isMainTaskOnly) ...[
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4, // Pridané pre prípad, že je email dlhý a musí sa zalomiť
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      // 1. Verified Badge
+                      if (subtask.completedByUserId != null)
+                        _PillBadge(icon: Icons.shield_outlined, text: "Verified", color: Colors.blueAccent),
+
+                      // 2. Email (vložený medzi badge a meno)
+                      if (subtask.assignedToEmail != null && subtask.assignedToEmail!.isNotEmpty)
+                        Text(
+                          "(${subtask.assignedToEmail})",
+                          style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
+                        ),
+
+                      // 3. Respondent Name
+                      Text(
+                          subtask.respondentName ?? "Unknown",
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: iconColor)
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                ],
+                // Čas splnenia
                 Text(
                   "${isLate ? 'Overdue ' : ''}${DateFormat('dd.MM HH:mm').format(subtask.completedAt!.toLocal())}",
-                  style: TextStyle(fontSize: 13, color: iconColor),
+                  style: TextStyle(fontSize: 13, color: iconColor, fontWeight: FontWeight.w600),
                 ),
               ],
             ),
@@ -378,7 +434,7 @@ class _SharedTaskCard extends StatelessWidget {
   }
 }
 
-// --- ATOMICKÉ PRVKY (Znovu použiteľné) ---
+// --- ATOMICKÉ PRVKY ---
 
 class _TaskItemRow extends StatelessWidget {
   final SubtaskCombinedListModel subtask;
@@ -388,10 +444,7 @@ class _TaskItemRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final isOverdue = !subtask.isCompleted && subtask.deadline.isBefore(DateTime.now());
-    final isLate =
-        subtask.isCompleted &&
-        subtask.completedAt != null &&
-        subtask.completedAt!.isAfter(subtask.deadline);
+    final isLate = subtask.isCompleted && subtask.completedAt != null && subtask.completedAt!.isAfter(subtask.deadline);
 
     Color rowColor = Colors.transparent;
     Color contentColor = cs.onSurface;
@@ -408,7 +461,7 @@ class _TaskItemRow extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       color: rowColor,
       child: Row(
         children: [
@@ -428,15 +481,18 @@ class _TaskItemRow extends StatelessWidget {
                   ),
                 ),
                 if (subtask.isCompleted && subtask.completedAt != null)
-                  Row(
-                    children: [
-                      const Icon(Icons.access_time, size: 10, color: Colors.grey),
-                      const SizedBox(width: 4),
-                      Text(
-                        "${isLate ? 'Overdue ' : ''}${DateFormat('dd.MM HH:mm').format(subtask.completedAt!.toLocal())}",
-                        style: TextStyle(fontSize: 10, color: contentColor.withOpacity(0.8)),
-                      ),
-                    ],
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Row(
+                      children: [
+                        Icon(Icons.access_time, size: 10, color: contentColor.withOpacity(0.8)),
+                        const SizedBox(width: 4),
+                        Text(
+                          "${isLate ? 'Overdue ' : ''}${DateFormat('dd.MM HH:mm').format(subtask.completedAt!.toLocal())}",
+                          style: TextStyle(fontSize: 10, color: contentColor.withOpacity(0.8)),
+                        ),
+                      ],
+                    ),
                   ),
               ],
             ),
@@ -461,57 +517,45 @@ class _AvatarCircle extends StatelessWidget {
         .toUpperCase();
     return CircleAvatar(
       radius: 18,
-      backgroundColor: Theme.of(context).colorScheme.primary,
+      backgroundColor: Colors.blueAccent, // Modrá ako na tvojom obrázku
       child: Text(
         initials,
-        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+        style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
       ),
     );
   }
 }
 
-class _StatusBadge extends StatelessWidget {
-  final String label;
+// NOVÝ WIDGET: Moderný štítok "Pill Badge" presne podľa tvojho zadania
+class _PillBadge extends StatelessWidget {
+  final IconData icon;
+  final String text;
   final Color color;
-  const _StatusBadge({required this.label, required this.color});
+
+  const _PillBadge({required this.icon, required this.text, required this.color});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(4),
+        color: color.withAlpha(25), // Jemné podfarbenie
+        borderRadius: BorderRadius.circular(12), // Kapsulový tvar
       ),
-      child: Text(
-        label,
-        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: color),
-      ),
-    );
-  }
-}
-
-class _CustomProgressBar extends StatelessWidget {
-  final double value;
-  final double height;
-  final Color color;
-
-  const _CustomProgressBar({required this.value, required this.height, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: height,
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.outlineVariant.withAlpha(50),
-        borderRadius: BorderRadius.circular(height / 2),
-      ),
-      child: FractionallySizedBox(
-        alignment: Alignment.centerLeft,
-        widthFactor: value.clamp(0.0, 1.0),
-        child: Container(
-          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(height / 2)),
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
       ),
     );
   }

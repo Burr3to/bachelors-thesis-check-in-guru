@@ -57,6 +57,8 @@ public class InvitationFacade(
                     inv.SentAt = DateTime.UtcNow;
                 }
 
+                await SyncAlreadyCompletedInvitationsAsync(db, taskId, emails);
+
                 await db.SaveChangesAsync();
 
                 // Notifikujeme autora cez SignalR, nech si refreshne UI
@@ -70,6 +72,46 @@ public class InvitationFacade(
                 await taskHub.Clients.Group(userGroupName).SendAsync("ReceiveNotification", "EMAILS_FAILED");
             }
         });
+    }
+
+    private async Task SyncAlreadyCompletedInvitationsAsync(CheckInDbContext db, Guid taskId, List<string> emails)
+    {
+        foreach (var email in emails)
+        {
+            var normalizedEmail = email.ToLower().Trim();
+
+            // 1. Zistíme, či pre tento email už existujú splnené inštancie v tomto tasku
+            // Hľadáme buď podľa priradeného UserId (ak je user už v systéme) 
+            // alebo podľa RespondentName (ak to vypĺňal anonymne pod svojím mailom)
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == normalizedEmail);
+            Guid? userId = user?.Id;
+
+            // 2. Kontrola, či existuje nejaká nevyriešená práca pre tohto človeka
+            // (Logika podobná tej v SubtaskInstanceFacade)
+            var hasPendingWork = await db.SubtaskInstances
+                .AnyAsync(i => i.TemplateSubtask.ParentTaskId == taskId &&
+                               (i.AssignedToUserId == userId || i.RespondentName.ToLower() == normalizedEmail) &&
+                               !i.IsCompleted);
+
+            // 3. Ak neexistuje nevyriešená práca, ale existuje aspoň jedna splnená inštancia,
+            // znamená to, že užívateľ už má hotovo.
+            var hasAnyCompleted = await db.SubtaskInstances
+                .AnyAsync(i => i.TemplateSubtask.ParentTaskId == taskId &&
+                               (i.AssignedToUserId == userId || i.RespondentName.ToLower() == normalizedEmail) &&
+                               i.IsCompleted);
+
+            if (!hasPendingWork && hasAnyCompleted)
+            {
+                var invitation = await db.Invitations
+                    .FirstOrDefaultAsync(i => i.TaskId == taskId && i.Email.ToLower() == normalizedEmail);
+
+                if (invitation != null)
+                {
+                    invitation.IsAccepted = true; // Keďže už splnil, musel to aj vidieť
+                    invitation.IsCompleted = true;
+                }
+            }
+        }
     }
 
 

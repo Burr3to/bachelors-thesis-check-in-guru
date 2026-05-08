@@ -473,7 +473,7 @@ class AppLocalizationsSk extends AppLocalizations {
   String get nav_introduction => 'Úvod';
 
   @override
-  String get nav_my_tasks => 'Moje úlohy';
+  String get nav_my_tasks => 'Úlohy';
 
   @override
   String get dialog_invalid_emails_title => 'Nájdené neplatné domény';
