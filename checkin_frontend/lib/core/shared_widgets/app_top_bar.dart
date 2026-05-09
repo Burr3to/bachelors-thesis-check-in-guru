@@ -17,50 +17,58 @@ class AppTopBar extends ConsumerWidget implements PreferredSizeWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
     final screenWidth = MediaQuery.of(context).size.width;
-    final isMobile = screenWidth < 800; // Breakpoint pre mobil/tablet
+    final isMobile = screenWidth < 800;
 
     return AppBar(
       backgroundColor: colorScheme.surface,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       scrolledUnderElevation: 3,
-      // Na mobile ukážeme leading (hamburger), na webe ho vypneme
       automaticallyImplyLeading: isMobile,
-      title: Row(
-        children: [
-          const _LogoSection(),
-          if (!isMobile) ...[
-            const Spacer(),
-            const _NavigationSection(),
-            const Spacer(),
-          ] else
-            const Spacer(), // Na mobile len odtlačíme ikony doprava
+      // Vynulujeme defaultný padding na mobile, aby sme získali viac miesta
+      titleSpacing: isMobile ? 0 : NavigationToolbar.kMiddleSpacing,
 
-          // JAZYK (na mobile ho môžeme nechať alebo schovať do Draweru)
-          if (!isMobile) const _LanguageSwitch(),
-
-          // THEME SWITCH
-          IconButton(
-            icon: Icon(
-              ref.watch(themeProvider) == ThemeMode.light ? Icons.dark_mode : Icons.light_mode,
-              color: Colors.blueAccent,
-            ),
-            onPressed: () => ref.read(themeProvider.notifier).toggleTheme(),
-          ),
-
-          const SizedBox(width: 8),
-
-          // PROFIL (na mobile zjednodušený)
-          _UserAccountSection(isMobile: isMobile),
+      // 1. TITLE: Obsahuje len Logo na mobile, alebo Logo + Navigáciu na webe
+      title: isMobile
+          ? _LogoSection(isMobile: true)
+          : Row(
+        children:[
+          const _LogoSection(isMobile: false),
+          const Spacer(),
+          const _NavigationSection(),
+          const Spacer(),
         ],
       ),
+
+      // 2. ACTIONS: Ikonky, ktoré sa automaticky pricapnú úplne napravo
+      actions:[
+        if (!isMobile) const _LanguageSwitch(),
+
+        IconButton(
+          icon: Icon(
+            ref.watch(themeProvider) == ThemeMode.light ? Icons.dark_mode : Icons.light_mode,
+            color: Colors.blueAccent,
+            size: isMobile ? 22 : 24,
+          ),
+          padding: EdgeInsets.all(isMobile ? 8 : 12),
+          constraints: const BoxConstraints(), // Zruší defaultné obrovské okraje
+          onPressed: () => ref.read(themeProvider.notifier).toggleTheme(),
+        ),
+
+        SizedBox(width: isMobile ? 4 : 8),
+
+        _UserAccountSection(isMobile: isMobile),
+
+        SizedBox(width: isMobile ? 8 : 16),
+      ],
     );
   }
 }
 
-// --- LOGO (Nezmenené) ---
+// --- LOGO (S opraveným orezávaním) ---
 class _LogoSection extends StatelessWidget {
-  const _LogoSection();
+  final bool isMobile;
+  const _LogoSection({required this.isMobile});
 
   @override
   Widget build(BuildContext context) {
@@ -68,17 +76,30 @@ class _LogoSection extends StatelessWidget {
       onTap: () => context.go('/tasks'),
       borderRadius: BorderRadius.circular(8),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        padding: EdgeInsets.symmetric(
+            horizontal: isMobile ? 4 : 8,
+            vertical: 8
+        ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.check_circle_outline_rounded, size: 32, color: Colors.blueAccent),
-            const SizedBox(width: 10),
-            Text(
-              'CheckInGuru',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface,
-                fontWeight: FontWeight.bold,
+          children:[
+            Icon(
+                Icons.check_circle_outline_rounded,
+                size: isMobile ? 24 : 32,
+                color: Colors.blueAccent
+            ),
+            SizedBox(width: isMobile ? 6 : 10),
+            // FLEXIBLE ZAISTÍ, ŽE SA TEXT ODREŽE IBA AK UŽ NAOZAJ NIE JE KAM UHnúŤ
+            Flexible(
+              child: Text(
+                'CheckInGuru',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                  fontWeight: FontWeight.bold,
+                  // Vrátil som 18px pre mobil, pretože teraz tam máme vďaka správnemu layoutu miesto!
+                  fontSize: isMobile ? 18 : 20,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -98,7 +119,7 @@ class _NavigationSection extends StatelessWidget {
 
     return Row(
       mainAxisSize: MainAxisSize.min,
-      children: [
+      children:[
         _navButton(
             context,
             context.l10n.nav_introduction,
@@ -146,7 +167,7 @@ class _NavigationSection extends StatelessWidget {
           title,
           style: TextStyle(
             color: isActive ? cs.primary : cs.onSurface.withAlpha(180),
-            fontSize: 16, // Jemne zmenšené z 19 pre lepší balans
+            fontSize: 16,
             fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
           ),
         ),
@@ -155,7 +176,7 @@ class _NavigationSection extends StatelessWidget {
   }
 }
 
-// --- PROFIL PRIHLÁSENÉHO POUŽÍVATEĽA (UPRAVENÉ) ---
+// --- PROFIL PRIHLÁSENÉHO POUŽÍVATEĽA (Nezmenené z predošlej úpravy) ---
 class _UserAccountSection extends ConsumerWidget {
   final bool isMobile;
   const _UserAccountSection({required this.isMobile});
@@ -164,30 +185,38 @@ class _UserAccountSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authProvider).user;
 
-    // AK POUŽÍVATEĽ NIE JE PRIHLÁSENÝ (PC aj MOBIL)
     if (user == null) {
-      return const _LoginButtonSection();
+      return _LoginButtonSection(isMobile: isMobile);
     }
 
-    // AK JE PRIHLÁSENÝ
     return Row(
       mainAxisSize: MainAxisSize.min,
-      children: [
+      children:[
         if (!isMobile)
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
-            children: [
+            children:[
               Text(user.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
               Text(user.email, style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
             ],
           ),
-        const SizedBox(width: 10),
-        CircleAvatar(
-          radius: 16,
-          backgroundColor: Colors.blueAccent.withAlpha(40),
-          child: Text((user.name)[0].toUpperCase(), style: const TextStyle(fontSize: 12, color: Colors.blueAccent)),
+        if (!isMobile) const SizedBox(width: 10),
+
+        InkWell(
+          onTap: isMobile ? () => ref.read(authProvider.notifier).signOut() : null,
+          borderRadius: BorderRadius.circular(16),
+          child: CircleAvatar(
+            radius: isMobile ? 14 : 16,
+            backgroundColor: Colors.blueAccent.withAlpha(40),
+            child: Text(
+                (user.name)[0].toUpperCase(),
+                style: TextStyle(fontSize: isMobile ? 10 : 12, color: Colors.blueAccent)
+            ),
+          ),
         ),
+
         if (!isMobile)
           IconButton(
             icon: const Icon(Icons.logout, size: 18),
@@ -198,14 +227,22 @@ class _UserAccountSection extends ConsumerWidget {
   }
 }
 
-
-// --- LOGIN (Nezmenené) ---
+// --- LOGIN (Nezmenené z predošlej úpravy) ---
 class _LoginButtonSection extends ConsumerWidget {
-  const _LoginButtonSection();
+  final bool isMobile;
+  const _LoginButtonSection({required this.isMobile});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Toto tlačidlo sa teraz zobrazí na PC aj Mobile
+    if (isMobile) {
+      return IconButton(
+        onPressed: () => ref.read(authProvider.notifier).signInWithGoogle(),
+        icon: const Icon(Icons.login, color: Colors.blueAccent, size: 22),
+        padding: const EdgeInsets.all(8),
+        constraints: const BoxConstraints(),
+      );
+    }
+
     return OutlinedButton.icon(
       onPressed: () => ref.read(authProvider.notifier).signInWithGoogle(),
       icon: const Icon(Icons.login, size: 18),
@@ -229,7 +266,7 @@ class _LanguageSwitch extends ConsumerWidget {
     return PopupMenuButton<Locale>(
       icon: const Icon(Icons.language, color: Colors.blueAccent),
       onSelected: (locale) => ref.read(localeProvider.notifier).setLocale(locale),
-      itemBuilder: (context) => [
+      itemBuilder: (context) =>[
         const PopupMenuItem(value: Locale('sk', 'SK'), child: Text("Slovenčina")),
         const PopupMenuItem(value: Locale('en', 'US'), child: Text("English")),
       ],

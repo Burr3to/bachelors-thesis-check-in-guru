@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:checkin_frontend/features/auth/views/providers/auth_provider.dart';
 
 import '../../../../core/providers/signalr_provider.dart';
 import '../../../../core/services/signalr_service.dart';
 import '../../../../core/providers/task_providers.dart';
 import '../../../../core/utils/l10n_extensions.dart';
+
+// --- TENTO IMPORT PRIDAJ ---
+import '../../../../core/utils/responsive.dart';
+
 import '../widgets/task_card.dart';
 import '../widgets/task_filters_drawer.dart';
 import '../widgets/task_list_header.dart';
@@ -13,7 +18,6 @@ import '../widgets/task_pagination_bar.dart';
 
 class TaskListPage extends ConsumerStatefulWidget {
   const TaskListPage({super.key});
-
 
   @override
   ConsumerState<TaskListPage> createState() => _TaskListPageState();
@@ -45,11 +49,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     }
 
     print("DEBUG: SignalR - Pripájam sa do UserRoom pre: ${user.userId}");
-
-    // 1. Vstúpime do miestnosti pre autora
     await _signalRService.joinUserRoom(user.userId);
-
-    // 2. Začneme počúvať na event "AuthorTaskUpdated"
     _signalRService.connection?.on("AuthorTaskUpdated", _handleAuthorTaskUpdated);
   }
 
@@ -58,7 +58,6 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     print("DEBUG: SignalR - PRIJATÝ SIGNÁL! Zmenil sa task: $updatedTaskId");
 
     if (mounted) {
-      // Obnovíme zoznam úloh
       ref.invalidate(taskListProvider);
       print("DEBUG: SignalR - Provider taskListProvider bol invalidovaný");
     }
@@ -71,39 +70,47 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     final asyncTasks = ref.watch(taskListProvider);
     final pagination = ref.watch(taskQueryProvider);
 
+    // Zistíme, či sme na mobile
+    final isMobile = context.isMobile;
 
     if (user == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-
     return Scaffold(
-      // 2. ZMENA: Namiesto Colors.white
       backgroundColor: colorScheme.surface,
       endDrawer: const TaskFiltersDrawer(),
+
+      // ZMENA PRE MOBIL: Pridáme Floating Action Button (len na mobile)
+      floatingActionButton: isMobile
+          ? FloatingActionButton(
+        onPressed: () => context.go('/tasks/create'),
+        backgroundColor: colorScheme.primary,
+        foregroundColor: colorScheme.onPrimary,
+        child: const Icon(Icons.add),
+      )
+          : null,
+
       body: Padding(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-
+          children:[
+            // HLAVIČKA
             const TaskListHeader(),
 
+            // ZOZNAM ÚLOH
             Expanded(
               child: asyncTasks.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
-
-                // 3. ZMENA: Farba chyby
                 error: (error, stack) {
                   return Center(
                     child: Text(
                       context.l10n.tasks_error(error.toString()),
-                      style: TextStyle(color: colorScheme.error), // Použije červenú z témy
+                      style: TextStyle(color: colorScheme.error),
                     ),
                   );
                 },
-
-                // 4. ZMENA: Farba pre prázdny stav
                 data: (queryResult) {
                   final tasks = queryResult.items;
 
@@ -116,15 +123,22 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                     );
                   }
 
-                  // Použijeme Column, aby sme pod GridView pridali PaginationBar
                   return Stack(
-                    children: [
+                    children:[
                       // 1. VRSTVA: Zoznam úloh
                       Padding(
-                        padding: const EdgeInsets.only(bottom: 20), // Miesto pre pohodlný scroll
-                        child: GridView.builder(
-                          // Pridáme extra padding dole priamo do GridView,
-                          // aby posledný riadok úloh nekončil presne pod lištou
+                        padding: const EdgeInsets.only(bottom: 20),
+                        // ZMENA PRE MOBIL: GridView pre Desktop, ListView pre Mobil
+                        child: isMobile
+                            ? ListView.separated(
+                          padding: const EdgeInsets.only(bottom: 100),
+                          itemCount: tasks.length,
+                          separatorBuilder: (context, index) => const SizedBox(height: 16),
+                          itemBuilder: (context, index) {
+                            return TaskCard(task: tasks[index]);
+                          },
+                        )
+                            : GridView.builder(
                           padding: const EdgeInsets.only(bottom: 100),
                           gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                             maxCrossAxisExtent: 700,
@@ -134,13 +148,12 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                           ),
                           itemCount: tasks.length,
                           itemBuilder: (context, index) {
-                            final task = tasks[index];
-                            return TaskCard(task: task);
+                            return TaskCard(task: tasks[index]);
                           },
                         ),
                       ),
 
-                      // 2. VRSTVA: Plávajúca paginácia (zarovnaná na stred dole)
+                      // 2. VRSTVA: Plávajúca paginácia
                       Positioned(
                         bottom: 20,
                         left: 0,

@@ -6,6 +6,8 @@ import '../../../../core/models/enums/task_enums.dart';
 import '../../../../core/models/task/query/task_list_query.dart';
 import '../../../../core/providers/task_providers.dart';
 import '../../../../core/utils/l10n_extensions.dart';
+// PRIDAJ IMPORT PRE RESPONSIVE
+import '../../../../core/utils/responsive.dart';
 
 class TaskFiltersDrawer extends ConsumerWidget {
   const TaskFiltersDrawer({super.key});
@@ -15,28 +17,32 @@ class TaskFiltersDrawer extends ConsumerWidget {
     final query = ref.watch(taskQueryProvider);
     final notifier = ref.read(taskQueryProvider.notifier);
     final cs = Theme.of(context).colorScheme;
-    final hasFilters = query.hasFilters;
-    final filterCount = query.activeFilterCount;
+    final isMobile = context.isMobile;
 
     return Drawer(
-      width: 350,
-      backgroundColor: cs.surface, // EXPLICITNE nastavené pozadie proti priesvitnosti
+      // NA MOBILE: Ošetríme šírku tak, aby nezobrala viac ako 85% obrazovky (zabezpečí, že sa nezlomí na extrémne úzkych displejoch)
+      width: isMobile ? MediaQuery.of(context).size.width * 0.85 : 350,
+      backgroundColor: cs.surface,
       surfaceTintColor: cs.surface,
       child: Column(
-        children: [
-          // HEADER (Pevná farba)
+        children:[
+          // HEADER
           Container(
-            height: 180,
+            height: isMobile ? 150 : 180, // Trochu nižší na mobile
             width: double.infinity,
             color: cs.surfaceContainerLow,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.filter_alt_rounded, size: 40, color: cs.primary),
-                const SizedBox(height: 12),
+              children:[
+                Icon(Icons.filter_alt_rounded, size: isMobile ? 32 : 40, color: cs.primary),
+                SizedBox(height: isMobile ? 8 : 12),
                 Text(
                   context.l10n.tasks_filter_title,
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: cs.onSurface),
+                  style: TextStyle(
+                      fontSize: isMobile ? 18 : 20,
+                      fontWeight: FontWeight.bold,
+                      color: cs.onSurface
+                  ),
                 ),
               ],
             ),
@@ -45,14 +51,14 @@ class TaskFiltersDrawer extends ConsumerWidget {
           Expanded(
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-              children: [
+              children:[
                 // 1. SORTING
                 _buildSectionTitle(cs, context.l10n.tasks_filter_sort_by),
                 DropdownButtonFormField<String>(
                   value: query.sortBy,
-                  dropdownColor: cs.surfaceContainerHigh, // Farba dropdown menu
+                  dropdownColor: cs.surfaceContainerHigh,
                   decoration: _inputDecoration(cs),
-                  items: [
+                  items:[
                     DropdownMenuItem(
                       value: "createdat",
                       child: Text(context.l10n.tasks_filter_created_at),
@@ -77,51 +83,46 @@ class TaskFiltersDrawer extends ConsumerWidget {
                   value: query.sortDesc,
                   activeColor: cs.primary,
                   onChanged: (val) => notifier.setSort(query.sortBy, val),
+                  contentPadding: EdgeInsets.zero, // Ušetrí miesto na úzkom displeji
                 ),
 
                 const Padding(padding: EdgeInsets.symmetric(vertical: 8.0), child: Divider()),
 
-                // 2. COOPERATION MODE (Toggle logika)
+                // 2. COOPERATION MODE
                 _buildSectionTitle(cs, context.l10n.tasks_filter_mode),
                 Wrap(
                   spacing: 10,
-                  children: [
+                  runSpacing: 10, // Dôležité pre Wrap, ak sa chipy na mobile zalamujú pod seba
+                  children:[
                     _FilterChip(
                       label: context.l10n.task_create_mode_collab,
                       selected: query.mode == SubtaskMode.shared,
-                      onSelected: (selected) {
-                        notifier.setMode(selected ? SubtaskMode.shared : null);
-                      },
+                      onSelected: (selected) => notifier.setMode(selected ? SubtaskMode.shared : null),
                     ),
                     _FilterChip(
                       label: context.l10n.task_create_mode_indep,
                       selected: query.mode == SubtaskMode.individual,
-                      onSelected: (selected) {
-                        notifier.setMode(selected ? SubtaskMode.individual : null);
-                      },
+                      onSelected: (selected) => notifier.setMode(selected ? SubtaskMode.individual : null),
                     ),
                   ],
                 ),
                 const SizedBox(height: 24),
 
-                // 3. VISIBILITY (Toggle logika)
+                // 3. VISIBILITY
                 _buildSectionTitle(cs, context.l10n.tasks_filter_visibility),
                 Wrap(
                   spacing: 10,
-                  children: [
+                  runSpacing: 10,
+                  children:[
                     _FilterChip(
                       label: context.l10n.task_create_auth_public,
                       selected: query.requiresAuth == false,
-                      onSelected: (selected) {
-                        notifier.setVisibility(selected ? false : null);
-                      },
+                      onSelected: (selected) => notifier.setVisibility(selected ? false : null),
                     ),
                     _FilterChip(
                       label: context.l10n.task_create_auth_verified,
                       selected: query.requiresAuth == true,
-                      onSelected: (selected) {
-                        notifier.setVisibility(selected ? true : null);
-                      },
+                      onSelected: (selected) => notifier.setVisibility(selected ? true : null),
                     ),
                   ],
                 ),
@@ -132,24 +133,21 @@ class TaskFiltersDrawer extends ConsumerWidget {
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: [
+                  children:[
                     _FilterChip(
                       label: "In Progress",
                       selected: query.status == TaskState.inProgress,
-                      onSelected: (selected) =>
-                          notifier.setStatus(selected ? TaskState.inProgress : null),
+                      onSelected: (selected) => notifier.setStatus(selected ? TaskState.inProgress : null),
                     ),
                     _FilterChip(
                       label: "Completed",
                       selected: query.status == TaskState.completed,
-                      onSelected: (selected) =>
-                          notifier.setStatus(selected ? TaskState.completed : null),
+                      onSelected: (selected) => notifier.setStatus(selected ? TaskState.completed : null),
                     ),
                     _FilterChip(
                       label: "Missed",
                       selected: query.status == TaskState.missed,
-                      onSelected: (selected) =>
-                          notifier.setStatus(selected ? TaskState.missed : null),
+                      onSelected: (selected) => notifier.setStatus(selected ? TaskState.missed : null),
                     ),
                   ],
                 ),
@@ -163,14 +161,13 @@ class TaskFiltersDrawer extends ConsumerWidget {
                 ),
 
                 const SizedBox(height: 24),
-
               ],
             ),
           ),
 
           // FOOTER
           Container(
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.all(isMobile ? 16 : 24),
             decoration: BoxDecoration(
               border: Border(top: BorderSide(color: cs.outlineVariant.withAlpha(50))),
             ),
@@ -221,7 +218,7 @@ class TaskFiltersDrawer extends ConsumerWidget {
   }
 }
 
-// POMOCNÝ WIDGET PRE ŠTÝLOVÝ CHIP
+// ..._FilterChip a _RespondentEmailFilter môžu ostať úplne rovnaké ako doteraz
 class _FilterChip extends StatelessWidget {
   final String label;
   final bool selected;
@@ -276,7 +273,6 @@ class _RespondentEmailFilterState extends ConsumerState<_RespondentEmailFilter> 
   @override
   void didUpdateWidget(_RespondentEmailFilter oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Ak sa filter zresetuje zvonku, vymažeme aj text v poli
     if (widget.initialValue == null && _controller.text.isNotEmpty) {
       _controller.clear();
     }
@@ -316,12 +312,12 @@ class _RespondentEmailFilterState extends ConsumerState<_RespondentEmailFilter> 
         contentPadding: const EdgeInsets.symmetric(horizontal: 16),
         suffixIcon: _controller.text.isNotEmpty
             ? IconButton(
-                icon: const Icon(Icons.clear, size: 16),
-                onPressed: () {
-                  _controller.clear();
-                  _onSearchChanged("");
-                },
-              )
+          icon: const Icon(Icons.clear, size: 16),
+          onPressed: () {
+            _controller.clear();
+            _onSearchChanged("");
+          },
+        )
             : null,
       ),
     );

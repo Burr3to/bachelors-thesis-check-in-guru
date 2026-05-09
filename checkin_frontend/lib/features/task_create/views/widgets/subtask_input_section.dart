@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/task_create/task_create_provider.dart';
 import '../../../../core/utils/l10n_extensions.dart';
+import '../../../../core/utils/responsive.dart';
+
 
 class SubtaskInputSection extends ConsumerStatefulWidget {
   final VoidCallback onRemoveSection;
@@ -14,14 +16,14 @@ class SubtaskInputSection extends ConsumerStatefulWidget {
 
 class _SubtaskInputSectionState extends ConsumerState<SubtaskInputSection> {
   final _inputController = TextEditingController();
-  final FocusNode _inputFocusNode = FocusNode(); // Pridaný FocusNode
+  final FocusNode _inputFocusNode = FocusNode();
   final Set<int> _expandedIndices = {};
 
   void _submitSubtask() {
     if (_inputController.text.trim().isEmpty) return;
     ref.read(taskCreateProvider.notifier).addSubtask(_inputController.text.trim());
     _inputController.clear();
-    _inputFocusNode.requestFocus(); // Vráti focus na pole
+    _inputFocusNode.requestFocus();
   }
 
   @override
@@ -35,9 +37,11 @@ class _SubtaskInputSectionState extends ConsumerState<SubtaskInputSection> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final subtasks = ref.watch(taskCreateProvider.select((s) => s.subtasks));
+    final isMobile = context.isMobile;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      // Na mobile menší padding
+      padding: EdgeInsets.all(isMobile ? 12 : 16),
       decoration: BoxDecoration(
         color: cs.surface,
         borderRadius: BorderRadius.circular(12),
@@ -49,8 +53,13 @@ class _SubtaskInputSectionState extends ConsumerState<SubtaskInputSection> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children:[
-              Text(context.l10n.task_create_subtasks_title,
-                  style: TextStyle(fontWeight: FontWeight.bold, color: cs.onSurface)),
+              Expanded( // Expanded aby dlhý nadpis nepretiekol
+                child: Text(
+                  context.l10n.task_create_subtasks_title,
+                  style: TextStyle(fontWeight: FontWeight.bold, color: cs.onSurface),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
               IconButton(
                 onPressed: () {
                   ref.read(taskCreateProvider.notifier).clearSubtasks();
@@ -132,7 +141,14 @@ class _SubtaskInputSectionState extends ConsumerState<SubtaskInputSection> {
                         ),
                         title: Row(
                           children:[
-                            Text(subtask.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                            // ZMENA: Obalené do Flexible, aby dlhý nadpis nezničil Row
+                            Flexible(
+                              child: Text(
+                                subtask.title,
+                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
                             if (!isExpanded && hasDescription)
                               Expanded(
                                 child: Text(
@@ -150,7 +166,6 @@ class _SubtaskInputSectionState extends ConsumerState<SubtaskInputSection> {
                         ),
                       ),
 
-                      // EDITÁCIA POPISU
                       if (isExpanded)
                         Padding(
                           padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
@@ -161,12 +176,10 @@ class _SubtaskInputSectionState extends ConsumerState<SubtaskInputSection> {
                             textInputAction: TextInputAction.done,
                             style: const TextStyle(fontSize: 13),
                             onFieldSubmitted: (_) {
-                              // TOTO JE TÁ ZMENA:
-                              // Odoberie index z otvorených a tým sa políčko vizuálne zatvorí
                               setState(() {
                                 _expandedIndices.remove(index);
                               });
-                              _inputFocusNode.requestFocus(); // Voliteľne vráti focus hore
+                              _inputFocusNode.requestFocus();
                             },
                             onChanged: (val) => ref.read(taskCreateProvider.notifier).updateSubtaskDescription(index, val),
                             decoration: InputDecoration(

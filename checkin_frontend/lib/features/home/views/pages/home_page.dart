@@ -2,248 +2,230 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/shared_widgets/autoplay_video.dart';
 import '../../../../core/utils/l10n_extensions.dart';
+import '../../../../core/utils/responsive.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Tieto farby teraz ťaháme z témy
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-
-    final primaryBlue = colorScheme.primary;
-    // Použijeme surfaceContainer pre jemne sivé/tmavé sekcie
     final secondaryBg = colorScheme.surfaceContainer;
-    const double maxContentWidth = 1150;
+    const double maxContentWidth = 1150; // Pôvodná šírka
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
       body: SingleChildScrollView(
         child: Column(
-          children: [
-            // --- HERO SEKCIA ---
-            Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    primaryBlue.withAlpha(theme.brightness == Brightness.light ? 12 : 30),
-                    colorScheme.surface,
-                  ],
-                ),
-              ),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: maxContentWidth),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 110, horizontal: 40),
-                    child: Column(
-                      children: [
-                        // Chip
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: primaryBlue.withAlpha(25),
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          child: Text(
-                            context.l10n.home_hero_chip,
-                            style: TextStyle(
-                              color: primaryBlue,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-                        Text(
-                          context.l10n.home_hero_title,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 62,
-                            fontWeight: FontWeight.bold,
-                            height: 1.05,
-                            letterSpacing: -1.5,
-                            color: colorScheme.onSurface, // Automaticky biela/čierna
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-                        Text(
-                          context.l10n.home_hero_subtitle,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 22,
-                            color: colorScheme.onSurfaceVariant, // Jemnejšia farba textu
-                            height: 1.5,
-                          ),
-                        ),
-                        const SizedBox(height: 48),
-                        ElevatedButton(
-                          onPressed: () => context.go('/tasks/create'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: primaryBlue,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 26),
-                            elevation: 8,
-                            shadowColor: primaryBlue.withAlpha(100),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                          ),
-                          child: Text(context.l10n.home_hero_cta, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
+          children:[
+            // 1. HERO SEKCIA (Vrátený modrý gradient a Chip)
+            const _HeroSection(maxContentWidth: maxContentWidth),
 
-            // SEKCIA 1
-            _buildFeatureSection(
-              context: context,
+            // 2. SEKCIA 1
+            _FeatureSection(
               maxWidth: maxContentWidth,
               title: context.l10n.home_sec1_title,
-              description: _styledDescription(
-                context,
-                context.l10n.home_sec1_desc,
-                primaryBlue,
-              ),
+              descriptionText: context.l10n.home_sec1_desc,
               videoAsset: 'assets/videos/AutorCreate.webm',
               isReversed: false,
             ),
 
-            // SEKCIA 2 (so šedým/tmavým pozadím)
-            _buildFeatureSection(
-              context: context,
+            // 3. SEKCIA 2 (Šedé/tmavé pozadie)
+            _FeatureSection(
               maxWidth: maxContentWidth,
               backgroundColor: secondaryBg,
               title: context.l10n.home_sec2_title,
-              description: _styledDescription(
-                context,
-                context.l10n.home_sec2_desc,
-                primaryBlue,
-              ),
+              descriptionText: context.l10n.home_sec2_desc,
               videoAsset: 'assets/videos/Respondent.webm',
               isReversed: true,
             ),
 
-            // SEKCIA 3
-            _buildFeatureSection(
-              context: context,
+            // 4. SEKCIA 3
+            _FeatureSection(
               maxWidth: maxContentWidth,
               title: context.l10n.home_sec3_title,
-              description: _styledDescription(
-                context,
-                context.l10n.home_sec3_desc,
-                primaryBlue,
-              ),
+              descriptionText: context.l10n.home_sec3_desc,
               videoAsset: 'assets/videos/AutorOverview.webm',
               isReversed: false,
             ),
 
-            // --- FOOTER ---
-            // Footer býva často tmavý aj v light móde, ale v dark ho zladíme
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 80),
-              width: double.infinity,
-              color: theme.brightness == Brightness.light
-                  ? const Color(0xFF1A1F36)
-                  : Colors.black, // V dark móde úplne čierny
-              child: Center(
-                child: Column(
-                  children: [
-                    const Text(
-                      "CheckIn",
-                      style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: -1),
-                    ),
-                    const SizedBox(height: 20),
-                    Container(height: 2, width: 40, color: primaryBlue),
-                    const SizedBox(height: 20),
-                    Text(
-                      context.l10n.home_footer_subtitle,
-                      style: TextStyle(color: Colors.white54, fontSize: 16),
-                    ),
-                    const SizedBox(height: 40),
-                    Text(
-                      context.l10n.home_footer_copyright,
-                      style: TextStyle(color: Colors.white24, fontSize: 12),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            // 5. FOOTER (Vrátený tmavý dizajn)
+            const _FooterSection(),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildFeatureSection({
-    required BuildContext context,
-    required double maxWidth,
-    required String title,
-    required Widget description,
-    required String videoAsset,
-    required bool isReversed,
-    Color? backgroundColor,
-  }) {
-    final colorScheme = Theme.of(context).colorScheme;
+// --- HERO SECTION ---
+class _HeroSection extends StatelessWidget {
+  final double maxContentWidth;
+
+  const _HeroSection({required this.maxContentWidth});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final primaryBlue = colorScheme.primary;
+    final isMobile = context.isMobile;
 
-    final textColumn = Expanded(
-      flex: 4,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SelectionArea(
-            child: Text(
-              title,
-              style: TextStyle(
-                fontSize: 44,
-                fontWeight: FontWeight.bold,
-                letterSpacing: -1.5,
-                color: colorScheme.onSurface,
-              ),
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors:[
+            primaryBlue.withAlpha(theme.brightness == Brightness.light ? 12 : 30),
+            colorScheme.surface,
+          ],
+        ),
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: maxContentWidth),
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              vertical: isMobile ? 60 : 110,
+              horizontal: isMobile ? 20 : 40,
+            ),
+            child: Column(
+              children:[
+                // Vrátený malý "Chip" hore
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: primaryBlue.withAlpha(25),
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  child: Text(
+                    context.l10n.home_hero_chip,
+                    style: TextStyle(
+                      color: primaryBlue,
+                      fontWeight: FontWeight.bold,
+                      fontSize: isMobile ? 14 : 16,
+                    ),
+                  ),
+                ),
+                SizedBox(height: isMobile ? 24 : 32),
+                Text(
+                  context.l10n.home_hero_title,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: isMobile ? 42 : 62, // Stále veľké, ale prispôsobené mobilu
+                    fontWeight: FontWeight.bold,
+                    height: 1.05,
+                    letterSpacing: -1.5,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+                SizedBox(height: isMobile ? 20 : 32),
+                Text(
+                  context.l10n.home_hero_subtitle,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: isMobile ? 18 : 22,
+                    color: colorScheme.onSurfaceVariant,
+                    height: 1.5,
+                  ),
+                ),
+                SizedBox(height: isMobile ? 32 : 48),
+                // Vrátený pôvodný veľký "šťavnatý" button
+                ElevatedButton(
+                  onPressed: () => context.go('/tasks/create'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryBlue,
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isMobile ? 32 : 40,
+                      vertical: isMobile ? 20 : 26,
+                    ),
+                    elevation: 8,
+                    shadowColor: primaryBlue.withAlpha(100),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: Text(
+                    context.l10n.home_hero_cta,
+                    style: TextStyle(fontSize: isMobile ? 16 : 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 24),
-          SelectionArea(child: description),
-          const SizedBox(height: 32),
-          Row(
-            children: [
-              Icon(Icons.check_circle, color: primaryBlue, size: 20),
-              const SizedBox(width: 10),
-              Text(
-                context.l10n.home_feature_ready,
-                style: TextStyle(fontWeight: FontWeight.bold, color: colorScheme.onSurface),
-              ),
-            ],
+        ),
+      ),
+    );
+  }
+}
+
+// --- FEATURE SECTION ---
+class _FeatureSection extends StatelessWidget {
+  final double maxWidth;
+  final String title;
+  final String descriptionText;
+  final String videoAsset;
+  final bool isReversed;
+  final Color? backgroundColor;
+
+  const _FeatureSection({
+    required this.maxWidth,
+    required this.title,
+    required this.descriptionText,
+    required this.videoAsset,
+    required this.isReversed,
+    this.backgroundColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final primaryBlue = colorScheme.primary;
+    final isMobile = context.isMobile;
+
+    // TEXTOVÁ ČASŤ (odstránená fajka pre skrátenie, ale farby zachované)
+    Widget textContent = Column(
+      crossAxisAlignment: isMobile ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+      children:[
+        SelectionArea(
+          child: Text(
+            title,
+            textAlign: isMobile ? TextAlign.center : TextAlign.left,
+            style: TextStyle(
+              fontSize: isMobile ? 32 : 44,
+              fontWeight: FontWeight.bold,
+              letterSpacing: -1.5,
+              color: colorScheme.onSurface,
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+        SelectionArea(
+          child: _buildStyledDescription(context, descriptionText, primaryBlue, isMobile),
+        ),
+      ],
+    );
+
+    // VIDEO ČASŤ (vrátený Transform.scale a veľký farebný tieň)
+    Widget videoContent = Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: primaryBlue.withAlpha(25), width: 1),
+        boxShadow:[
+          BoxShadow(
+            color: primaryBlue.withAlpha(theme.brightness == Brightness.light ? 32 : 10),
+            blurRadius: 50,
+            offset: const Offset(0, 25),
           ),
         ],
       ),
-    );
-
-    final videoColumn = Expanded(
-      flex: 6,
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: primaryBlue.withAlpha(25), width: 1),
-          boxShadow: [
-            BoxShadow(
-              color: primaryBlue.withAlpha(themeBrightness(context) == Brightness.light ? 32 : 10),
-              blurRadius: 50,
-              offset: const Offset(0, 25),
-            ),
-          ],
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Transform.scale(
-          scale: 1.03,
-          child: HoverVideoPlayer(assetPath: videoAsset),
-        ),
+      clipBehavior: Clip.antiAlias,
+      child: Transform.scale(
+        scale: 1.03, // Vrátený pop-out efekt
+        child: HoverVideoPlayer(assetPath: videoAsset),
       ),
     );
 
@@ -254,12 +236,23 @@ class HomePage extends StatelessWidget {
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: maxWidth),
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 80, horizontal: 20),
-            child: Row(
-              children: [
-                if (isReversed) videoColumn else textColumn,
+            padding: EdgeInsets.symmetric(
+              vertical: isMobile ? 60 : 80,
+              horizontal: isMobile ? 20 : 40,
+            ),
+            child: isMobile
+                ? Column(
+              children:[
+                textContent,
+                const SizedBox(height: 40),
+                videoContent,
+              ],
+            )
+                : Row(
+              children:[
+                if (isReversed) Expanded(flex: 6, child: videoContent) else Expanded(flex: 4, child: textContent),
                 const SizedBox(width: 80),
-                if (isReversed) textColumn else videoColumn,
+                if (isReversed) Expanded(flex: 4, child: textContent) else Expanded(flex: 6, child: videoContent),
               ],
             ),
           ),
@@ -268,23 +261,74 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _styledDescription(BuildContext context, String text, Color accentColor) {
+  Widget _buildStyledDescription(BuildContext context, String text, Color accentColor, bool isMobile) {
     final parts = text.split('**');
     final colorScheme = Theme.of(context).colorScheme;
 
     return Text.rich(
+      textAlign: isMobile ? TextAlign.center : TextAlign.left,
       TextSpan(
-        style: TextStyle(fontSize: 20, color: colorScheme.onSurfaceVariant, height: 1.6),
+        style: TextStyle(
+          fontSize: isMobile ? 18 : 20,
+          color: colorScheme.onSurfaceVariant,
+          height: 1.6,
+        ),
         children: parts.asMap().entries.map((entry) {
           final isBold = entry.key % 2 != 0;
           return TextSpan(
             text: entry.value,
+            // Vrátená modrá farba pre bold text (marketingový zvýraznený efekt)
             style: isBold ? TextStyle(color: accentColor, fontWeight: FontWeight.bold) : null,
           );
         }).toList(),
       ),
     );
   }
+}
 
-  Brightness themeBrightness(BuildContext context) => Theme.of(context).brightness;
+// --- FOOTER ---
+class _FooterSection extends StatelessWidget {
+  const _FooterSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primaryBlue = theme.colorScheme.primary;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 80), // Vrátený veľký padding
+      width: double.infinity,
+      // Vrátená pôvodná "midnight blue" z tvojho kódu
+      color: theme.brightness == Brightness.light ? const Color(0xFF1A1F36) : Colors.black,
+      child: Center(
+        child: Column(
+          children:[
+            const Text(
+              "CheckIn",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+                letterSpacing: -1,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Container(height: 2, width: 40, color: primaryBlue),
+            const SizedBox(height: 20),
+            Text(
+              context.l10n.home_footer_subtitle,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white54, fontSize: 16),
+            ),
+            const SizedBox(height: 40),
+            Text(
+              context.l10n.home_footer_copyright,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white24, fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

@@ -7,6 +7,9 @@ import '../../../../core/models/subtask_template/subtask_template_create_model.d
 import '../../../../core/models/subtask_template/subtask_template_update_model.dart';
 import '../../../../core/models/subtask_instance/subtask_combined_list_model.dart';
 
+// --- IMPORT PRE RESPONSIVE ---
+import '../../../../core/utils/responsive.dart';
+
 class SubtaskListSection extends ConsumerStatefulWidget {
   final String title;
   final String taskId;
@@ -70,13 +73,12 @@ class _SubtaskListSectionState extends ConsumerState<SubtaskListSection> {
 
   Future<void> _updateTemplate(String id, {String? title, String? desc}) async {
     try {
-      // Nájdeme aktuálny subtask v zozname, aby sme vedeli pôvodné hodnoty
       final existing = widget.subtasks.firstWhere((s) => s.templateSubtaskId == id);
 
       final model = SubtaskTemplateUpdateModel(
         id: id,
-        title: title ?? existing.title, // Ak je title null, použi pôvodný
-        description: desc ?? existing.description, // Ak je desc null, použi pôvodný
+        title: title ?? existing.title,
+        description: desc ?? existing.description,
       );
 
       await ref.read(subtaskTemplateApiServiceProvider).updateTemplate(id, model);
@@ -90,6 +92,7 @@ class _SubtaskListSectionState extends ConsumerState<SubtaskListSection> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final isMobile = context.isMobile;
 
     final int totalItems = widget.subtasks.length;
     final int itemsToShow = _isEditMode || _isExpanded ? totalItems : min(3, totalItems);
@@ -102,11 +105,12 @@ class _SubtaskListSectionState extends ConsumerState<SubtaskListSection> {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: cs.primary, width: 0.8),
         ),
-        padding: const EdgeInsets.all(16),
+        // Zmenšený padding pre mobil
+        padding: EdgeInsets.all(isMobile ? 12 : 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeader(theme, cs, totalItems),
+          children:[
+            _buildHeader(theme, cs, totalItems, isMobile),
             const SizedBox(height: 12),
 
             // --- LIST ---
@@ -117,13 +121,13 @@ class _SubtaskListSectionState extends ConsumerState<SubtaskListSection> {
               itemBuilder: (context, index) {
                 final subtask = widget.subtasks[index];
                 return _SubtaskRow(
-                  // OPRAVA GHOSTINGU: Každý riadok musí mať unikátny kľúč podľa ID databázy
                   key: ValueKey(subtask.templateSubtaskId),
                   index: index + 1,
                   subtask: subtask,
                   isEditMode: _isEditMode,
                   onUpdate: _updateTemplate,
                   onDelete: _deleteTemplate,
+                  isMobile: isMobile, // Posielame isMobile nadol
                 );
               },
             ),
@@ -135,24 +139,35 @@ class _SubtaskListSectionState extends ConsumerState<SubtaskListSection> {
                 onPressed: () => setState(() => _isExpanded = !_isExpanded),
               ),
 
-            if (_isEditMode) _buildAddSection(cs),
+            if (_isEditMode) _buildAddSection(cs, isMobile),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHeader(ThemeData theme, ColorScheme cs, int totalItems) {
+  Widget _buildHeader(ThemeData theme, ColorScheme cs, int totalItems, bool isMobile) {
     return Row(
-      children: [
-        Text(
-          widget.title,
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: cs.onSurface,
+      children:[
+        Expanded( // Obalené do Expanded pre prípad dlhého titulu na mobile
+          child: Text(
+            widget.title,
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: cs.onSurface,
+              fontSize: isMobile ? 18 : null, // Menšie písmo na mobile
+            ),
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 8),
+        // Počet položiek zobrazíme len na webe (na mobile šetríme miesto)
+        if (!isMobile)
+          Text(
+            "$totalItems ${totalItems == 1 ? 'item' : 'items'}",
+            style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant),
+          ),
+        if (!isMobile) const SizedBox(width: 12),
+
         _HeaderEditButton(
           isEditMode: _isEditMode,
           onPressed: () => setState(() {
@@ -160,19 +175,14 @@ class _SubtaskListSectionState extends ConsumerState<SubtaskListSection> {
             if (_isEditMode) _isExpanded = true;
           }),
         ),
-        const SizedBox(width: 12),
-        Text(
-          "$totalItems ${totalItems == 1 ? 'item' : 'items'}",
-          style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant),
-        ),
       ],
     );
   }
 
-  Widget _buildAddSection(ColorScheme cs) {
+  Widget _buildAddSection(ColorScheme cs, bool isMobile) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
+      children:[
         const SizedBox(height: 12),
         Divider(color: cs.outlineVariant),
         const SizedBox(height: 12),
@@ -180,14 +190,14 @@ class _SubtaskListSectionState extends ConsumerState<SubtaskListSection> {
           _AddSubtaskTrigger(onPressed: () => setState(() => _isAddingNew = true))
         else
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.all(isMobile ? 10 : 12),
             decoration: BoxDecoration(
               color: cs.surfaceContainerLow,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: cs.outlineVariant.withAlpha(100)),
             ),
             child: Column(
-              children: [
+              children:[
                 TextField(
                   controller: _newTitleController,
                   autofocus: true,
@@ -200,7 +210,18 @@ class _SubtaskListSectionState extends ConsumerState<SubtaskListSection> {
                 ),
                 const SizedBox(height: 12),
                 Row(
-                  children: [
+                  mainAxisAlignment: MainAxisAlignment.end, // Zarovnáme tlačidlá napravo
+                  children:[
+                    TextButton(
+                      onPressed: () => setState(() {
+                        _isAddingNew = false;
+                        _newTitleController.clear();
+                        _newDescController.clear();
+                      }),
+                      style: TextButton.styleFrom(foregroundColor: cs.onSurfaceVariant),
+                      child: const Text("Cancel"),
+                    ),
+                    const SizedBox(width: 8),
                     ElevatedButton(
                       onPressed: _addTemplate,
                       style: ElevatedButton.styleFrom(
@@ -210,16 +231,6 @@ class _SubtaskListSectionState extends ConsumerState<SubtaskListSection> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
                       child: const Text("Add"),
-                    ),
-                    const SizedBox(width: 8),
-                    TextButton(
-                      onPressed: () => setState(() {
-                        _isAddingNew = false;
-                        _newTitleController.clear();
-                        _newDescController.clear();
-                      }),
-                      style: TextButton.styleFrom(foregroundColor: cs.onSurfaceVariant),
-                      child: const Text("Cancel"),
                     ),
                   ],
                 ),
@@ -266,6 +277,8 @@ class _HeaderEditButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final isMobile = context.isMobile;
+
     return ElevatedButton.icon(
       onPressed: onPressed,
       icon: Icon(isEditMode ? Icons.check : Icons.edit_outlined, size: 16),
@@ -275,7 +288,8 @@ class _HeaderEditButton extends StatelessWidget {
         foregroundColor: cs.primary,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        // Menší padding pre mobil
+        padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 16, vertical: 8),
       ),
     );
   }
@@ -285,6 +299,7 @@ class _SubtaskRow extends StatefulWidget {
   final int index;
   final SubtaskCombinedListModel subtask;
   final bool isEditMode;
+  final bool isMobile; // Pridané
   final Function(String, {String? title, String? desc}) onUpdate;
   final Function(String) onDelete;
 
@@ -295,6 +310,7 @@ class _SubtaskRow extends StatefulWidget {
     required this.isEditMode,
     required this.onUpdate,
     required this.onDelete,
+    required this.isMobile,
   });
 
   @override
@@ -308,27 +324,21 @@ class _SubtaskRowState extends State<_SubtaskRow> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    // OPRAVA 1 & 2: GestureDetector na celom riadku
     return GestureDetector(
-      onTap: widget.isEditMode
-          ? () {
-              // Ak klikne na riadok v edit móde, focusne sa primárne titul (rieši problém s prázdnym textom)
-            }
-          : null,
+      onTap: widget.isEditMode ? () {} : null,
       child: MouseRegion(
         onEnter: (_) => setState(() => _isHovered = true),
         onExit: (_) => setState(() => _isHovered = false),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
-          // TU SA NASTAVUJE PADDING MEDZI POLOŽKAMI (vertical: 4)
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           decoration: BoxDecoration(
             color: _isHovered ? cs.primary.withAlpha(15) : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start, // Zarovnanie na vrch pri dlhých popisoch
-            children: [
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children:[
               SizedBox(
                 width: 24,
                 child: Padding(
@@ -340,16 +350,16 @@ class _SubtaskRowState extends State<_SubtaskRow> {
                   ),
                 ),
               ),
-              const SizedBox(width: 12), // MEDZERA MEDZI ČÍSLOM A TEXTOM
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.stretch, // Aby zabral celú šírku pre klikanie
-                  children: [
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children:[
                     _InlineInput(
                       initialValue: widget.subtask.title,
                       isEditMode: widget.isEditMode,
                       placeholder: "Enter title...",
+                      isMobile: widget.isMobile, // Posielame dole
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
@@ -363,6 +373,7 @@ class _SubtaskRowState extends State<_SubtaskRow> {
                       placeholder: "Add description...",
                       isEditMode: widget.isEditMode,
                       isDescription: true,
+                      isMobile: widget.isMobile, // Posielame dole
                       style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant.withAlpha(200)),
                       onSave: (val) => widget.onUpdate(widget.subtask.templateSubtaskId, desc: val),
                     ),
@@ -384,6 +395,7 @@ class _InlineInput extends StatefulWidget {
   final String? placeholder;
   final bool isEditMode;
   final bool isDescription;
+  final bool isMobile; // Pridané
   final TextStyle style;
   final Function(String) onSave;
 
@@ -392,6 +404,7 @@ class _InlineInput extends StatefulWidget {
     this.placeholder,
     required this.isEditMode,
     this.isDescription = false,
+    required this.isMobile,
     required this.style,
     required this.onSave,
   });
@@ -414,7 +427,6 @@ class _InlineInputState extends State<_InlineInput> {
   @override
   void didUpdateWidget(_InlineInput oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // OPRAVA GHOSTINGU: Ak sa zmenia dáta zvonku, okamžite aktualizujeme controller
     if (oldWidget.initialValue != widget.initialValue) {
       _controller.text = widget.initialValue;
     }
@@ -423,7 +435,6 @@ class _InlineInputState extends State<_InlineInput> {
   void _handleSave() {
     if (!_isEditing) return;
     setState(() => _isEditing = false);
-    // Uložíme len ak sa hodnota naozaj zmenila
     if (_controller.text != widget.initialValue) {
       widget.onSave(_controller.text);
     }
@@ -470,6 +481,11 @@ class _InlineInputState extends State<_InlineInput> {
       );
     }
 
+    // NA MOBILE NENI HOVER - AK JE EDIT MÓD A JE TO PRÁZDNE, MUSÍME TO ZOBRAZIŤ JEMNE VIDITEĽNE,
+    // ABY POUŽÍVATEĽ VEDEL, ŽE TAM MÔŽE ŤUKNÚŤ.
+    final bool isEmpty = widget.initialValue.isEmpty;
+    final bool isHighlighted = _isHovered || (widget.isMobile && isEmpty);
+
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
@@ -481,18 +497,16 @@ class _InlineInputState extends State<_InlineInput> {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 2),
           child: Text(
-            widget.initialValue.isEmpty ? (widget.placeholder ?? "") : widget.initialValue,
+            isEmpty ? (widget.placeholder ?? "") : widget.initialValue,
             style: widget.style.copyWith(
-              // LOGIKA FARBY PLACEHODLERA:
-              color: widget.initialValue.isEmpty
-                  ? (_isHovered ? cs.primary : cs.onSurfaceVariant.withAlpha(110))
-                  : (_isHovered ? cs.primary : widget.style.color),
-
-              // Mierne tenšie písmo pre placeholder, aby nekričalo
-              fontWeight: widget.initialValue.isEmpty ? FontWeight.w300 : widget.style.fontWeight,
-
-              // Môžeš nechať alebo odstrániť kurzívu podľa vkusu
-              fontStyle: widget.initialValue.isEmpty ? FontStyle.italic : null,
+              color: isEmpty
+                  ? (isHighlighted ? cs.primary : cs.onSurfaceVariant.withAlpha(110))
+                  : (isHighlighted ? cs.primary : widget.style.color),
+              fontWeight: isEmpty ? FontWeight.w300 : widget.style.fontWeight,
+              fontStyle: isEmpty ? FontStyle.italic : null,
+              // Na mobile podčiarkneme placeholder, ak nie je hover, aby sa dal identifikovať ako input
+              decoration: (widget.isMobile && isEmpty) ? TextDecoration.underline : TextDecoration.none,
+              decorationColor: cs.primary.withAlpha(100),
             ),
           ),
         ),
@@ -522,7 +536,7 @@ class _DeleteIcon extends StatelessWidget {
 class _TextLinkButton extends StatelessWidget {
   final String label;
   final VoidCallback onPressed;
-  final bool isExpanded; // Nový parameter
+  final bool isExpanded;
 
   const _TextLinkButton({required this.label, required this.onPressed, required this.isExpanded});
 
@@ -540,13 +554,11 @@ class _TextLinkButton extends StatelessWidget {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.center, // Vycentrovanie obsahu
-          mainAxisSize:
-              MainAxisSize.min, // Zaberá len toľko miesta, koľko potrebuje vnútri SizedBoxu
-          children: [
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children:[
             Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
             const SizedBox(width: 4),
-            // Animovaná ikona šípky
             Icon(isExpanded ? Icons.expand_less : Icons.expand_more, size: 20),
           ],
         ),
@@ -568,84 +580,12 @@ class _AddSubtaskTrigger extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Row(
-          children: [
+          children:[
             Icon(Icons.add, size: 18, color: cs.primary),
             const SizedBox(width: 8),
             Text("Add subtask", style: TextStyle(fontSize: 14, color: cs.primary)),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _AddSubtaskForm extends StatelessWidget {
-  final TextEditingController titleController;
-  final TextEditingController descController;
-  final VoidCallback onCancel;
-  final VoidCallback onAdd;
-
-  const _AddSubtaskForm({
-    required this.titleController,
-    required this.descController,
-    required this.onCancel,
-    required this.onAdd,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
-    return Column(
-      children: [
-        TextField(
-          controller: titleController,
-          autofocus: true,
-          decoration: _inputDeco(context, "Subtask title"),
-        ),
-        const SizedBox(height: 8),
-        TextField(
-          controller: descController,
-          decoration: _inputDeco(context, "Description (optional)"),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            ElevatedButton(
-              onPressed: onAdd,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: cs.primary,
-                foregroundColor: cs.onPrimary,
-                elevation: 0,
-              ),
-              child: const Text("Add"),
-            ),
-            const SizedBox(width: 8),
-            TextButton(
-              onPressed: onCancel,
-              style: TextButton.styleFrom(foregroundColor: cs.onSurfaceVariant),
-              child: const Text("Cancel"),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  InputDecoration _inputDeco(BuildContext context, String hint) {
-    final cs = Theme.of(context).colorScheme;
-    return InputDecoration(
-      hintText: hint,
-      isDense: true,
-      filled: true,
-      fillColor: cs.surfaceContainerHigh,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(6),
-        borderSide: BorderSide(color: cs.outlineVariant),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(6),
-        borderSide: BorderSide(color: cs.primary, width: 2),
       ),
     );
   }

@@ -33,7 +33,7 @@ abstract class InvitationApiService {
   @GET('api/Invitation/validate-domain')
   Future<bool> validateDomain(@Query("domain") String domain);
 
-  @POST('api/Invitation/remind-pending/{taskId}')
+  @POST('api/Invitation/remind-unfinished/{taskId}')
   Future<void> sendReminders(@Path("taskId") String taskId);
 
   @POST('api/Invitation')

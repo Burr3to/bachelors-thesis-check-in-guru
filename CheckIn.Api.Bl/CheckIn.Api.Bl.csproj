@@ -19,6 +19,9 @@
         <None Update="Templates\Invitation.html">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
+        <None Update="Templates\Reminder.html"> <!-- TOTO TU PRAVDEPODOBNE CHÝBA -->
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
     </ItemGroup>
 
     <ItemGroup>

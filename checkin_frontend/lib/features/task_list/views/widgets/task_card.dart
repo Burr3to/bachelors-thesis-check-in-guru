@@ -7,6 +7,7 @@ import '../../../../core/models/enums/task_enums.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../../core/utils/l10n_extensions.dart';
 import '../../../../core/utils/quill_utils.dart';
+import '../../../../core/utils/responsive.dart';
 
 class TaskCard extends StatelessWidget {
   final TaskListModel task;
@@ -17,57 +18,72 @@ class TaskCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final isOverdue = task.deadLine.isBefore(DateTime.now());
+    final isMobile = context.isMobile;
+
+    // VYŇATÝ TEXT POPISU
+    Widget descriptionText = Text(
+      task.notes != null
+          ? QuillUtils.toPlainText(task.notes)
+          : context.l10n.tasks_card_no_desc,
+      style: theme.textTheme.bodyMedium?.copyWith(
+        color: cs.onSurfaceVariant,
+        height: 1.4,
+        fontSize: isMobile ? 13 : 14, // Na mobile o chlp menšie písmo
+      ),
+      maxLines: isMobile ? 2 : 4, // Na mobile chceme vidieť viac úloh, takže stačia 2 riadky popisu
+      overflow: TextOverflow.ellipsis,
+    );
 
     return Container(
       decoration: BoxDecoration(
         color: cs.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(16),
+        // Zaoblenie je proporčne menšie na mobile
+        borderRadius: BorderRadius.circular(isMobile ? 12 : 16),
         border: Border.all(color: cs.outlineVariant, width: 1),
       ),
       child: InkWell(
         onTap: () => context.go('/tasks/${task.id}'),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(isMobile ? 12 : 16),
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          // Hlavná úspora miesta: vnútorný padding menší o 30% na mobile
+          padding: EdgeInsets.all(isMobile ? 14 : 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+            mainAxisSize: isMobile ? MainAxisSize.min : MainAxisSize.max,
+            children:[
               // HORNÝ RIADOK: Deadline + Ikona Módu
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _buildDeadlineBadge(cs, context),
+                children:[
+                  // Tu posielame flag isMobile, aby sa badge vykreslil menší
+                  _buildDeadlineBadge(cs, context, isMobile),
 
-                  // Skupina ikoniek na pravej strane
                   Row(
-                    children: [
-                      // Ikona overenia s tooltipom
+                    children:[
                       Tooltip(
                         message: task.requiresAuthenticationToComplete
-                            ? "Vyžaduje sa prihlásenie" // Alebo použi: context.l10n.tooltip_auth_required
+                            ? "Vyžaduje sa prihlásenie"
                             : "Anonymný prístup povolený",
                         child: Icon(
                           task.requiresAuthenticationToComplete
                               ? Icons.verified_user
                               : Icons.no_encryption_outlined,
-                          size: 19,
+                          size: isMobile ? 16 : 19, // Zmenšené ikony pre telefón
                           color: task.requiresAuthenticationToComplete
                               ? cs.primary
                               : cs.onSurfaceVariant.withAlpha(125),
                         ),
                       ),
 
-                      const SizedBox(width: 8),
+                      SizedBox(width: isMobile ? 6 : 8),
 
-                      // Ikona módu s tooltipom
                       Tooltip(
                         message: task.subtaskMode == SubtaskMode.shared
-                            ? "Zdieľaný režim (spoločné úlohy pre všetkých)"
-                            : "Individuálny režim (každý respondent má vlastné úlohy)",
+                            ? "Zdieľaný režim"
+                            : "Individuálny režim",
                         child: Icon(
                           task.subtaskMode == SubtaskMode.shared ? Icons.groups : Icons.person,
-                          size: 19,
+                          size: isMobile ? 16 : 19, // Zmenšené ikony pre telefón
                           color: cs.onSurfaceVariant.withAlpha(125),
                         ),
                       ),
@@ -75,46 +91,45 @@ class TaskCard extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
 
-              // STRED: Titul a Popis
+              SizedBox(height: isMobile ? 12 : 16),
+
+              // STRED: Titul
               Text(
                 task.title,
                 style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                   letterSpacing: -0.5,
+                  fontSize: isMobile ? 16 : 22, // Skromnejší nadpis na mobile
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 8),
-              Expanded(
-                child: Text(
-                  task.notes != null
-                      ? QuillUtils.toPlainText(task.notes)
-                      : context.l10n.tasks_card_no_desc,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: cs.onSurfaceVariant,
-                    height: 1.4,
-                    fontSize: 15,
-                  ),
-                  maxLines: 4,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
 
-              const SizedBox(height: 4),
+              SizedBox(height: isMobile ? 4 : 8),
+
+              // OPRAVA PRETEKANIA (Expanded)
+              if (isMobile)
+                descriptionText
+              else
+                Expanded(child: descriptionText),
+
+              SizedBox(height: isMobile ? 12 : 16),
 
               // SPODOK: Progres bar
               TaskProgressBar(taskId: task.id),
 
-              const SizedBox(height: 8),
-              // Dátum vytvorenia (malým)
+              SizedBox(height: isMobile ? 6 : 8),
+
+              // Dátum vytvorenia (prilepený doprava dole)
               Align(
                 alignment: Alignment.bottomRight,
                 child: Text(
                   "${context.l10n.tasks_card_created}: ${DateFormatter.formatCreatedAt(context, task.createdAt)}",
-                  style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant.withAlpha(180)),
+                  style: TextStyle(
+                      fontSize: isMobile ? 11 : 12, // Drobné, nevtieravé písmo
+                      color: cs.onSurfaceVariant.withAlpha(isMobile ? 140 : 180)
+                  ),
                 ),
               ),
             ],
@@ -124,42 +139,40 @@ class TaskCard extends StatelessWidget {
     );
   }
 
-  Widget _buildDeadlineBadge(ColorScheme cs, BuildContext context) {
+  // --- UPRAVENÁ METÓDA S PARAMETROM isMobile ---
+  Widget _buildDeadlineBadge(ColorScheme cs, BuildContext context, bool isMobile) {
     final state = task.state;
-
-    // Definujeme farbu badge-u podľa stavu
-    // Použijeme priamo farby z tvojho enumu, alebo ich jemne upravíme pre Material 3
     final Color baseColor = state.color;
-
-    // M3 štýl: jemné pozadie, výrazný text
-    final Color bgColor = baseColor.withOpacity(0.15);
+    final Color bgColor = baseColor.withAlpha(38);
     final Color contentColor = baseColor;
 
-    // Ikona sa zmení na "fajku", ak je hotovo
     final IconData statusIcon = state == TaskState.completed
         ? Icons.check_circle_outline
         : Icons.alarm;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      // Zmenšený padding pre badge
+      padding: EdgeInsets.symmetric(
+          horizontal: isMobile ? 8 : 10,
+          vertical: isMobile ? 4 : 6
+      ),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: contentColor.withOpacity(0.3)),
+        borderRadius: BorderRadius.circular(isMobile ? 6 : 8),
+        border: Border.all(color: contentColor.withAlpha(76)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(statusIcon, size: 14, color: contentColor),
-          const SizedBox(width: 6),
+        children:[
+          // Menšia ikona
+          Icon(statusIcon, size: isMobile ? 12 : 14, color: contentColor),
+          SizedBox(width: isMobile ? 4 : 6),
           Text(
-            // Ak je Completed, môžeme napísať "COMPLETED"
-            // alebo nechať dátum. Navrhujem:
             state == TaskState.completed
                 ? "Finished"
                 : DateFormatter.formatRelativeDeadline(context, task.deadLine),
             style: TextStyle(
-              fontSize: 12,
+              fontSize: isMobile ? 11 : 12, // Menší font na mobile
               fontWeight: FontWeight.bold,
               color: contentColor,
             ),

@@ -14,7 +14,7 @@ class HoverVideoPlayer extends StatefulWidget {
 class _HoverVideoPlayerState extends State<HoverVideoPlayer> {
   late VideoPlayerController _controller;
   bool _isInitialized = false;
-  bool _isHovering = false;
+  bool _isPlaying = false; // Premenované pre lepšiu sémantiku
 
   @override
   void initState() {
@@ -25,7 +25,6 @@ class _HoverVideoPlayerState extends State<HoverVideoPlayer> {
   void _initializeController() {
     if (kIsWeb) {
       final String fileName = widget.assetPath.split('/').last;
-      // Získa "checkin" alebo inú base path
       final String baseHref = Uri.base.path.split('/').where((s) => s.isNotEmpty).first;
       final String fullUrl = "${Uri.base.origin}/$baseHref/videos/$fileName";
       _controller = VideoPlayerController.networkUrl(Uri.parse(fullUrl));
@@ -39,7 +38,6 @@ class _HoverVideoPlayerState extends State<HoverVideoPlayer> {
           _isInitialized = true;
           _controller.setVolume(0); // Musí byť muted pre web policy
           _controller.setLooping(true);
-          // Video necháme na začiatku pauznuté
         });
       }
     });
@@ -51,6 +49,17 @@ class _HoverVideoPlayerState extends State<HoverVideoPlayer> {
     super.dispose();
   }
 
+  // Pridaná funkcia pre manuálne prepínanie (ťuknutím prsta)
+  void _togglePlay() {
+    if (_controller.value.isPlaying) {
+      _controller.pause();
+      setState(() => _isPlaying = false);
+    } else {
+      _controller.play();
+      setState(() => _isPlaying = true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!_isInitialized) {
@@ -60,36 +69,41 @@ class _HoverVideoPlayerState extends State<HoverVideoPlayer> {
       );
     }
 
-    return MouseRegion(
-      onEnter: (_) {
-        setState(() => _isHovering = true);
-        _controller.play();
-      },
-      onExit: (_) {
-        setState(() => _isHovering = false);
-        _controller.pause();
-      },
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          AspectRatio(
-            aspectRatio: _controller.value.aspectRatio,
-            child: VideoPlayer(_controller),
-          ),
-          // Zobrazíme Play ikonu, ak sa na video nepozerá (nie je hover)
-          AnimatedOpacity(
-            opacity: _isHovering ? 0.0 : 1.0,
-            duration: const Duration(milliseconds: 300),
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.4),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 40),
+    // GestureDetector zachytí ťuknutie na mobile
+    return GestureDetector(
+      onTap: _togglePlay,
+      child: MouseRegion(
+        // MouseRegion zachytí myš na desktope
+        onEnter: (_) {
+          setState(() => _isPlaying = true);
+          _controller.play();
+        },
+        onExit: (_) {
+          setState(() => _isPlaying = false);
+          _controller.pause();
+        },
+        child: Stack(
+          alignment: Alignment.center,
+          children:[
+            AspectRatio(
+              aspectRatio: _controller.value.aspectRatio,
+              child: VideoPlayer(_controller),
             ),
-          ),
-        ],
+            // Play ikona (zmizne, ak sa video prehráva)
+            AnimatedOpacity(
+              opacity: _isPlaying ? 0.0 : 1.0,
+              duration: const Duration(milliseconds: 300),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.5), // Trochu tmavšie pre lepšiu viditeľnosť
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 40),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

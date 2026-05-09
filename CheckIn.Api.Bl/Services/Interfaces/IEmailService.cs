@@ -5,7 +5,7 @@ public interface IEmailService
     Task SendEmailAsync(string toEmail, string subject, string htmlMessage);
 
     Task SendBulkEmailsAsync(List<string> emails, string taskHash, string authorName, string taskTitle,
-        string? taskDescription);
+        string? taskDescription, bool isReminder = false);
 
     List<string> ParseEmails(string rawText);
 

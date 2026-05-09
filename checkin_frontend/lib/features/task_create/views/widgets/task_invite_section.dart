@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/invitation_providers.dart';
 import '../../../../core/providers/task_create/task_create_provider.dart';
 import '../../../../core/utils/l10n_extensions.dart';
+import '../../../../core/utils/responsive.dart';
+
 
 enum InviteTiming { immediately, later }
 
@@ -25,7 +27,7 @@ class TaskInviteSection extends ConsumerStatefulWidget {
 class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
   final _emailInputController = TextEditingController();
   bool _isChecking = false;
-  List<String> _detectedEmails = [];
+  List<String> _detectedEmails =[];
   InviteTiming _selectedTiming = InviteTiming.later;
 
   Future<void> _handleParse() async {
@@ -43,7 +45,9 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
       });
       widget.onEmailsChanged(_detectedEmails);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Failed to parse emails.")));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Failed to parse emails.")));
+      }
     } finally {
       if (mounted) setState(() => _isChecking = false);
     }
@@ -62,9 +66,11 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final isMobile = context.isMobile;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      // Na mobile menší padding
+      padding: EdgeInsets.all(isMobile ? 12 : 16),
       decoration: BoxDecoration(
         color: cs.surface,
         borderRadius: BorderRadius.circular(12),
@@ -72,12 +78,17 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+        children:[
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(context.l10n.task_create_invite_title,
-                  style: TextStyle(fontWeight: FontWeight.bold, color: cs.onSurface)),
+            children:[
+              Expanded(
+                child: Text(
+                  context.l10n.task_create_invite_title,
+                  style: TextStyle(fontWeight: FontWeight.bold, color: cs.onSurface),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
               IconButton(
                 onPressed: widget.onCollapse,
                 icon: const Icon(Icons.close, size: 20),
@@ -88,44 +99,47 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
           ),
           const SizedBox(height: 8),
 
-        IntrinsicHeight( // Zabezpečí, že deti v Row budú môcť mať rovnakú výšku
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _emailInputController,
-                  maxLines: 1, // Dôležité pre funkciu Enter-u
-                  onSubmitted: (_) => _isChecking ? null : _handleParse(),
-                  decoration: InputDecoration(
-                    hintText: "Emails in any format test@gmail.com; test2@vutbr.com - test3...",
-                    hintStyle: TextStyle(fontSize: 12, color: cs.onSurfaceVariant.withAlpha(150)),
-                    fillColor: cs.surfaceContainerLow,
-                    filled: true,
-                    prefixIcon: const Icon(Icons.mail_outline, size: 20),
-                    isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children:[
+                Expanded(
+                  child: TextField(
+                    controller: _emailInputController,
+                    maxLines: 1,
+                    onSubmitted: (_) => _isChecking ? null : _handleParse(),
+                    decoration: InputDecoration(
+                      // Na mobile skrátime hint, aby nespôsoboval pretekanie
+                      hintText: isMobile
+                          ? "test@gmail.com; test2..."
+                          : "Emails in any format test@gmail.com; test2@vutbr.com - test3...",
+                      hintStyle: TextStyle(fontSize: 12, color: cs.onSurfaceVariant.withAlpha(150)),
+                      fillColor: cs.surfaceContainerLow,
+                      filled: true,
+                      prefixIcon: const Icon(Icons.mail_outline, size: 20),
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              ElevatedButton(
-                onPressed: _isChecking ? null : _handleParse,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: cs.primary,
-                  foregroundColor: cs.onPrimary,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  onPressed: _isChecking ? null : _handleParse,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: cs.primary,
+                    foregroundColor: cs.onPrimary,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 20),
+                  ),
+                  child: _isChecking
+                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Text("ADD", style: TextStyle(fontWeight: FontWeight.normal)),
                 ),
-                child: _isChecking
-                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Text("ADD", style: TextStyle(fontWeight: FontWeight.normal)),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
 
           if (_detectedEmails.isNotEmpty) ...[
             const SizedBox(height: 8),
@@ -157,27 +171,57 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: cs.onSurfaceVariant),
           ),
           const SizedBox(height: 10),
-          Row(
-            children: [
-              _buildTimingOption(
-                timing: InviteTiming.immediately,
-                label: "Immediately when created",
-                icon: Icons.bolt,
-                cs: cs,
-              ),
-              const SizedBox(width: 12),
-              _buildTimingOption(
-                timing: InviteTiming.later,
-                label: "Later manually",
-                icon: Icons.timer_outlined,
-                cs: cs,
-              ),
-            ],
-          ),
+
+          // TOTO JE HLAVNÁ MÁGIA PRE MOBIL
+          if (isMobile)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children:[
+                _buildTimingOption(
+                  timing: InviteTiming.immediately,
+                  label: "Immediately when created",
+                  icon: Icons.bolt,
+                  cs: cs,
+                ),
+                const SizedBox(height: 8),
+                _buildTimingOption(
+                  timing: InviteTiming.later,
+                  label: "Later manually",
+                  icon: Icons.timer_outlined,
+                  cs: cs,
+                ),
+              ],
+            )
+          else
+            Row(
+              children:[
+                Expanded(
+                  child: _buildTimingOption(
+                    timing: InviteTiming.immediately,
+                    label: "Immediately when created",
+                    icon: Icons.bolt,
+                    cs: cs,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildTimingOption(
+                    timing: InviteTiming.later,
+                    label: "Later manually",
+                    icon: Icons.timer_outlined,
+                    cs: cs,
+                  ),
+                ),
+              ],
+            ),
         ],
       ),
     );
   }
+
+  // Odstránil som "Expanded" wrapper priamo z tejto metódy,
+  // pretože v Columne (na mobile) by to spadlo.
+  // Expanded je teraz pridané až hore v konštrukcii Row (pre Desktop).
   Widget _buildTimingOption({
     required InviteTiming timing,
     required String label,
@@ -186,45 +230,41 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
   }) {
     final isSelected = _selectedTiming == timing;
 
-    return Expanded(
-      child: InkWell(
-        onTap: () {
-          setState(() => _selectedTiming = timing);
-          // PREPOJENIE S PROVIDEROM:
-          ref.read(taskCreateProvider.notifier).setSendImmediately(timing == InviteTiming.immediately);
-        },
-        borderRadius: BorderRadius.circular(10),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            //isSelected ? cs.primary.withAlpha(40) : Colors.transparent,
-            color: isSelected ? cs.primary.withAlpha(35) : cs.surfaceContainerHigh.withAlpha(100),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: isSelected ? cs.primary : cs.outlineVariant,
-              width: isSelected ? 1.5 : 1.0,
-            ),
+    return InkWell(
+      onTap: () {
+        setState(() => _selectedTiming = timing);
+        ref.read(taskCreateProvider.notifier).setSendImmediately(timing == InviteTiming.immediately);
+      },
+      borderRadius: BorderRadius.circular(10),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? cs.primary.withAlpha(35) : cs.surfaceContainerHigh.withAlpha(100),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected ? cs.primary : cs.outlineVariant,
+            width: isSelected ? 1.5 : 1.0,
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 18,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children:[
+            Icon(
+              icon,
+              size: 18,
+              color: isSelected ? cs.primary : cs.onSurfaceVariant,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 color: isSelected ? cs.primary : cs.onSurfaceVariant,
               ),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected ? cs.primary : cs.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

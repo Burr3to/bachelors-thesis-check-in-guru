@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/models/enums/task_enums.dart';
 import '../../../../core/providers/task_create/task_create_provider.dart';
+import '../../../../core/utils/responsive.dart';
 
 class TaskSettingsSection extends ConsumerStatefulWidget {
   final DateTime? selectedDeadline;
@@ -30,11 +31,9 @@ class TaskSettingsSection extends ConsumerStatefulWidget {
   });
 
   @override
-  // OPRAVA 1: Zmenené na ConsumerState
   ConsumerState<TaskSettingsSection> createState() => _TaskSettingsSectionState();
 }
 
-// OPRAVA 2: Dedenie z ConsumerState namiesto State
 class _TaskSettingsSectionState extends ConsumerState<TaskSettingsSection> {
   bool _isDomainRestricted = false;
   final TextEditingController _domainController = TextEditingController();
@@ -44,10 +43,8 @@ class _TaskSettingsSectionState extends ConsumerState<TaskSettingsSection> {
   bool _isValidating = false;
 
   void _onDomainChanged(String value) {
-    // 1. Zrušíme predchádzajúci časovač
     if (_debounce?.isActive ?? false) _debounce!.cancel();
 
-    // 2. Ak je pole prázdne, resetujeme stavy
     if (value.isEmpty) {
       setState(() {
         _isDomainValid = null;
@@ -58,7 +55,6 @@ class _TaskSettingsSectionState extends ConsumerState<TaskSettingsSection> {
       return;
     }
 
-    // 3. Spustíme nový časovač (Debounce 500ms)
     _debounce = Timer(const Duration(milliseconds: 500), () async {
       if (!mounted) return;
 
@@ -66,7 +62,6 @@ class _TaskSettingsSectionState extends ConsumerState<TaskSettingsSection> {
 
       try {
         final api = ref.read(invitationApiServiceProvider);
-        // Tu vzniká premenná isValid po zavolaní API
         final isValid = await api.validateDomain(value);
 
         if (mounted) {
@@ -75,7 +70,6 @@ class _TaskSettingsSectionState extends ConsumerState<TaskSettingsSection> {
             _isValidating = false;
           });
 
-          // UPDATE PROVIDERA: Tu už isValid existuje a môžeme ho poslať do globálneho stavu
           widget.onDomainChanged(value);
           ref.read(taskCreateProvider.notifier).setDomainValidation(isValid);
         }
@@ -83,7 +77,7 @@ class _TaskSettingsSectionState extends ConsumerState<TaskSettingsSection> {
         if (mounted) {
           setState(() {
             _isValidating = false;
-            _isDomainValid = false; // Pri chybe siete to môžeme označiť za neoverené
+            _isDomainValid = false;
           });
           ref.read(taskCreateProvider.notifier).setDomainValidation(false);
         }
@@ -101,82 +95,90 @@ class _TaskSettingsSectionState extends ConsumerState<TaskSettingsSection> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final isMobile = context.isMobile;
+
+    // VYŇATIE ĽAVÉHO STĹPCA DO PREMENNEJ PRE LEPŠIU ČITATEĽNOSŤ
+    final leftColumn = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children:[
+        _buildLabel(cs, "Subtask Mode"),
+        const SizedBox(height: 8),
+        _OptionButton(
+          title: "Collaborative",
+          subtitle: "Everyone shares one task",
+          icon: Icons.groups_outlined,
+          isSelected: widget.currentMode == SubtaskMode.shared,
+          onTap: () => widget.onModeChanged(SubtaskMode.shared),
+        ),
+        const SizedBox(height: 8),
+        _OptionButton(
+          title: "Independent",
+          subtitle: "Everyone gets their own copy",
+          icon: Icons.person_outline,
+          isSelected: widget.currentMode == SubtaskMode.individual,
+          onTap: () => widget.onModeChanged(SubtaskMode.individual),
+        ),
+        const SizedBox(height: 24),
+        _buildLabel(cs, "Deadline"),
+        const SizedBox(height: 8),
+        _buildDeadlineTrigger(cs),
+        const SizedBox(height: 8),
+        _buildQuickChips(cs),
+      ],
+    );
+
+    // VYŇATIE PRAVÉHO STĹPCA DO PREMENNEJ
+    final rightColumn = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children:[
+        _buildLabel(cs, "Visibility & Access"),
+        const SizedBox(height: 8),
+        _OptionButton(
+          title: "Anyone with a link",
+          subtitle: "Public access, no login required",
+          icon: Icons.public,
+          isSelected: !widget.requiresAuth,
+          onTap: () => widget.onAuthChanged(false),
+        ),
+        const SizedBox(height: 8),
+        _OptionButton(
+          title: "Only Google signed-in",
+          subtitle: "Private, identity verification required",
+          icon: Icons.account_circle_outlined,
+          isSelected: widget.requiresAuth,
+          onTap: () => widget.onAuthChanged(true),
+        ),
+        if (widget.requiresAuth) ...[
+          const SizedBox(height: 12),
+          _buildDomainSubPanel(cs),
+        ],
+      ],
+    );
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      // Na mobile mierne menší padding
+      padding: EdgeInsets.all(isMobile ? 16 : 20),
       decoration: BoxDecoration(
         color: cs.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: cs.outlineVariant.withAlpha(100)),
       ),
-      child: Row(
+      // --- TOTO JE HLAVNÁ ZMENA ROZLOŽENIA ---
+      child: isMobile
+          ? Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // L'AVÝ STĹPEC
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildLabel(cs, "Subtask Mode"), // context.l10n...
-                const SizedBox(height: 8),
-                _OptionButton(
-                  title: "Collaborative",
-                  subtitle: "Everyone shares shares",
-                  icon: Icons.groups_outlined,
-                  isSelected: widget.currentMode == SubtaskMode.shared,
-                  onTap: () => widget.onModeChanged(SubtaskMode.shared),
-                ),
-                const SizedBox(height: 8),
-                _OptionButton(
-                  title: "Independent",
-                  subtitle: "Everyone gets their own copy",
-                  icon: Icons.person_outline,
-                  isSelected: widget.currentMode == SubtaskMode.individual,
-                  onTap: () => widget.onModeChanged(SubtaskMode.individual),
-                ),
-                const SizedBox(height: 24),
-                _buildLabel(cs, "Deadline"),
-                const SizedBox(height: 8),
-                _buildDeadlineTrigger(cs),
-                const SizedBox(height: 8),
-                _buildQuickChips(cs),
-              ],
-            ),
-          ),
-
+        children:[
+          leftColumn,
+          const SizedBox(height: 24), // Medzera medzi sekciami na mobile
+          rightColumn,
+        ],
+      )
+          : Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children:[
+          Expanded(child: leftColumn),
           const SizedBox(width: 24),
-
-          // PRAVÝ STĹPEC
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildLabel(cs, "Visibility & Access"),
-                const SizedBox(height: 8),
-                _OptionButton(
-                  title: "Anyone with a link",
-                  subtitle: "Public access, no login required",
-                  icon: Icons.public,
-                  isSelected: !widget.requiresAuth,
-                  onTap: () => widget.onAuthChanged(false),
-                ),
-                const SizedBox(height: 8),
-                _OptionButton(
-                  title: "Only Google signed-in",
-                  subtitle: "Private, identity verification required",
-                  icon: Icons.account_circle_outlined,
-                  isSelected: widget.requiresAuth,
-                  onTap: () => widget.onAuthChanged(true),
-                ),
-
-                // Podmienený panel pre Private/Google access
-                if (widget.requiresAuth) ...[
-                  const SizedBox(height: 12),
-                  _buildDomainSubPanel(cs),
-                ],
-              ],
-            ),
-          ),
+          Expanded(child: rightColumn),
         ],
       ),
     );
@@ -205,7 +207,7 @@ class _TaskSettingsSectionState extends ConsumerState<TaskSettingsSection> {
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
-          children: [
+          children:[
             Icon(Icons.calendar_today_outlined, size: 18, color: cs.primary),
             const SizedBox(width: 12),
             Expanded(
@@ -225,7 +227,7 @@ class _TaskSettingsSectionState extends ConsumerState<TaskSettingsSection> {
 
   Widget _buildQuickChips(ColorScheme cs) {
     return Row(
-      children: [
+      children:[
         _buildChip("1 Day", 1, cs),
         const SizedBox(width: 4),
         _buildChip("1 Week", 7, cs),
@@ -262,14 +264,17 @@ class _TaskSettingsSectionState extends ConsumerState<TaskSettingsSection> {
       decoration: BoxDecoration(
         color: cs.primary.withAlpha(15),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _isDomainValid == false ? cs.error : cs.primary.withAlpha(50),),
+        border: Border.all(color: _isDomainValid == false ? cs.error : cs.primary.withAlpha(50)),
       ),
       child: Column(
-        children: [
+        children:[
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text("Domain restriction", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+            children:[
+              // ZMENA: Obalené do Expanded, aby dlhý text nespôsobil pretekanie vedľa prepínača
+              const Expanded(
+                child: Text("Domain restriction", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+              ),
               Switch(
                 value: _isDomainRestricted,
                 onChanged: (val) => setState(() => _isDomainRestricted = val),
@@ -277,10 +282,9 @@ class _TaskSettingsSectionState extends ConsumerState<TaskSettingsSection> {
             ],
           ),
           if (_isDomainRestricted) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
             TextField(
               controller: _domainController,
-              // --- PRIDANÝ TENTO RIADOK ---
               onChanged: _onDomainChanged,
               style: TextStyle(
                 color: _isDomainValid == false ? cs.error : cs.onSurface,
@@ -295,7 +299,6 @@ class _TaskSettingsSectionState extends ConsumerState<TaskSettingsSection> {
                       color: _isDomainValid == false ? cs.error : cs.primary
                   )),
                 ),
-                // --- PRIDANÉ IKONY STAVU ---
                 suffixIcon: _isValidating
                     ? const Padding(
                   padding: EdgeInsets.all(12),
@@ -310,7 +313,6 @@ class _TaskSettingsSectionState extends ConsumerState<TaskSettingsSection> {
                 isDense: true,
                 filled: true,
                 fillColor: cs.surface,
-                // Červený border pri chybe
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                   borderSide: BorderSide(color: _isDomainValid == false ? cs.error : cs.outlineVariant),
@@ -370,7 +372,7 @@ class _OptionButton extends StatelessWidget {
           ),
         ),
         child: Row(
-          children: [
+          children:[
             Icon(
               icon,
               size: 24,
@@ -380,7 +382,7 @@ class _OptionButton extends StatelessWidget {
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+                children:[
                   Text(
                     title,
                     style: TextStyle(

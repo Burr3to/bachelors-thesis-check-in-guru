@@ -40,12 +40,15 @@ public class EmailService(IConfiguration configuration) : IEmailService
     }
 
     public async Task SendBulkEmailsAsync(List<string> emails, string taskHash, string authorName, string taskTitle,
-        string? taskDescription)
+        string? taskDescription, bool isReminder = false)
     {
         var from = configuration["EmailSettings:Email"];
 
-        var templatePath = Path.Combine(AppContext.BaseDirectory, "Templates", "Invitation.html");
+        // Dynamický výber šablóny a predmetu
+        string templateName = isReminder ? "Reminder.html" : "Invitation.html";
+        string subjectPrefix = isReminder ? "Pripomienka: " : "Pozvánka na Check-in od ";
 
+        var templatePath = Path.Combine(AppContext.BaseDirectory, "Templates", templateName);
         if (!File.Exists(templatePath))
             throw new FileNotFoundException($"Šablóna nenájdená: {templatePath}");
 
@@ -61,9 +64,8 @@ public class EmailService(IConfiguration configuration) : IEmailService
             var email = new MimeMessage();
             email.From.Add(new MailboxAddress("CheckIn System", from));
             email.To.Add(MailboxAddress.Parse(toEmail));
-            email.Subject = $"Pozvánka na Check-in od {authorName}";
+            email.Subject = $"{subjectPrefix}{authorName}";
 
-            // Vytvorenie linku na tvoj web
             var baseUrl = configuration["ClientUrl"];
             var inviteLink = $"{baseUrl}{taskHash}";
 
@@ -72,9 +74,7 @@ public class EmailService(IConfiguration configuration) : IEmailService
                 HtmlBody = template
                     .Replace("{AuthorName}", authorName)
                     .Replace("{TaskTitle}", taskTitle)
-                    .Replace("{TaskDescription}", string.IsNullOrWhiteSpace(htmlDescription)
-                        ? ""
-                        : $"<p style='color: #666;'>{htmlDescription}</p>")
+                    .Replace("{TaskDescription}", string.IsNullOrWhiteSpace(htmlDescription) ? "" : htmlDescription)
                     .Replace("{Link}", inviteLink)
             };
             email.Body = bodyBuilder.ToMessageBody();
@@ -82,13 +82,11 @@ public class EmailService(IConfiguration configuration) : IEmailService
             try
             {
                 await smtp.SendAsync(email);
-                // 3. Delay medzi mailami (0.5 sekundy)
                 await Task.Delay(500);
             }
             catch (Exception ex)
             {
-                // Ak jeden zlyhá, zapíš do logu a pokračuj ďalším
-                Console.WriteLine($"Chyba pri posielaní mailu na {toEmail}: {ex.Message}");
+                Console.WriteLine($"Chyba: {ex.Message}");
             }
         }
 

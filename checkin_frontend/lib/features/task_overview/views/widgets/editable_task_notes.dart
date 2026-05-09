@@ -3,6 +3,8 @@ import 'package:flutter_quill/flutter_quill.dart';
 import '../../../../core/utils/l10n_extensions.dart';
 import '../../../../core/utils/quill_utils.dart';
 import '../../../../core/utils/quill_viewer.dart';
+// --- IMPORT PRE RESPONSIVE ---
+import '../../../../core/utils/responsive.dart';
 import 'hover_editable_wrapper.dart';
 
 class EditableTaskNotes extends StatefulWidget {
@@ -36,17 +38,17 @@ class _EditableTaskNotesState extends State<EditableTaskNotes> {
     super.dispose();
   }
 
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
+    final isMobile = context.isMobile;
 
     return HoverEditableWrapper(
       isEditing: _isEditing,
-      initialValue: widget.initialNotes ?? "", // PRIDANÉ
-      hintText: context.l10n.overview_notes_empty, // PRIDANÉ
-      style: theme.textTheme.bodyLarge?.copyWith(height: 1.5),
+      initialValue: widget.initialNotes ?? "",
+      hintText: context.l10n.overview_notes_empty,
+      // Na mobile trošku menší font pre notes
+      style: theme.textTheme.bodyLarge?.copyWith(height: 1.5, fontSize: isMobile ? 14 : 16),
       onEditTrigger: () => setState(() => _isEditing = true),
       onCancel: () {
         setState(() {
@@ -63,9 +65,8 @@ class _EditableTaskNotesState extends State<EditableTaskNotes> {
           : IgnorePointer(
         child: QuillViewer(jsonText: widget.initialNotes),
       ),
-
       editChild: Column(
-        children: [
+        children:[
           Container(
             width: double.infinity,
             decoration: BoxDecoration(
@@ -75,7 +76,7 @@ class _EditableTaskNotesState extends State<EditableTaskNotes> {
             ),
             child: QuillSimpleToolbar(
               controller: _controller,
-              config: const QuillSimpleToolbarConfig(
+              config: QuillSimpleToolbarConfig(
                 toolbarIconAlignment: WrapAlignment.center,
                 showSearchButton: false,
                 showFontFamily: false,
@@ -87,13 +88,18 @@ class _EditableTaskNotesState extends State<EditableTaskNotes> {
                 showHeaderStyle: false,
                 showQuote: false,
                 showBackgroundColorButton: false,
-                multiRowsDisplay: true,
+                // KĽÚČOVÁ OPRAVA PRE MOBIL - Scroll namiesto zalomenia nad klávesnicou
+                multiRowsDisplay: !isMobile,
               ),
             ),
           ),
 
           Container(
-            constraints: const BoxConstraints(minHeight: 200, maxHeight: 400),
+            // Znížená výška editora na mobile
+            constraints: BoxConstraints(
+                minHeight: isMobile ? 120 : 200,
+                maxHeight: isMobile ? 250 : 400
+            ),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.primary.withAlpha(10),
               borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),

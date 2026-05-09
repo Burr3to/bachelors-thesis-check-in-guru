@@ -8,6 +8,9 @@ import '../../../../core/models/enums/task_enums.dart';
 import '../../../../core/providers/invitation_providers.dart';
 import '../../../../core/utils/l10n_extensions.dart';
 
+// --- IMPORT PRE RESPONSIVE ---
+import '../../../../core/utils/responsive.dart'; // Uprav cestu ak treba
+
 class TaskOverviewHeader extends ConsumerStatefulWidget {
   final String taskId;
   final String taskLink;
@@ -51,6 +54,11 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
   bool _isConfirmingDelete = false;
   Timer? _deleteTimer;
 
+  // --- OPTIMISTIC UI STATES ---
+  late bool _requiresAuth;
+  late TaskState _currentState;
+  late DateTime _deadlineDate;
+
   late bool _domainRestrictionActive;
   late TextEditingController _domainController;
   Timer? _debounce;
@@ -60,8 +68,11 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
   @override
   void initState() {
     super.initState();
-    _domainRestrictionActive = widget.allowedDomain != null;
+    _requiresAuth = widget.requiresAuth;
+    _currentState = widget.currentState;
+    _deadlineDate = widget.deadlineDate;
 
+    _domainRestrictionActive = widget.allowedDomain != null;
     String cleanDomain = (widget.allowedDomain ?? '').replaceAll('@', '');
     _domainController = TextEditingController(text: cleanDomain);
 
@@ -71,6 +82,17 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
   @override
   void didUpdateWidget(TaskOverviewHeader oldWidget) {
     super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.requiresAuth != widget.requiresAuth) {
+      _requiresAuth = widget.requiresAuth;
+    }
+    if (oldWidget.currentState != widget.currentState) {
+      _currentState = widget.currentState;
+    }
+    if (oldWidget.deadlineDate != widget.deadlineDate) {
+      _deadlineDate = widget.deadlineDate;
+    }
+
     if (oldWidget.allowedDomain != widget.allowedDomain && !_isValidating) {
       String cleanDomain = (widget.allowedDomain ?? '').replaceAll('@', '');
       _domainController.text = cleanDomain;
@@ -119,124 +141,139 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final isMobile = context.isMobile;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final bool isMobile = constraints.maxWidth < 750;
-
-        if (isMobile) {
-          return Container(
-            decoration: BoxDecoration(
-              color: cs.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: cs.primary, width: 0.8),
+    if (isMobile) {
+      // --- MOBILE LAYOUT ---
+      return Container(
+        decoration: BoxDecoration(
+          color: cs.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: cs.primary, width: 0.8),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children:[
+            // ==========================================
+            // RIADOK 1: ACCESS MODE -> DOMAIN SELECT
+            // ==========================================
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children:[
+                  _buildAccessCell(cs),
+                  if (_requiresAuth) ...[
+                    const SizedBox(height: 16),
+                    _buildDomainCell(cs),
+                  ],
+                ],
+              ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Wrap(
-                    spacing: 24,
-                    runSpacing: 16,
-                    children: [
-                      _buildDeadlineCell(cs),
-                      _buildAccessCell(cs),
-                      if (widget.requiresAuth) _buildDomainCell(cs, isMobile: true),
+
+            Divider(height: 1, color: cs.outlineVariant.withAlpha(80)),
+
+            // ==========================================
+            // RIADOK 2: DEADLINE -> ACTION BUTTONS
+            // ==========================================
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children:[
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children:[
+                      // Ľavá polovica: Deadline
+                      Expanded(
+                        child: _buildDeadlineCell(cs),
+                      ),
+                      const SizedBox(width: 12),
+                      // Pravá polovica: Akčné tlačidlá (zalamovacie)
+                      Expanded(
+                        child: Wrap(
+                          alignment: WrapAlignment.end,
+                          spacing: 4,
+                          runSpacing: 4,
+                          children:[
+                            _buildStateToggleButton(cs),
+                            _buildCopyButton(cs),
+                            _buildDeleteButton(cs),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
+                  const SizedBox(height: 16),
+                  _buildMetadataFooter(cs),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // --- DESKTOP LAYOUT ---
+    return IntrinsicHeight(
+      child: Container(
+        decoration: BoxDecoration(
+          color: cs.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: cs.primary, width: 0.8),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children:[
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children:[
+                    Expanded(child: _buildDeadlineCell(cs)),
+                    _buildDivider(cs),
+                    Expanded(child: _buildAccessCell(cs)),
+
+                    if (_requiresAuth) ...[
+                      _buildDivider(cs),
+                      Expanded(child: _buildDomainCell(cs)),
+                    ],
+                  ],
                 ),
-                Divider(height: 1, color: cs.outlineVariant.withAlpha(80)),
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
+              ),
+            ),
+            _buildDivider(cs),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children:[
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
+                    mainAxisSize: MainAxisSize.min,
+                    children:[
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
+                        mainAxisSize: MainAxisSize.min,
+                        children:[
                           _buildCopyButton(cs),
                           const SizedBox(width: 8),
                           _buildDeleteButton(cs),
                         ],
                       ),
-                      const SizedBox(height: 12), // Medzera pod Delete
-                      _buildStateToggleButton(cs), // Tlačidlo pod ním
-                      const SizedBox(height: 16),
-                      _buildMetadataFooter(cs),
+                      const SizedBox(height: 8),
+                      _buildStateToggleButton(cs),
                     ],
                   ),
-                ),
-              ],
+                  _buildMetadataFooter(cs),
+                ],
+              ),
             ),
-          );
-        }
-
-        // DESKTOP / WEB DESIGN
-        return IntrinsicHeight(
-          child: Container(
-            decoration: BoxDecoration(
-              color: cs.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: cs.primary, width: 0.8),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // --- LEFT PANEL (Zoberie úplne všetok voľný priestor) ---
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildDeadlineCell(cs),
-                        _buildDivider(cs),
-                        _buildAccessCell(cs),
-                        if (widget.requiresAuth) ...[
-                          _buildDivider(cs),
-                          _buildDomainCell(cs, isMobile: false),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-
-                _buildDivider(cs),
-
-                // --- RIGHT PANEL (Zoberie LEN toľko miesta, koľko text/tlačidlá potrebujú) ---
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              _buildCopyButton(cs),
-                              const SizedBox(width: 8),
-                              _buildDeleteButton(cs),
-                            ],
-                          ),
-                          const SizedBox(height: 8), // Medzera pod Delete
-                          _buildStateToggleButton(cs), // Tlačidlo pod ním
-                        ],
-                      ),
-                      _buildMetadataFooter(cs),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+          ],
+        ),
+      ),
     );
   }
 
@@ -247,21 +284,24 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
       onTap: widget.onDeadlineTap,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+        children:[
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                DateFormat('MMMM d').format(widget.deadlineDate),
-                style: TextStyle(fontWeight: FontWeight.w500, fontSize: 18, color: cs.primary),
+            children:[
+              Flexible(
+                child: Text(
+                  DateFormat('MMMM d').format(_deadlineDate),
+                  style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16, color: cs.primary),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
               const SizedBox(width: 6),
-              Icon(Icons.edit, size: 16, color: cs.primary),
+              Icon(Icons.edit, size: 14, color: cs.primary),
             ],
           ),
           const SizedBox(height: 2),
-          DateDisplay(dateTime: widget.deadlineDate, icon: null, showRelative: true),
+          DateDisplay(dateTime: _deadlineDate, icon: null, showRelative: true),
         ],
       ),
     );
@@ -270,42 +310,48 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
   Widget _buildAccessCell(ColorScheme cs) {
     return _BaseCell(
       label: "ACCESS",
-      icon: widget.requiresAuth ? Icons.lock_outline : Icons.lock_open_outlined,
-      onTap: () => widget.onAuthToggle(!widget.requiresAuth),
+      icon: _requiresAuth ? Icons.lock_outline : Icons.lock_open_outlined,
+      onTap: () {
+        setState(() => _requiresAuth = !_requiresAuth);
+        widget.onAuthToggle(_requiresAuth);
+      },
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            widget.requiresAuth ? "Google sign-in only" : "Anyone with link",
-            style: TextStyle(fontWeight: FontWeight.w500, fontSize: 18, color: cs.primary),
+        children:[
+          Flexible(
+            child: Text(
+              _requiresAuth ? "Google sign-in only" : "Anyone with link",
+              style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16, color: cs.primary),
+            ),
           ),
           const SizedBox(width: 6),
-          Icon(Icons.swap_horiz, size: 18, color: cs.primary.withAlpha(150)),
+          Icon(Icons.swap_horiz, size: 16, color: cs.primary.withAlpha(150)),
         ],
       ),
     );
   }
 
-  Widget _buildDomainCell(ColorScheme cs, {required bool isMobile}) {
-    Widget content = _BaseCell(
+  Widget _buildDomainCell(ColorScheme cs) {
+    return _BaseCell(
       label: "DOMAIN",
       icon: Icons.public,
-      onTap: null, // null vypne hover efekt pre túto konkrétnu bunku
+      onTap: null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+        children:[
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Odstránený Flexible, text sa už nikdy nezalomí a vypýta si svoju šírku
-              Text(
-                "Restriction",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w500,
-                  color: cs.onSurface.withAlpha(200),
+            children:[
+              // Flexible zabezpečí, že ak nie je miesto, "Restriction" sa skráti s 3 bodkami
+              Flexible(
+                child: Text(
+                  "Restriction",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: cs.onSurface.withAlpha(200),
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               const SizedBox(width: 8),
@@ -356,16 +402,16 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
                   ),
                   suffixIcon: _isValidating
                       ? const SizedBox(
-                          width: 12,
-                          height: 12,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
+                    width: 12,
+                    height: 12,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
                       : _isDomainValid != null
                       ? Icon(
-                          _isDomainValid! ? Icons.check_circle_outline : Icons.error_outline,
-                          color: _isDomainValid! ? Colors.green : cs.error,
-                          size: 18,
-                        )
+                    _isDomainValid! ? Icons.check_circle_outline : Icons.error_outline,
+                    color: _isDomainValid! ? Colors.green : cs.error,
+                    size: 18,
+                  )
                       : null,
                   suffixIconConstraints: const BoxConstraints(minWidth: 24, minHeight: 24),
                 ),
@@ -374,8 +420,6 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
         ],
       ),
     );
-
-    return isMobile ? SizedBox(width: 180, child: content) : Expanded(child: content);
   }
 
   Widget _buildCopyButton(ColorScheme cs) {
@@ -391,11 +435,12 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
   }
 
   Widget _buildStateToggleButton(ColorScheme cs) {
-    final isCompleted = widget.currentState == TaskState.completed;
+    final isCompleted = _currentState == TaskState.completed;
 
     return TextButton.icon(
       onPressed: () {
         final newState = isCompleted ? TaskState.inProgress : TaskState.completed;
+        setState(() => _currentState = newState);
         widget.onStateChanged(newState);
       },
       icon: Icon(
@@ -404,7 +449,6 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
       ),
       label: Text(isCompleted ? "Reopen Task" : "Complete Task"),
       style: TextButton.styleFrom(
-        // Ak je Completed, dáme modrú (na znovuotvorenie), ak chceme skompletizovať, dáme zelenú
         foregroundColor: isCompleted ? cs.primary : Colors.green,
         padding: const EdgeInsets.symmetric(horizontal: 12),
       ),
@@ -414,7 +458,7 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
   Widget _buildDeleteButton(ColorScheme cs) {
     return Row(
       mainAxisSize: MainAxisSize.min,
-      children: [
+      children:[
         if (_isConfirmingDelete)
           IconButton(
             icon: const Icon(Icons.close, size: 18),
@@ -423,7 +467,7 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
         OutlinedButton.icon(
           onPressed: _handleDeleteClick,
           icon: Icon(_isConfirmingDelete ? Icons.report_problem : Icons.delete_outline, size: 16),
-          label: Text(_isConfirmingDelete ? "Confirm Delete" : "Delete"),
+          label: Text(_isConfirmingDelete ? "Confirm" : "Delete"),
           style: OutlinedButton.styleFrom(
             foregroundColor: cs.error,
             side: BorderSide(color: cs.error.withAlpha(100)),
@@ -487,7 +531,7 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
       VerticalDivider(width: 32, color: cs.outlineVariant.withAlpha(80), thickness: 1);
 }
 
-// Interaktívna bunka s hover efektom!
+// Interaktívna bunka
 class _BaseCell extends StatefulWidget {
   final String label;
   final IconData icon;
@@ -520,7 +564,7 @@ class _BaseCellState extends State<_BaseCell> {
         highlightColor: Colors.transparent,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
           decoration: BoxDecoration(
             color: _isHovering ? cs.primary.withAlpha(15) : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
@@ -531,10 +575,10 @@ class _BaseCellState extends State<_BaseCell> {
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+            children:[
               Row(
                 mainAxisSize: MainAxisSize.min,
-                children: [
+                children:[
                   Icon(widget.icon, size: 14, color: cs.onSurfaceVariant.withAlpha(120)),
                   const SizedBox(width: 6),
                   Text(

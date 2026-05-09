@@ -1,5 +1,6 @@
-import 'package:checkin_frontend/core/providers/respond_providers.dart';
 import 'package:flutter/material.dart';
+// --- IMPORT PRE RESPONSIVE ---
+import '../../../../core/utils/responsive.dart';
 import 'hover_editable_wrapper.dart';
 
 class EditableTaskTitle extends StatefulWidget {
@@ -38,16 +39,24 @@ class _EditableTaskTitleState extends State<EditableTaskTitle> {
 
   @override
   Widget build(BuildContext context) {
-    // TENTO RIADOK CHÝBAL:
     final theme = Theme.of(context);
+    final isMobile = context.isMobile;
+
+    // Na mobile použijeme headlineSmall (menšie) namiesto headlineMedium
+    final titleStyle = isMobile
+        ? theme.textTheme.headlineSmall?.copyWith(
+      fontWeight: FontWeight.bold,
+      color: theme.colorScheme.onSurface,
+    )
+        : theme.textTheme.headlineMedium?.copyWith(
+      fontWeight: FontWeight.bold,
+      color: theme.colorScheme.onSurface,
+    );
 
     return HoverEditableWrapper(
       isEditing: _isEditing,
       initialValue: widget.initialTitle,
-      style: theme.textTheme.headlineMedium?.copyWith(
-        fontWeight: FontWeight.bold,
-        color: theme.colorScheme.onSurface,
-      ),
+      style: titleStyle,
       onEditTrigger: () => setState(() => _isEditing = true),
       onCancel: () => setState(() {
         _isEditing = false;
@@ -59,24 +68,18 @@ class _EditableTaskTitleState extends State<EditableTaskTitle> {
           setState(() => _isEditing = false);
         }
       },
-      // Kedže HoverEditableWrapper teraz generuje Text interne,
-      // viewChild môžeme nechať null alebo ho zladiť
       viewChild: Text(
         widget.initialTitle,
-        style: theme.textTheme.headlineMedium?.copyWith(
-          fontWeight: FontWeight.bold,
-          color: theme.colorScheme.onSurface,
-        ),
+        style: titleStyle,
       ),
       editChild: TextField(
         controller: _controller,
         autofocus: true,
         selectAllOnFocus: false,
-        style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+        style: titleStyle,
         decoration: InputDecoration(
           border: const OutlineInputBorder(),
           contentPadding: const EdgeInsets.all(12),
-          // Skryjeme counter, aby to nebolo príliš vysoké
           counterText: "",
         ),
         maxLength: 255,

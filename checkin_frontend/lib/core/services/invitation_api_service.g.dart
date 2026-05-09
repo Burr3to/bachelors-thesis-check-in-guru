@@ -142,7 +142,7 @@ class _InvitationApiService implements InvitationApiService {
       Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            'api/Invitation/remind-pending/${taskId}',
+            'api/Invitation/remind-unfinished/${taskId}',
             queryParameters: queryParameters,
             data: _data,
           )

@@ -12,6 +12,10 @@ import '../../../../core/shared_widgets/app_snack_bar.dart';
 import '../../../../core/providers/task_providers.dart';
 import '../../../auth/views/providers/auth_provider.dart';
 import '../../../../core/models/task/task_detail_model.dart';
+
+// --- IMPORT PRE RESPONSIVE ---
+import '../../../../core/utils/responsive.dart';
+
 import '../widgets/editable_task_notes.dart';
 import '../widgets/editable_task_title.dart';
 import '../widgets/subtask_list_section.dart';
@@ -33,7 +37,6 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
   @override
   void initState() {
     super.initState();
-
     _signalRService = ref.read(signalRProvider);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _setupSignalR();
@@ -42,16 +45,12 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
 
   void _handleInvitationsChanged(List<Object?>? arguments) {
     if (!mounted) return;
-    print("SignalR: Prijatý signál na obnovu pozvánok pre ${widget.taskId}");
     ref.invalidate(taskDetailProvider(widget.taskId));
     ref.invalidate(taskInvitationsProvider(widget.taskId));
   }
 
   void _handleInstancesChanged(List<Object?>? arguments) {
     if (!mounted) return;
-
-    print("SignalR: Prijatý signál na obnovu inštancií pre ${widget.taskId}");
-
     ref.invalidate(taskInstancesProvider(widget.taskId));
     ref.invalidate(allTaskStatsProvider);
   }
@@ -62,7 +61,6 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
 
     final invalidEmails = rawList.map((e) => e.toString()).toList();
     if (invalidEmails.isNotEmpty) {
-      // KĽÚČOVÁ OPRAVA: Spustíme to v ďalšom mikro-tasku, aby layout stihol "vydýchnuť"
       Future.microtask(() {
         if (mounted) {
           InvalidEmailsDialog.show(context, invalidEmails);
@@ -73,17 +71,13 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
 
   void _setupSignalR() async {
     final user = ref.read(authProvider).user;
-
-    // 1. Task Room (pre zmeny v tasku)
     final roomName = widget.taskId.toLowerCase().trim();
     await _signalRService.joinTaskRoom(roomName);
 
-    // 2. User Room (pre chybové dialógy)
     if (user != null) {
       await _signalRService.joinUserRoom(user.userId);
     }
 
-    // 3. Listenery
     _signalRService.connection?.on("TaskInstancesChanged", _handleInstancesChanged);
     _signalRService.connection?.on("TaskInvitationsChanged", _handleInvitationsChanged);
     _signalRService.connection?.on("InvalidEmailsFound", _handleInvalidEmails);
@@ -97,7 +91,6 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
 
     if (message == "EMAILS_SENT") {
       AppSnackBar.showSuccess(context, context.l10n.overview_msg_emails_sent);
-      // Zároveň refreshneme dáta, aby sa zmenili farby čipov na modrú
       ref.invalidate(taskDetailProvider(widget.taskId));
     } else if (message == "EMAILS_FAILED") {
       AppSnackBar.showError(context, context.l10n.overview_msg_emails_failed);
@@ -106,7 +99,6 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
 
   @override
   void dispose() {
-    // 3. V dispose použi lokálnu premennú _signalRService namiesto ref.read
     _signalRService.connection?.off("TaskInstancesChanged", method: _handleInstancesChanged);
     _signalRService.leaveTaskRoom(widget.taskId);
     _signalRService.connection?.off("TaskInvitationsChanged", method: _handleInvitationsChanged);
@@ -116,24 +108,23 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
   }
 
   void _updateTask(
-    BuildContext context,
-    TaskDetailModel task, {
-    String? title,
-    String? notes,
-    DateTime? deadline,
-    bool? requiresAuth,
-    String? allowedDomain,
+      BuildContext context,
+      TaskDetailModel task, {
+        String? title,
+        String? notes,
+        DateTime? deadline,
+        bool? requiresAuth,
+        String? allowedDomain,
         TaskState? state,
-    bool resetDomain = false,
-  }) async {
+        bool resetDomain = false,
+      }) async {
     final model = TaskUpdateModel(
-      id: task.id,
-      title: title ?? task.title,
-      notes: notes ?? task.notes,
-      deadLine: deadline ?? task.deadLine,
-      requiresAuthenticationToComplete: requiresAuth ?? task.requiresAuthenticationToComplete,
-      // Ak resetujeme (vypnutý switch), pošleme null, inak novú hodnotu alebo tú starú
-      allowedDomain: resetDomain ? null : (allowedDomain ?? task.allowedDomain),
+        id: task.id,
+        title: title ?? task.title,
+        notes: notes ?? task.notes,
+        deadLine: deadline ?? task.deadLine,
+        requiresAuthenticationToComplete: requiresAuth ?? task.requiresAuthenticationToComplete,
+        allowedDomain: resetDomain ? null : (allowedDomain ?? task.allowedDomain),
         state: state
     );
 
@@ -150,7 +141,6 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
     }
   }
 
-  // Pomocná metóda pre zmazanie (volaná z Headeru)
   Future<void> _deleteTask() async {
     try {
       await ref.read(taskApiServiceProvider).deleteTask(widget.taskId);
@@ -167,17 +157,14 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
   Future<void> _selectDeadline(BuildContext context, TaskDetailModel task) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: task.deadLine.toLocal(), // Zobrazujeme v lokálnom čase
+      initialDate: task.deadLine.toLocal(),
       firstDate: DateTime.now().subtract(const Duration(days: 365)),
       lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
     );
 
     if (picked != null) {
-      // KĽÚČOVÁ ZMENA:
       final localDeadline = DateTime(picked.year, picked.month, picked.day, 23, 59, 59);
-      // Ak je v Brne 23:59, do DB sa uloží 21:59 UTC.
       final utcDeadline = localDeadline.toUtc();
-
       _updateTask(context, task, deadline: utcDeadline);
     }
   }
@@ -187,6 +174,7 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
     final asyncTask = ref.watch(taskDetailProvider(widget.taskId));
     final asyncTemplates = ref.watch(taskTemplatesProvider(widget.taskId));
     final asyncInstances = ref.watch(taskInstancesProvider(widget.taskId));
+    final isMobile = context.isMobile; // Zistenie mobilu
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
@@ -201,21 +189,29 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
               : Theme.of(context).colorScheme.primary;
 
           return SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 16),
+            // NA MOBILE ZRUŠÍME HORIZONTÁLNY PADDING, ABY SA KARTA DOTÝKALA OKRAJOV
+            padding: EdgeInsets.symmetric(
+                vertical: isMobile ? 16 : 30,
+                horizontal: isMobile ? 0 : 16
+            ),
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 1000),
                 child: Container(
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.surfaceContainer,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: statusBorderColor, width: 1.2),
+                    // NA MOBILE ZRUŠÍME ZAOBLENIE ROHOV
+                    borderRadius: BorderRadius.circular(isMobile ? 0 : 12),
+                    // NA MOBILE HORNÝ/DOLNÝ BORDER, INAK VŠADE
+                    border: isMobile
+                        ? Border.symmetric(horizontal: BorderSide(color: statusBorderColor, width: 1.2))
+                        : Border.all(color: statusBorderColor, width: 1.2),
                   ),
-                  padding: const EdgeInsets.all(24),
+                  // NA MOBILE MENŠÍ VNÚTORNÝ PADDING
+                  padding: EdgeInsets.all(isMobile ? 16 : 24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      //Basic info
+                    children:[
                       EditableTaskTitle(
                         initialTitle: task.title,
                         onSave: (newTitle) => _updateTask(context, task, title: newTitle),
@@ -237,8 +233,7 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
                         currentState: task.state,
                         onStateChanged: (newState) => _updateTask(context, task, state: newState),
                         taskLink: taskLink,
-                        onAuthToggle: (bool value) =>
-                            _updateTask(context, task, requiresAuth: value),
+                        onAuthToggle: (bool value) => _updateTask(context, task, requiresAuth: value),
                         onDomainChanged: (String? domain) {
                           _updateTask(
                             context,
@@ -263,19 +258,15 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
                         loading: () => const LinearProgressIndicator(),
                         error: (e, s) => Text(context.l10n.overview_err_load_structure),
                         data: (templates) {
-                          // Zistíme, či ide o "Hlavný Task" podľa šablón
                           final bool isMainTaskOnly =
                               templates.isNotEmpty && templates.every((t) => t.isGeneratedFromTask);
 
-                          // V TaskOverviewPage.dart
                           return asyncInstances.when(
                               loading: () => const LinearProgressIndicator(),
                               error: (e, s) => Text(context.l10n.overview_err_load_progress),
                               data: (instances) {
-                                // VŠETKY SCENÁRE (Main Task aj Podúlohy)
                                 return Column(
-                                  children: [
-                                    // Zoznam šablón ukážeme LEN vtedy, ak je to skutočný checklist (nie Main Task Only)
+                                  children:[
                                     if (!isMainTaskOnly) ...[
                                       const SizedBox(height: 24),
                                       SubtaskListSection(
@@ -284,15 +275,12 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
                                         taskId: widget.taskId,
                                       ),
                                     ],
-
                                     const SizedBox(height: 24),
-
-                                    // Progress List ukážeme vždy
                                     SubtaskProgressList(
                                       subtasks: instances,
                                       subtaskMode: task.subtaskMode,
                                       templates: templates,
-                                      isMainTaskOnly: isMainTaskOnly, // Posielame nový parameter
+                                      isMainTaskOnly: isMainTaskOnly,
                                     )
                                   ],
                                 );
@@ -311,12 +299,11 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
     );
   }
 
-  // Pomocný widget pre chybu
   Widget _buildErrorState(WidgetRef ref, Object error) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: [
+        children:[
           Text(context.l10n.overview_err_load_task),
           Text(error.toString(), style: const TextStyle(color: Colors.red)),
           const SizedBox(height: 10),

@@ -44,35 +44,10 @@ public class InvitationController(IInvitationFacade facade)
         return Ok(isValid);
     }
 
-    [HttpPost("remind-pending/{taskId}")]
+    [HttpPost("remind-unfinished/{taskId}")]
     public async Task<ActionResult<Result<bool>>> SendReminders(Guid taskId)
     {
-        // Toto je pre scenár: Poslať všetkým, čo ešte neakceptovali (IsAccepted = false)
-        // Implementácia vo Facade by bola podobná, len filter by bol na IsAccepted
         var result = await _invitationFacade.SendRemindersForTaskAsync(taskId);
         return Ok(result);
-    }
-
-    [HttpPost("test-send")]
-    public async Task<IActionResult> TestSend([FromBody] string targetEmail)
-    {
-        try
-        {
-            // Voláme priamo emailovú službu
-            _invitationFacade.StartEmailSendingBackground(
-                new List<string> { targetEmail },
-                "testovaci-hash-123",
-                "Jakub (Test)",
-                "Cervene paradajky",
-                "Toto je testovací email s popisom úlohy. Neodpovedaj naň.",
-                Guid.Empty,
-                Guid.Empty
-            );
-            return Ok("Pokus o odoslanie bol spustený. Skontroluj konzolu a svoj mail.");
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(ex.Message);
-        }
     }
 }

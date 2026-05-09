@@ -13,6 +13,10 @@ import '../../../../core/shared_widgets/primary_button.dart';
 import '../../../../core/shared_widgets/app_snack_bar.dart';
 import '../../../../core/utils/l10n_extensions.dart';
 import '../../../../core/utils/quill_utils.dart';
+
+// SPRÁVNY IMPORT PRE RESPONSIVE
+import '../../../../core/utils/responsive.dart';
+
 import '../widgets/subtask_input_section.dart';
 import '../widgets/task_basic_info.dart';
 import '../widgets/task_invite_section.dart';
@@ -61,7 +65,7 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
       final userId = ref.read(authProvider).user?.userId;
 
       if (userId != null) {
-        signalR.joinUserRoom(userId); // Aby backend vedel, komu poslať "InvalidEmailsFound"
+        signalR.joinUserRoom(userId);
         signalR.connection?.on("InvalidEmailsFound", _handleInvalidEmails);
       }
     });
@@ -70,26 +74,16 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
   void _setupSignalR() async {
     final user = ref.read(authProvider).user;
     if (user == null) return;
-
-    print("DEBUG: SignalR - Pripájam sa do UserRoom pre: ${user.userId}");
-
-    // 1. Vstúpime do User Room
     await _signalRService.joinUserRoom(user.userId);
-
-    // 2. Začneme počúvať na event "InvalidEmailsFound"
     _signalRService.connection?.on("InvalidEmailsFound", _handleInvalidEmails);
   }
 
   void _handleInvalidEmails(List<Object?>? arguments) {
-    // V SignalR prichádza zoznam emailov ako prvý argument (arguments[0])
     final rawList = arguments?[0] as List?;
     if (rawList == null) return;
 
     final invalidEmails = rawList.map((e) => e.toString()).toList();
-    print("DEBUG: SignalR - PRIJATÉ neplatné maily: $invalidEmails");
-
     if (invalidEmails.isNotEmpty) {
-      // KĽÚČOVÁ OPRAVA: Spustíme to v ďalšom mikro-tasku, aby layout stihol "vydýchnuť"
       Future.microtask(() {
         if (mounted) {
           InvalidEmailsDialog.show(context, invalidEmails);
@@ -110,7 +104,6 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
     super.dispose();
   }
 
-  // --- SUBMIT LOGIKA ---
   Future<void> _handleCreateTask() async {
     final taskData = ref.read(taskCreateProvider);
 
@@ -128,9 +121,9 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
           title: const Text("Domain Warning"),
           content: Text(
             "We couldn't verify that '${taskData.allowedDomain}' is a valid mail domain."
-            " If it's incorrect, invited respondents won't be able to access the task. Do you want to proceed anyway?",
+                " If it's incorrect, invited respondents won't be able to access the task. Do you want to proceed anyway?",
           ),
-          actions: [
+          actions:[
             TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("CANCEL")),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
@@ -141,7 +134,7 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
         ),
       );
 
-      if (proceed != true) return; // Ak klikol cancel, nepokračujeme
+      if (proceed != true) return;
     }
 
     setState(() => _isLoading = true);
@@ -151,7 +144,6 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
 
       if (mounted) {
         ref.invalidate(taskListProvider);
-        // Reset provideru po úspechu (ak máš metódu reset)
         context.go('/tasks/${createdTask.id}');
       }
     } catch (e) {
@@ -167,58 +159,65 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = context.isMobile;
 
-    // Definujeme fixné šírky pre rôzne zariadenia
     double contentWidth;
     if (screenWidth < 600) {
-      contentWidth = screenWidth; // Mobil: na celú šírku
+      contentWidth = screenWidth;
     } else if (screenWidth < 1200) {
-      contentWidth = 700; // Tablet/Menší notebook: fixných 700px
+      contentWidth = 700;
     } else {
-      contentWidth = 800; // Veľký desktop: fixných 800px
+      contentWidth = 800;
     }
 
     final deadline = ref.watch(taskCreateProvider.select((s) => s.deadLine));
-    final requiresAuth = ref.watch(
-      taskCreateProvider.select((s) => s.requiresAuthenticationToComplete),
-    );
+    final requiresAuth = ref.watch(taskCreateProvider.select((s) => s.requiresAuthenticationToComplete));
     final mode = ref.watch(taskCreateProvider.select((s) => s.subtaskMode));
-    // Tieto premenné sledujeme, aby sme vedeli, či sú sekcie prázdne/využívané
-    final hasEmails = ref.watch(taskCreateProvider.select((s) => s.invitedEmails.isNotEmpty));
-    final hasSubtasks = ref.watch(taskCreateProvider.select((s) => s.subtasks.isNotEmpty));
     final notifier = ref.read(taskCreateProvider.notifier);
 
     return Scaffold(
       backgroundColor: cs.surface,
       body: SingleChildScrollView(
-        padding: const EdgeInsets.only(top: 40, bottom: 20, left: 16, right: 16),
+        // Zmenšený padding pre lepšie zarovnanie breadcrumbu na mobile
+        padding: EdgeInsets.only(
+          top: isMobile ? 16 : 40,
+          bottom: 20,
+          left: isMobile ? 0 : 16,
+          right: isMobile ? 0 : 16,
+        ),
         child: Center(
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: contentWidth),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(cs),
-                const SizedBox(height: 24),
+              children:[
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 0),
+                  child: _buildHeader(cs, isMobile),
+                ),
+                SizedBox(height: isMobile ? 16 : 24),
 
                 Container(
-                  padding: const EdgeInsets.all(20),
+                  padding: EdgeInsets.all(isMobile ? 16 : 24),
                   decoration: BoxDecoration(
                     color: cs.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: cs.outlineVariant.withAlpha(125)),
+                    borderRadius: BorderRadius.circular(isMobile ? 0 : 16),
+                    // TOTO JE OPRAVA SKOKU: Na mobile pridáme border hore a dole
+                    border: isMobile
+                        ? Border.symmetric(
+                      horizontal: BorderSide(color: cs.outlineVariant.withAlpha(100), width: 1),
+                    )
+                        : Border.all(color: cs.outlineVariant.withAlpha(125)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
+                    children:[
                       TaskBasicInfo(titleController: _titleCtrl, quillController: _quillCtrl),
 
                       const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Divider()),
 
-                      // SECTION 2: OPTIONAL SECTIONS (VERTICAL STACK)
                       Column(
-                        children: [
-                          // INVITE SECTION
+                        children:[
                           if (!_inviteExpanded)
                             _CollapsedButton(
                               icon: Icons.person_add_alt_1,
@@ -234,7 +233,6 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
 
                           const SizedBox(height: 12),
 
-                          // SUBTASK SECTION
                           if (!_subtasksExpanded)
                             _CollapsedButton(
                               icon: Icons.list_alt,
@@ -251,7 +249,6 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
 
                       const Padding(padding: EdgeInsets.symmetric(vertical: 10)),
 
-                      // SECTION 3: SETTINGS
                       TaskSettingsSection(
                         selectedDeadline: deadline,
                         requiresAuth: requiresAuth,
@@ -281,14 +278,13 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
 
                       const Padding(padding: EdgeInsets.symmetric(vertical: 10)),
 
-                      // SECTION 4: SUBMIT
                       PrimaryButton(
                         text: context.l10n.task_create_btn_create,
                         isLoading: _isLoading,
                         onPressed: _handleCreateTask,
                       ),
 
-                      const SizedBox(height: 24),
+                      if (isMobile) const SizedBox(height: 20),
                     ],
                   ),
                 ),
@@ -300,10 +296,54 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
     );
   }
 
-  Widget _buildHeader(ColorScheme cs) {
+  // --- UPRAVENÁ HLAVIČKA ---
+  Widget _buildHeader(ColorScheme cs, bool isMobile) {
+    if (isMobile) {
+      // BREADCRUMB PRE MOBIL
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children:[
+          InkWell(
+            onTap: () {
+              if (context.canPop()) context.pop();
+            },
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+              child: Row(
+                children:[
+                  Icon(Icons.arrow_back_ios_new, size: 14, color: cs.primary),
+                  const SizedBox(width: 6),
+                  Text(
+                    "Back", // Môžeš upraviť na context.l10n... ak máš preklad
+                    style: TextStyle(color: cs.primary, fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text("/", style: TextStyle(color: cs.onSurfaceVariant.withAlpha(120), fontSize: 16)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              context.l10n.task_create_header_title,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: cs.onSurface,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      );
+    }
+
+    // PÔVODNÁ HLAVIČKA PRE DESKTOP
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
+      children:[
         Container(
           height: 4,
           width: 60,
@@ -314,6 +354,7 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
           context.l10n.task_create_header_title,
           style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: cs.onSurface),
         ),
+        const SizedBox(height: 4),
         Text(
           context.l10n.task_create_header_subtitle,
           style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant),
@@ -337,19 +378,22 @@ class _CollapsedButton extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+        padding: EdgeInsets.symmetric(
+            vertical: context.isMobile ? 12 : 16,
+            horizontal: 16
+        ),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: cs.outlineVariant, width: 1),
         ),
         child: Row(
-          children: [
+          children:[
             Icon(icon, color: cs.primary, size: 24),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+                children:[
                   Text(
                     label,
                     style: TextStyle(

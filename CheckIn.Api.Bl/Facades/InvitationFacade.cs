@@ -2,6 +2,7 @@ using AutoMapper;
 using CheckIn.Api.Bl.Facades.Interfaces;
 using CheckIn.Api.Bl.Hubs;
 using CheckIn.Api.Bl.Services.Interfaces;
+using CheckIn.Api.Common.Enums;
 using CheckIn.Api.Common.Models.Create;
 using CheckIn.Api.Common.Models.Details;
 using CheckIn.Api.Common.Models.Lists;
@@ -33,7 +34,7 @@ public class InvitationFacade(
     }
 
     public void StartEmailSendingBackground(List<string> emails, string taskHash, string authorName,
-        string taskTitle, string taskDescription, Guid authorId, Guid taskId)
+        string taskTitle, string taskDescription, Guid authorId, Guid taskId, bool isReminder = false)
     {
         _ = Task.Run(async () =>
         {
@@ -44,7 +45,7 @@ public class InvitationFacade(
 
             try
             {
-                await mailer.SendBulkEmailsAsync(emails, taskHash, authorName, taskTitle, taskDescription);
+                await mailer.SendBulkEmailsAsync(emails, taskHash, authorName, taskTitle, taskDescription, isReminder);
 
                 // UPDATE DB: Označíme pozvánky za odoslané
                 var invitations = await db.Invitations
@@ -66,8 +67,9 @@ public class InvitationFacade(
                 await taskHub.Clients.Group(userGroupName).SendAsync("ReceiveNotification", "EMAILS_SENT");
                 await taskHub.Clients.Group(taskId.ToString().ToLower()).SendAsync("TaskInvitationsChanged");
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Console.WriteLine($"[EMAIL BACKGROUND ERROR]: Nastala chyba pri odosielaní emailov: {ex.Message}");
                 var userGroupName = $"User_{authorId.ToString().ToLower()}";
                 await taskHub.Clients.Group(userGroupName).SendAsync("ReceiveNotification", "EMAILS_FAILED");
             }
@@ -76,39 +78,69 @@ public class InvitationFacade(
 
     private async Task SyncAlreadyCompletedInvitationsAsync(CheckInDbContext db, Guid taskId, List<string> emails)
     {
+        // 0. Zistíme režim úlohy (Shared vs Individual)
+        var task = await db.Tasks
+            .Select(t => new { t.Id, t.SubtaskMode })
+            .FirstOrDefaultAsync(t => t.Id == taskId);
+
+        if (task == null) return;
+
         foreach (var email in emails)
         {
             var normalizedEmail = email.ToLower().Trim();
-
-            // 1. Zistíme, či pre tento email už existujú splnené inštancie v tomto tasku
-            // Hľadáme buď podľa priradeného UserId (ak je user už v systéme) 
-            // alebo podľa RespondentName (ak to vypĺňal anonymne pod svojím mailom)
             var user = await db.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == normalizedEmail);
             Guid? userId = user?.Id;
 
-            // 2. Kontrola, či existuje nejaká nevyriešená práca pre tohto človeka
-            // (Logika podobná tej v SubtaskInstanceFacade)
-            var hasPendingWork = await db.SubtaskInstances
-                .AnyAsync(i => i.TemplateSubtask.ParentTaskId == taskId &&
-                               (i.AssignedToUserId == userId || i.RespondentName.ToLower() == normalizedEmail) &&
-                               !i.IsCompleted);
+            // Základný query pre inštancie patriace k tomuto tasku
+            var instancesQuery = db.SubtaskInstances
+                .Where(i => i.TemplateSubtask.ParentTaskId == taskId);
 
-            // 3. Ak neexistuje nevyriešená práca, ale existuje aspoň jedna splnená inštancia,
-            // znamená to, že užívateľ už má hotovo.
-            var hasAnyCompleted = await db.SubtaskInstances
-                .AnyAsync(i => i.TemplateSubtask.ParentTaskId == taskId &&
-                               (i.AssignedToUserId == userId || i.RespondentName.ToLower() == normalizedEmail) &&
-                               i.IsCompleted);
-
-            if (!hasPendingWork && hasAnyCompleted)
+            if (task.SubtaskMode == SubtaskMode.Shared)
             {
-                var invitation = await db.Invitations
-                    .FirstOrDefaultAsync(i => i.TaskId == taskId && i.Email.ToLower() == normalizedEmail);
+                // --- REŽIM: SHARED ---
+                // Tu chceme označiť pozvánku za vybavenú IBA ak existuje záznam, 
+                // ktorý je jasne podpísaný týmto konkrétnym človekom.
+                // Ak je AssignedToUserId null, znamená to, že to môže splniť ktokoľvek, 
+                // ale my tu hľadáme dôkaz, že to splnil PRÁVE tento email.
+                var specificallyDoneByMe = await instancesQuery.AnyAsync(i =>
+                    ((userId != null && i.AssignedToUserId == userId) ||
+                     (i.RespondentName != null && i.RespondentName.ToLower() == normalizedEmail))
+                    && i.IsCompleted);
 
-                if (invitation != null)
+                if (specificallyDoneByMe)
                 {
-                    invitation.IsAccepted = true; // Keďže už splnil, musel to aj vidieť
-                    invitation.IsCompleted = true;
+                    var invitation = await db.Invitations
+                        .FirstOrDefaultAsync(i => i.TaskId == taskId && i.Email.ToLower() == normalizedEmail);
+
+                    if (invitation != null)
+                    {
+                        invitation.IsAccepted = true;
+                        invitation.IsCompleted = true;
+                    }
+                }
+            }
+            else
+            {
+                var hasPendingWork = await instancesQuery.AnyAsync(i =>
+                    ((userId != null && i.AssignedToUserId == userId) ||
+                     (i.RespondentName != null && i.RespondentName.ToLower() == normalizedEmail))
+                    && !i.IsCompleted);
+
+                var hasAnyCompleted = await instancesQuery.AnyAsync(i =>
+                    ((userId != null && i.AssignedToUserId == userId) ||
+                     (i.RespondentName != null && i.RespondentName.ToLower() == normalizedEmail))
+                    && i.IsCompleted);
+
+                if (!hasPendingWork && hasAnyCompleted)
+                {
+                    var invitation = await db.Invitations
+                        .FirstOrDefaultAsync(i => i.TaskId == taskId && i.Email.ToLower() == normalizedEmail);
+
+                    if (invitation != null)
+                    {
+                        invitation.IsAccepted = true;
+                        invitation.IsCompleted = true;
+                    }
                 }
             }
         }
@@ -117,50 +149,64 @@ public class InvitationFacade(
 
     public async Task<Result<bool>> SendInvitationsForTaskAsync(Guid taskId, List<string>? specificEmails = null)
     {
-        var task = await dbContext.Tasks
-            .Include(t => t.Invitations)
-            .FirstOrDefaultAsync(t => t.Id == taskId);
-
+        var task = await GetTaskWithValidation(taskId);
         if (task == null) return Result<bool>.NotFound();
-        if (task.CreatedById != CurrentUserId) return Result<bool>.Forbidden();
 
-        // Filtrujeme pozvánky na spracovanie
         IQueryable<InvitationEntity> query = dbContext.Invitations.Where(i => i.TaskId == taskId);
 
         if (specificEmails != null && specificEmails.Any())
-        {
-            // A. Posielame len konkrétnym (napr. manuálne preposlanie)
             query = query.Where(i => specificEmails.Contains(i.Email));
-        }
         else
-        {
-            // B. Predvolené správanie (Tlačidlo "Send to All New"): Posielame len tým, čo ešte nedostali nič
-            query = query.Where(i => !i.IsSent);
-        }
+            query = query.Where(i => !i.IsSent); // Len noví
 
         var listToSend = await query.ToListAsync();
         if (!listToSend.Any()) return Result<bool>.Success(true);
 
-        return await ExecuteEmailSending(task, listToSend);
+        return await ExecuteEmailSending(task, listToSend, isReminder: false);
     }
 
     public async Task<Result<bool>> SendRemindersForTaskAsync(Guid taskId)
     {
-        var task = await dbContext.Tasks
-            .Include(t => t.Invitations)
-            .FirstOrDefaultAsync(t => t.Id == taskId);
-
+        var task = await GetTaskWithValidation(taskId);
         if (task == null) return Result<bool>.NotFound();
-        if (task.CreatedById != CurrentUserId) return Result<bool>.Forbidden();
 
-        // C. Pripomienky: Posielame len tým, čo ešte NEAKCEPTOVALI (nehľadiac na to, či už mail dostali)
-        var listToSend = await dbContext.Invitations
-            .Where(i => i.TaskId == taskId && !i.IsAccepted)
+        // 1. Získame všetkých, čo ešte nemajú hotovo
+        var pendingInvitations = await dbContext.Invitations
+            .Where(i => i.TaskId == taskId && i.IsSent && !i.IsCompleted)
             .ToListAsync();
 
-        if (!listToSend.Any()) return Result<bool>.Success(true);
+        if (!pendingInvitations.Any())
+        {
+            Console.WriteLine($"[REMINDER] Žiadne neukončené pozvánky pre task {taskId}");
+            return Result<bool>.Success(true);
+        }
 
-        return await ExecuteEmailSending(task, listToSend);
+        // 2. Synchronizácia (pre istotu)
+        var emails = pendingInvitations.Select(x => x.Email).ToList();
+        await SyncAlreadyCompletedInvitationsAsync(dbContext, taskId, emails);
+        await dbContext.SaveChangesAsync();
+
+        // 3. Finálny výber - ak chceš poslať pripomienku aj tým, čo ešte mail nedostali, 
+        // vymaž podmienku && i.IsSent
+        var finalRemindList = await dbContext.Invitations
+            .Where(i => i.TaskId == taskId && !i.IsCompleted)
+            .ToListAsync();
+
+        if (!finalRemindList.Any())
+        {
+            Console.WriteLine($"[REMINDER] Po synchronizácii už nikto nepotrebuje pripomienku.");
+            return Result<bool>.Success(true);
+        }
+
+        Console.WriteLine($"[REMINDER] Odosielam {finalRemindList.Count} pripomienok pre task {taskId}");
+        return await ExecuteEmailSending(task, finalRemindList, isReminder: true);
+    }
+
+    private async Task<TaskEntity?> GetTaskWithValidation(Guid taskId)
+    {
+        var task = await dbContext.Tasks.FirstOrDefaultAsync(t => t.Id == taskId);
+        if (task != null && task.CreatedById == CurrentUserId) return task;
+        return null;
     }
 
     public async Task<List<string>> ParseEmailsAsync(string rawText)
@@ -202,7 +248,8 @@ public class InvitationFacade(
     }
 
 
-    private async Task<Result<bool>> ExecuteEmailSending(TaskEntity task, List<InvitationEntity> invitations)
+    private async Task<Result<bool>> ExecuteEmailSending(TaskEntity task, List<InvitationEntity> invitations,
+        bool isReminder)
     {
         var emails = invitations.Select(i => i.Email).ToList();
         var author = await dbContext.Users.FindAsync(CurrentUserId);
@@ -215,7 +262,8 @@ public class InvitationFacade(
             task.Title,
             task.Notes,
             task.CreatedById,
-            task.Id
+            task.Id,
+            isReminder // Predáme flag
         );
 
         return Result<bool>.Success(true);

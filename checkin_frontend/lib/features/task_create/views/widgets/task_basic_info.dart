@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 
 import '../../../../core/utils/l10n_extensions.dart';
+import '../../../../core/utils/responsive.dart';
 
 class TaskBasicInfo extends StatefulWidget {
   final TextEditingController titleController;
@@ -22,16 +23,16 @@ class _TaskBasicInfoState extends State<TaskBasicInfo> {
     super.dispose();
   }
 
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final isMobile = context.isMobile; // Zistenie mobilu
 
     return FocusTraversalGroup(
       policy: OrderedTraversalPolicy(),
       child: Column(
-        children: [
+        children:[
           // TITLE TEXTFIELD
           FocusTraversalOrder(
             order: const NumericFocusOrder(1),
@@ -47,11 +48,11 @@ class _TaskBasicInfoState extends State<TaskBasicInfo> {
                 hintText: context.l10n.task_create_basic_title_hint,
                 hintStyle: TextStyle(color: cs.onSurfaceVariant.withOpacity(0.5)),
                 filled: true,
-                fillColor: cs.surfaceContainerLow, // Tvoja svetlomodrá (v Light)
+                fillColor: cs.surfaceContainerLow,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: cs.outline, width: 2), // Tvoj border
+                  borderSide: BorderSide(color: cs.outline, width: 2),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -60,12 +61,12 @@ class _TaskBasicInfoState extends State<TaskBasicInfo> {
               ),
             ),
           ),
-      
+
           const SizedBox(height: 16),
-      
+
           // QUILL TOOLBAR
           ExcludeFocus(
-            excluding: true, // Toto spôsobí, že Tab preskočí všetky ikony v lište
+            excluding: true,
             child: Container(
               width: double.infinity,
               decoration: BoxDecoration(
@@ -73,9 +74,11 @@ class _TaskBasicInfoState extends State<TaskBasicInfo> {
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
                 border: Border.all(color: cs.outline),
               ),
+              // Ak je to mobil, Toolbar bude scrolovatelný doľava/doprava
+              // Ak desktop, bude to zalomené do viacerých riadkov.
               child: QuillSimpleToolbar(
                 controller: widget.quillController,
-                config: const QuillSimpleToolbarConfig(
+                config: QuillSimpleToolbarConfig( // Odstránený const
                   toolbarIconAlignment: WrapAlignment.center,
                   showSearchButton: false,
                   showFontFamily: false,
@@ -87,20 +90,24 @@ class _TaskBasicInfoState extends State<TaskBasicInfo> {
                   showHeaderStyle: false,
                   showQuote: false,
                   showBackgroundColorButton: false,
-                  multiRowsDisplay: true,
-                  // Zabezpečíme, aby ikony v toolbare mali správnu farbu v dark mode
+                  // NAJDÔLEŽITEJŠIA ZMENA PRE MOBIL:
+                  multiRowsDisplay: !isMobile,
                 ),
               ),
             ),
           ),
-      
+
           // QUILL EDITOR
           FocusTraversalOrder(
             order: const NumericFocusOrder(2),
             child: Container(
-              constraints: const BoxConstraints(minHeight: 200, maxHeight: 400),
+              // Menšia výška na mobile, aby klávesnica všetko neprekryla
+              constraints: BoxConstraints(
+                minHeight: isMobile ? 120 : 200,
+                maxHeight: isMobile ? 250 : 400,
+              ),
               decoration: BoxDecoration(
-                color: cs.surfaceContainerLow, // Tvoja svetlomodrá (v Light)
+                color: cs.surfaceContainerLow,
                 borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
                 border: Border.all(color: cs.outline),
               ),
