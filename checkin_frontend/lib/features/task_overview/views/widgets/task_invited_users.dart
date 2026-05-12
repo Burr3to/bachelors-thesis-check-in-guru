@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/models/invitations/invitation_list_model.dart';
+import '../../../../core/models/task/task_detail_model.dart';
 import '../../../../core/models/task/task_update_model.dart';
 import '../../../../core/providers/invitation_providers.dart';
 import '../../../../core/providers/task_providers.dart';
@@ -14,17 +15,11 @@ import '../../../../core/utils/responsive.dart'; // Uprav cestu ak treba
 enum EditToolbarState { none, defaultEdit, addMode, removeMode }
 
 class TaskInvitedUsersWidget extends ConsumerStatefulWidget {
-  final String taskId;
-  final String taskTitle;
-  final DateTime taskDeadline;
-  final List<InvitationListModel> invitations;
+  final TaskDetailModel task;
 
   const TaskInvitedUsersWidget({
     super.key,
-    required this.taskId,
-    required this.taskTitle,
-    required this.taskDeadline,
-    required this.invitations,
+    required this.task
   });
 
   @override
@@ -45,9 +40,9 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
   }
 
   void _refreshAll() {
-    ref.invalidate(taskDetailProvider(widget.taskId));
-    ref.invalidate(taskInvitationsProvider(widget.taskId));
-    ref.invalidate(taskInstancesProvider(widget.taskId));
+    ref.invalidate(taskDetailProvider(widget.task.id));
+    ref.invalidate(taskInvitationsProvider(widget.task.id));
+    ref.invalidate(taskInstancesProvider(widget.task.id));
   }
 
   void _startCooldown() {
@@ -60,7 +55,7 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
   Future<void> _handleInviteAll() async {
     setState(() => _isProcessing = true);
     try {
-      await ref.read(invitationApiServiceProvider).sendInvitations(widget.taskId, null);
+      await ref.read(invitationApiServiceProvider).sendInvitations(widget.task.id, null);
       AppSnackBar.showInfo(context, context.l10n.overview_invite_sending_msg);
       _startCooldown();
     } catch (e) {
@@ -73,7 +68,7 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
   Future<void> _handleNotifyPending() async {
     setState(() => _isProcessing = true);
     try {
-      await ref.read(invitationApiServiceProvider).sendReminders(widget.taskId);
+      await ref.read(invitationApiServiceProvider).sendReminders(widget.task.id);
       AppSnackBar.showInfo(context, "Sending reminders...");
       _startCooldown();
     } catch (e) {
@@ -95,14 +90,23 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
         AppSnackBar.showInfo(context, "No valid new emails found.");
         return;
       }
-      final updatedEmailList = {...widget.invitations.map((e) => e.email), ...newEmails}.toList();
+      final updatedEmailList = {...widget.task.invitations.map((e) => e.email), ...newEmails}.toList();
+
+      // ===== TOTO JE TÁ ZÁSADNÁ OPRAVA =====
+      // Posielame späť VŠETKY staré dáta, aby ich backend nezmazal!
       final updateModel = TaskUpdateModel(
-        id: widget.taskId,
-        title: widget.taskTitle,
-        deadLine: widget.taskDeadline,
+        id: widget.task.id,
+        title: widget.task.title,
+        notes: widget.task.notes, // Udrží poznámky
+        deadLine: widget.task.deadLine,
+        requiresAuthenticationToComplete: widget.task.requiresAuthenticationToComplete, // Udrží Auth status
+        allowedDomain: widget.task.allowedDomain, // Udrží doménu
+        state: widget.task.state, // Udrží stav
         invitedEmails: updatedEmailList,
       );
-      await ref.read(taskApiServiceProvider).updateTask(widget.taskId, updateModel);
+      // ======================================
+
+      await ref.read(taskApiServiceProvider).updateTask(widget.task.id, updateModel);
       _emailInputController.clear();
       setState(() => _toolbarState = EditToolbarState.defaultEdit);
       _refreshAll();
@@ -117,7 +121,7 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
     if (_selectedEmails.isEmpty) return;
     setState(() => _isProcessing = true);
     try {
-      await ref.read(taskApiServiceProvider).removeInvitations(widget.taskId, _selectedEmails);
+      await ref.read(taskApiServiceProvider).removeInvitations(widget.task.id, _selectedEmails);
       setState(() {
         _selectedEmails.clear();
         _toolbarState = EditToolbarState.defaultEdit;
@@ -133,7 +137,7 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
   Future<void> _handleSingleDelete(String email) async {
     setState(() => _isProcessing = true);
     try {
-      await ref.read(taskApiServiceProvider).removeInvitations(widget.taskId, [email]);
+      await ref.read(taskApiServiceProvider).removeInvitations(widget.task.id, [email]);
       _refreshAll();
       if (mounted) {
         AppSnackBar.showSuccess(context, "Invitation for $email removed");
@@ -151,10 +155,10 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
     final isMobile = context.isMobile;
     final bool isEditMode = _toolbarState != EditToolbarState.none;
 
-    final int totalInvited = widget.invitations.length;
-    final int completed = widget.invitations.where((i) => i.isAccepted).length;
-    final bool hasUnsent = widget.invitations.any((i) => !i.isSent);
-    final bool hasUnfinished = widget.invitations.any((i) => i.isSent && !i.isAccepted);
+    final int totalInvited = widget.task.invitations.length;
+    final int completed = widget.task.invitations.where((i) => i.isAccepted).length;
+    final bool hasUnsent = widget.task.invitations.any((i) => !i.isSent);
+    final bool hasUnfinished = widget.task.invitations.any((i) => i.isSent && !i.isAccepted);
 
     return Container(
       // NA MOBILE ZMENŠENÝ PADDING PRE VIAC PRIESTORU
@@ -185,7 +189,7 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: widget.invitations.map((inv) => _buildChip(inv, cs)).toList(),
+            children: widget.task.invitations.map((inv) => _buildChip(inv, cs)).toList(),
           ),
         ],
       ),

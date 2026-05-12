@@ -1,5 +1,4 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-
 import '../subtask_instance/subtask_combined_list_model.dart';
 import '../enums/task_enums.dart';
 
@@ -9,17 +8,23 @@ part 'task_public_detail_model.g.dart';
 @freezed
 sealed class TaskPublicDetailModel with _$TaskPublicDetailModel {
   const factory TaskPublicDetailModel({
-    required String id,
-    required String hash,
-    required String title,
+    // Zmenené na nullable, pretože pri Forbidden/Unauthorized stave id a hash nemusia prísť
+    String? id,
+    String? hash,
+
+    @Default('') String title,
     String? notes,
-    required DateTime deadLine,
-    required TaskState state,
-    required SubtaskMode subtaskMode,
-    required bool requiresAuthenticationToComplete,
+    DateTime? deadLine,
+
+    @Default(TaskState.inProgress) TaskState state,
+    @Default(SubtaskMode.individual) SubtaskMode subtaskMode,
+    @Default(false) bool requiresAuthenticationToComplete,
     @Default([]) List<SubtaskCombinedListModel> subtasks,
     String? allowedDomain,
 
+    // --- NOVÉ POLIA PRE SOFT-ERROR HANDLING ---
+    @Default(false) bool isForbidden,
+    String? forbiddenMessage,
   }) = _TaskPublicDetailModel;
 
   factory TaskPublicDetailModel.fromJson(Map<String, dynamic> json) =>

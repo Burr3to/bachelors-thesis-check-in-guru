@@ -125,7 +125,10 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
         deadLine: deadline ?? task.deadLine,
         requiresAuthenticationToComplete: requiresAuth ?? task.requiresAuthenticationToComplete,
         allowedDomain: resetDomain ? null : (allowedDomain ?? task.allowedDomain),
-        state: state
+        state: state ?? task.state,
+
+      // OPRAVA 2: Musíme zachovať maily! Inak pošle[] a backend ich všetky zmaže
+      invitedEmails: task.invitations.map((e) => e.email).toList(),
     );
 
     try {
@@ -199,7 +202,7 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
                 constraints: const BoxConstraints(maxWidth: 1000),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainer,
+                    color: Theme.of(context).colorScheme.surfaceContainerLow,
                     // NA MOBILE ZRUŠÍME ZAOBLENIE ROHOV
                     borderRadius: BorderRadius.circular(isMobile ? 0 : 12),
                     // NA MOBILE HORNÝ/DOLNÝ BORDER, INAK VŠADE
@@ -228,6 +231,7 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
                         deadlineDate: task.deadLine,
                         requiresAuth: task.requiresAuthenticationToComplete,
                         lastModified: task.lastModifiedAt,
+                        allowedDomain: task.allowedDomain,
                         onDeadlineTap: () => _selectDeadline(context, task),
                         taskId: task.id,
                         currentState: task.state,
@@ -248,10 +252,7 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
                       const SizedBox(height: 16),
 
                       TaskInvitedUsersWidget(
-                        taskId: task.id,
-                        taskTitle: task.title,
-                        taskDeadline: task.deadLine,
-                        invitations: task.invitations,
+                        task: task,
                       ),
 
                       asyncTemplates.when(

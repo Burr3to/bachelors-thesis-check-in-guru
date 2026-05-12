@@ -9,15 +9,21 @@ part of 'task_public_detail_model.dart';
 _TaskPublicDetailModel _$TaskPublicDetailModelFromJson(
   Map<String, dynamic> json,
 ) => _TaskPublicDetailModel(
-  id: json['id'] as String,
-  hash: json['hash'] as String,
-  title: json['title'] as String,
+  id: json['id'] as String?,
+  hash: json['hash'] as String?,
+  title: json['title'] as String? ?? '',
   notes: json['notes'] as String?,
-  deadLine: DateTime.parse(json['deadLine'] as String),
-  state: $enumDecode(_$TaskStateEnumMap, json['state']),
-  subtaskMode: $enumDecode(_$SubtaskModeEnumMap, json['subtaskMode']),
+  deadLine: json['deadLine'] == null
+      ? null
+      : DateTime.parse(json['deadLine'] as String),
+  state:
+      $enumDecodeNullable(_$TaskStateEnumMap, json['state']) ??
+      TaskState.inProgress,
+  subtaskMode:
+      $enumDecodeNullable(_$SubtaskModeEnumMap, json['subtaskMode']) ??
+      SubtaskMode.individual,
   requiresAuthenticationToComplete:
-      json['requiresAuthenticationToComplete'] as bool,
+      json['requiresAuthenticationToComplete'] as bool? ?? false,
   subtasks:
       (json['subtasks'] as List<dynamic>?)
           ?.map(
@@ -26,6 +32,8 @@ _TaskPublicDetailModel _$TaskPublicDetailModelFromJson(
           .toList() ??
       const [],
   allowedDomain: json['allowedDomain'] as String?,
+  isForbidden: json['isForbidden'] as bool? ?? false,
+  forbiddenMessage: json['forbiddenMessage'] as String?,
 );
 
 Map<String, dynamic> _$TaskPublicDetailModelToJson(
@@ -35,12 +43,14 @@ Map<String, dynamic> _$TaskPublicDetailModelToJson(
   'hash': instance.hash,
   'title': instance.title,
   'notes': instance.notes,
-  'deadLine': instance.deadLine.toIso8601String(),
+  'deadLine': instance.deadLine?.toIso8601String(),
   'state': _$TaskStateEnumMap[instance.state]!,
   'subtaskMode': _$SubtaskModeEnumMap[instance.subtaskMode]!,
   'requiresAuthenticationToComplete': instance.requiresAuthenticationToComplete,
   'subtasks': instance.subtasks,
   'allowedDomain': instance.allowedDomain,
+  'isForbidden': instance.isForbidden,
+  'forbiddenMessage': instance.forbiddenMessage,
 };
 
 const _$TaskStateEnumMap = {

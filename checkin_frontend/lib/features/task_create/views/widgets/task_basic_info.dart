@@ -103,7 +103,7 @@ class _TaskBasicInfoState extends State<TaskBasicInfo> {
             child: Container(
               // Menšia výška na mobile, aby klávesnica všetko neprekryla
               constraints: BoxConstraints(
-                minHeight: isMobile ? 120 : 200,
+                minHeight: isMobile ? 100 : 140,
                 maxHeight: isMobile ? 250 : 400,
               ),
               decoration: BoxDecoration(

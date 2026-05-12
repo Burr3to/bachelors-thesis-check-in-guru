@@ -16,18 +16,28 @@ class ThemeNotifier extends Notifier<ThemeMode> {
     if (savedTheme == 'dark') return ThemeMode.dark;
     if (savedTheme == 'light') return ThemeMode.light;
 
-    return ThemeMode.system; // Predvolené podľa systému, ak nič nie je uložené
+    return ThemeMode.light; // Predvolené podľa systému, ak nič nie je uložené
   }
 
-  void toggleTheme() {
+  void toggleTheme(Brightness platformBrightness) {
     final prefs = ref.read(sharedPrefsProvider);
-    if (state == ThemeMode.dark) {
-      state = ThemeMode.light;
-      prefs.setString(_key, 'light');
+
+    ThemeMode nextMode;
+
+    // Ak sme v režime 'system', musíme zistiť, čo ten systém reálne zobrazuje
+    if (state == ThemeMode.system) {
+      if (platformBrightness == Brightness.dark) {
+        nextMode = ThemeMode.light; // Zo systémovej tmy ideme do svetla
+      } else {
+        nextMode = ThemeMode.dark;  // Zo systémového svetla ideme do tmy
+      }
     } else {
-      state = ThemeMode.dark;
-      prefs.setString(_key, 'dark');
+      // Ak už máme natvrdo nastavený mód, len ho otočíme
+      nextMode = (state == ThemeMode.dark) ? ThemeMode.light : ThemeMode.dark;
     }
+
+    state = nextMode;
+    prefs.setString(_key, nextMode == ThemeMode.dark ? 'dark' : 'light');
   }
 }
 

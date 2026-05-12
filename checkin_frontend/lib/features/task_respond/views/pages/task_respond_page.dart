@@ -15,6 +15,10 @@ import '../../../../core/shared_widgets/app_snack_bar.dart';
 import '../../../../core/utils/l10n_extensions.dart';
 import '../../../auth/views/providers/auth_provider.dart';
 import '../../../../core/models/subtask_instance/subtask_combined_list_model.dart';
+
+// Tvoj nový import pre responzivitu (cestu si prispôsob)
+import '../../../../core/utils/responsive.dart';
+
 import '../widgets/login_required_view.dart';
 import '../widgets/respondent_signature_field.dart';
 import '../widgets/subtask_list_card.dart';
@@ -41,62 +45,28 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
   void initState() {
     super.initState();
     _signalRService = ref.read(signalRProvider);
-
-    // Spustíme nastavenie SignalR hneď po prvom vykreslení
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _setupSignalR();
-    });
   }
 
-  Future<void> _setupSignalR() async {
-    try {
-      print("SignalR (Respond): Začínam setup pre hash ${widget.taskHash}");
+  // --- REAKTÍVNY SETUP SIGNALR ---
+  void _setupSignalRWithData(String taskId) async {
+    final roomName = taskId.toLowerCase().trim();
+    if (_joinedTaskIdRoom == roomName) return;
 
-      final publicTask = await ref.read(publicTaskProvider(widget.taskHash).future);
+    print("SignalR (Respond): Pripájam do miestnosti: $roomName");
+    _joinedTaskIdRoom = roomName;
 
-      if (publicTask.id == null || publicTask.id.isEmpty) {
-        print("SignalR ERROR: publicTask.id je prázdne! Backend ho asi neposiela.");
-        return;
-      }
-
-      final roomName = publicTask.id.toLowerCase().trim();
-      print("SignalR (Respond): Pokúšam sa pripojiť do miestnosti: $roomName");
-
-      // Tu sa uisti, že SignalR je "Connected", ak máš na to metódu
-      // napr. await _signalRService.ensureConnection();
-
-      _joinedTaskIdRoom = roomName;
-      await _signalRService.joinTaskRoom(roomName);
-
-      _signalRService.connection?.on("TaskInstancesChanged", _handleDataChanged);
-      _signalRService.connection?.on("TaskUpdated", _handleDataChanged);
-
-      print("SignalR (Respond): Úspešne pripojené do miestnosti: $roomName");
-    } catch (e, stacktrace) {
-      print("SignalR (Respond) CRITICAL ERROR: $e");
-      print(stacktrace);
-    }
+    await _signalRService.joinTaskRoom(roomName);
+    _signalRService.connection?.on("TaskInstancesChanged", _handleDataChanged);
+    _signalRService.connection?.on("TaskUpdated", _handleDataChanged);
   }
 
   void _handleDataChanged(List<Object?>? arguments) {
     if (!mounted) return;
-    print("SignalR: Prijatý signál o zmene pre TaskHash: ${widget.taskHash}");
-
-    // Obnovíme dáta zo servera (to automaticky prekreslí UI)
     ref.invalidate(publicTaskProvider(widget.taskHash));
-
     setState(() {
-      // Ak mal používateľ niečo zakliknuté, radšej to zrušíme a ukážeme notifikáciu
       if (_selectedIds.isNotEmpty) {
         _selectedIds.clear();
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Dáta boli aktualizované iným používateľom."),
-            backgroundColor: Colors.blueAccent,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        AppSnackBar.showInfo(context, "Dáta boli aktualizované iným používateľom.");
       }
     });
   }
@@ -104,17 +74,11 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
   @override
   void dispose() {
     _nameCtrl.dispose();
-
-    // Odstránime listenerov
     _signalRService.connection?.off("TaskInstancesChanged", method: _handleDataChanged);
     _signalRService.connection?.off("TaskUpdated", method: _handleDataChanged);
-    _signalRService.connection?.off("TaskInvitationsChanged", method: _handleDataChanged);
-
-    // Odpojíme sa od skupiny
     if (_joinedTaskIdRoom != null) {
       _signalRService.leaveTaskRoom(_joinedTaskIdRoom!);
     }
-
     super.dispose();
   }
 
@@ -150,7 +114,6 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
           _isSubmittedSuccess = isNowEverythingDone;
         });
 
-        // Toto vyvolá refresh aj u nás, akurát backend nás medzitým tiež notifikuje
         ref.invalidate(publicTaskProvider(widget.taskHash));
       }
     } catch (e) {
@@ -163,39 +126,70 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
   @override
   Widget build(BuildContext context) {
     ref.listen(authProvider, (previous, next) {
-      if (previous?.user != next.user) {
+      if (previous?.user?.userId != next.user?.userId) {
         ref.invalidate(publicTaskProvider(widget.taskHash));
       }
     });
 
+    ref.listen<AsyncValue>(publicTaskProvider(widget.taskHash), (previous, next) {
+      next.whenOrNull(
+        data: (data) {
+          if (data.id != null) _setupSignalRWithData(data.id!);
+        },
+        error: (e, s) => print("Provider skončil chybou, SignalR sa nepripája."),
+      );
+    });
+
     final asyncData = ref.watch(publicTaskProvider(widget.taskHash));
     final auth = ref.watch(authProvider).user;
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
+    final cs = Theme.of(context).colorScheme;
 
     return asyncData.when(
-      loading: () => const Scaffold(
-        appBar: AppTopBar(),
-        body: Center(child: CircularProgressIndicator()),
-      ),
-      error: (e, s) => Scaffold(
-        appBar: const AppTopBar(),
-        body: _buildErrorState(ref, e),
-      ),
-      data: (dynamic publicTask) {
+      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (e, s) => _buildErrorState(ref, e),
+      data: (publicTask) {
         if (publicTask.requiresAuthenticationToComplete && auth == null) {
-          return const Scaffold(
-              appBar: AppTopBar(),
-              body: LoginRequiredView()
+          return const Scaffold(appBar: AppTopBar(), body: LoginRequiredView());
+        }
+
+        if (publicTask.isForbidden) {
+          return Scaffold(
+            appBar: const AppTopBar(),
+            body: _buildForbiddenView(publicTask.forbiddenMessage),
           );
         }
 
         return Scaffold(
           appBar: const AppTopBar(),
-          backgroundColor: cs.surface,
           body: _buildTaskBody(publicTask, auth, cs),
         );
       },
+    );
+  }
+
+  Widget _buildForbiddenView(String? msg) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(context.isMobile ? 16 : 32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children:[
+            Icon(Icons.domain_disabled, size: context.isMobile ? 64 : 80, color: Colors.orange),
+            SizedBox(height: context.isMobile ? 16 : 24),
+            Text("Prístup zamietnutý", style: TextStyle(fontSize: context.isMobile ? 20 : 24, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            Text(msg ?? "Nemáte povolený prístup k tejto úlohe.", textAlign: TextAlign.center),
+            const SizedBox(height: 32),
+            PrimaryButton(
+                text: "Odhlásiť sa",
+                onPressed: () async {
+                  await ref.read(authProvider.notifier).signOut();
+                  if (mounted) context.push('/login');
+                }
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -227,7 +221,7 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 600),
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(context.isMobile ? 16 : 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children:[
@@ -242,7 +236,7 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
                   context.l10n.respond_tasks_label,
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: context.isMobile ? 8 : 12),
                 SubtaskListCard(
                   subtasks: publicTask.subtasks,
                   selectedIds: _selectedIds,
@@ -252,10 +246,10 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
                     });
                   },
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: context.isMobile ? 16 : 24),
               ],
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
               if (hasPendingTasks) ...[
                 if (isMainTaskOnly && auth == null)
                   Padding(
@@ -276,7 +270,7 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
               ] else ...[
                 _buildAllCompletedBadge(cs),
               ],
-              const SizedBox(height: 40),
+              SizedBox(height: context.isMobile ? 24 : 40),
             ],
           ),
         ),
@@ -292,7 +286,7 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
         : context.l10n.respond_btn_submit(_selectedIds.length);
 
     return SizedBox(
-      height: 52,
+      height: context.isMobile ? 48 : 52,
       child: ElevatedButton(
         onPressed: isDisabled ? null : () => _submit(auth),
         style: ElevatedButton.styleFrom(
@@ -334,27 +328,39 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
   }
 
   Widget _buildErrorState(WidgetRef ref, Object error) {
-    // Kód pre chybový stav ostáva nezmenený
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
+    final cs = Theme.of(context).colorScheme;
+    final authNotifier = ref.read(authProvider.notifier);
 
     String title = context.l10n.error_access_denied;
     String message = "Došlo k chybe pri načítaní úlohy.";
     IconData icon = Icons.error_outline;
+    bool showLogoutButton = false;
     bool showLoginButton = false;
 
     if (error is DioException) {
-      final statusCode = error.response?.statusCode;
+      final response = error.response;
+      final statusCode = response?.statusCode;
+
+      print("CHYBA BACKEND: ${response?.data}");
+
+      String? serverMessage;
+      if (response?.data != null && response?.data is Map) {
+        serverMessage = response?.data['message'];
+      }
+
       if (statusCode == 403) {
-        title = context.l10n.error_not_on_list;
-        message = context.l10n.error_not_on_list_msg;
-        icon = Icons.person_off_outlined;
-      } else if (statusCode == 401) {
+        title = "Prístup zamietnutý";
+        message = serverMessage ?? context.l10n.error_not_on_list_msg;
+        icon = Icons.domain_disabled;
+        showLogoutButton = true;
+      }
+      else if (statusCode == 401) {
         title = context.l10n.error_private_task;
         message = context.l10n.error_private_task_msg;
         icon = Icons.lock_person_outlined;
         showLoginButton = true;
-      } else if (statusCode == 404) {
+      }
+      else if (statusCode == 404) {
         title = context.l10n.error_not_found;
         message = context.l10n.error_not_found_msg;
         icon = Icons.search_off;
@@ -363,33 +369,30 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: EdgeInsets.all(context.isMobile ? 16 : 32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children:[
-            Icon(icon, size: 80, color: cs.primary),
+            Icon(icon, size: context.isMobile ? 64 : 80, color: cs.primary),
             const SizedBox(height: 24),
-            Text(
-              title,
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: cs.onSurface),
-            ),
+            Text(title, style: TextStyle(fontSize: context.isMobile ? 20 : 24, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
             const SizedBox(height: 12),
-            Text(
-              message,
-              style: TextStyle(fontSize: 16, color: cs.onSurfaceVariant),
-              textAlign: TextAlign.center,
-            ),
+            Text(message, style: TextStyle(fontSize: 16, color: cs.onSurfaceVariant), textAlign: TextAlign.center),
             const SizedBox(height: 32),
-            if (showLoginButton)
+            if (showLogoutButton) ...[
               PrimaryButton(
-                text: context.l10n.auth_askforlogin,
-                onPressed: () => context.push('/login'),
-              )
-            else
-              OutlinedButton(
-                onPressed: () => context.go('/'),
-                child: Text(context.l10n.common_back_to_home),
+                  text: "Prihlásiť sa iným účtom",
+                  onPressed: () async {
+                    await authNotifier.signOut();
+                    if (mounted) context.push('/login');
+                  }
               ),
+              const SizedBox(height: 12),
+            ],
+            if (showLoginButton)
+              PrimaryButton(text: context.l10n.auth_askforlogin, onPressed: () => context.push('/login'))
+            else
+              OutlinedButton(onPressed: () => context.go('/'), child: Text(context.l10n.common_back_to_home)),
           ],
         ),
       ),

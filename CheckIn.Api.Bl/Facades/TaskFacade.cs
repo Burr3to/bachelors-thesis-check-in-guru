@@ -160,11 +160,15 @@ public class TaskFacade(
         if (task is null)
             return Result<TaskDetailModel>.NotFound($"Task with ID {model.Id} not found.");
 
+        mapper.Map(model, task);
+
         if (task.State == TaskState.Completed && model.DeadLine > DateTime.UtcNow)
             task.State = TaskState.InProgress;
 
         if (model.State.HasValue)
             task.State = model.State.Value;
+
+        task.LastModifiedAt = DateTime.UtcNow;
 
         await ProcessNewInvitations(task, model.InvitedEmails, isNewTask: false);
 
@@ -378,6 +382,32 @@ public class TaskFacade(
         {
             return Result<TaskPublicDetailModel>.Failure(ErrorType.Unauthorized,
                 "Authentication is required to view the details of this task.");
+        }
+
+        // --- PRIDANÁ LOGIKA PRE KONTROLU DOMÉNY ---
+        if (!string.IsNullOrEmpty(task.AllowedDomain))
+        {
+            var userEmail = UserContext.GetEmail()?.ToLower().Trim();
+
+            // Ak je nastavená doména, ale nemáme email (používateľ nie je prihlásený)
+            if (string.IsNullOrEmpty(userEmail))
+            {
+                return Result<TaskPublicDetailModel>.Failure(ErrorType.Unauthorized,
+                    "Na prístup k tejto úlohe sa musíte prihlásiť školským/firemným emailom.");
+            }
+
+            // Normalizujeme doménu z DB (aby sme zvládli "vutbr.cz" aj "@vutbr.cz")
+            var requiredDomain = task.AllowedDomain.ToLower().Trim();
+            if (!requiredDomain.StartsWith("@")) requiredDomain = "@" + requiredDomain;
+
+            // Kontrola, či email končí požadovanou doménou
+            if (!userEmail.EndsWith(requiredDomain))
+            {
+                return Result<TaskPublicDetailModel>.Forbidden(
+                    $"Tento check-in je vyhradený pre organizáciu {task.AllowedDomain}. " +
+                    $"Momentálne ste prihlásený ako {userEmail}. " +
+                    "Prosím, odhláste sa a použite svoj oficiálny školský alebo firemný účet.");
+            }
         }
 
         if (task.Invitations.Count != 0 && task.CreatedById != currentUserId)

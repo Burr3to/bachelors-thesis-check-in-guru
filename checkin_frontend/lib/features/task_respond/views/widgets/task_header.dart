@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/utils/quill_viewer.dart';
+// Tvoj nový import pre responzivitu
+import '../../../../core/utils/responsive.dart';
 
 class TaskHeader extends StatelessWidget {
   final String title;
@@ -16,7 +18,7 @@ class TaskHeader extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
 
     return Column(
-      children: [
+      children:[
         Center(
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -27,7 +29,7 @@ class TaskHeader extends StatelessWidget {
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
-              children: [
+              children:[
                 Icon(Icons.alarm, size: 16, color: cs.error),
                 const SizedBox(width: 6),
                 Text(
@@ -38,18 +40,20 @@ class TaskHeader extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: context.isMobile ? 12 : 16),
 
         Text(
           title,
-          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+          style: (context.isMobile
+              ? Theme.of(context).textTheme.titleLarge
+              : Theme.of(context).textTheme.headlineMedium)?.copyWith(
             fontWeight: FontWeight.bold,
             color: cs.onSurface,
           ),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 8),
-        if (notes != null) ...[QuillViewer(jsonText: notes), const SizedBox(height: 24)],
+        SizedBox(height: context.isMobile ? 8 : 12),
+        if (notes != null) ...[QuillViewer(jsonText: notes), SizedBox(height: context.isMobile ? 16 : 24)],
       ],
     );
   }

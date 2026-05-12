@@ -109,7 +109,7 @@ class _SubtaskListSectionState extends ConsumerState<SubtaskListSection> {
         padding: EdgeInsets.all(isMobile ? 12 : 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children:[
+          children: [
             _buildHeader(theme, cs, totalItems, isMobile),
             const SizedBox(height: 12),
 
@@ -148,26 +148,22 @@ class _SubtaskListSectionState extends ConsumerState<SubtaskListSection> {
 
   Widget _buildHeader(ThemeData theme, ColorScheme cs, int totalItems, bool isMobile) {
     return Row(
-      children:[
-        Expanded( // Obalené do Expanded pre prípad dlhého titulu na mobile
+      crossAxisAlignment: CrossAxisAlignment.center, // Zarovná prvky pekne na stred riadku
+      children: [
+        Flexible(
+          // Zmenené z Expanded na Flexible
           child: Text(
             widget.title,
             style: theme.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.bold,
               color: cs.onSurface,
-              fontSize: isMobile ? 18 : null, // Menšie písmo na mobile
+              fontSize: isMobile ? 18 : null,
             ),
           ),
         ),
         const SizedBox(width: 8),
-        // Počet položiek zobrazíme len na webe (na mobile šetríme miesto)
-        if (!isMobile)
-          Text(
-            "$totalItems ${totalItems == 1 ? 'item' : 'items'}",
-            style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant),
-          ),
-        if (!isMobile) const SizedBox(width: 12),
 
+        // Edit tlačidlo je teraz priamo vedľa titulu
         _HeaderEditButton(
           isEditMode: _isEditMode,
           onPressed: () => setState(() {
@@ -175,6 +171,15 @@ class _SubtaskListSectionState extends ConsumerState<SubtaskListSection> {
             if (_isEditMode) _isExpanded = true;
           }),
         ),
+
+        // Counter je hneď za tlačidlom, čiže tiež zarovnaný doľava
+        if (!isMobile) ...[
+          const SizedBox(width: 12),
+          Text(
+            "$totalItems ${totalItems == 1 ? 'item' : 'items'}",
+            style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant),
+          ),
+        ],
       ],
     );
   }
@@ -182,7 +187,7 @@ class _SubtaskListSectionState extends ConsumerState<SubtaskListSection> {
   Widget _buildAddSection(ColorScheme cs, bool isMobile) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children:[
+      children: [
         const SizedBox(height: 12),
         Divider(color: cs.outlineVariant),
         const SizedBox(height: 12),
@@ -197,7 +202,7 @@ class _SubtaskListSectionState extends ConsumerState<SubtaskListSection> {
               border: Border.all(color: cs.outlineVariant.withAlpha(100)),
             ),
             child: Column(
-              children:[
+              children: [
                 TextField(
                   controller: _newTitleController,
                   autofocus: true,
@@ -211,7 +216,7 @@ class _SubtaskListSectionState extends ConsumerState<SubtaskListSection> {
                 const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end, // Zarovnáme tlačidlá napravo
-                  children:[
+                  children: [
                     TextButton(
                       onPressed: () => setState(() {
                         _isAddingNew = false;
@@ -338,7 +343,7 @@ class _SubtaskRowState extends State<_SubtaskRow> {
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children:[
+            children: [
               SizedBox(
                 width: 24,
                 child: Padding(
@@ -354,7 +359,7 @@ class _SubtaskRowState extends State<_SubtaskRow> {
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children:[
+                  children: [
                     _InlineInput(
                       initialValue: widget.subtask.title,
                       isEditMode: widget.isEditMode,
@@ -505,7 +510,9 @@ class _InlineInputState extends State<_InlineInput> {
               fontWeight: isEmpty ? FontWeight.w300 : widget.style.fontWeight,
               fontStyle: isEmpty ? FontStyle.italic : null,
               // Na mobile podčiarkneme placeholder, ak nie je hover, aby sa dal identifikovať ako input
-              decoration: (widget.isMobile && isEmpty) ? TextDecoration.underline : TextDecoration.none,
+              decoration: (widget.isMobile && isEmpty)
+                  ? TextDecoration.underline
+                  : TextDecoration.none,
               decorationColor: cs.primary.withAlpha(100),
             ),
           ),
@@ -556,7 +563,7 @@ class _TextLinkButton extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
-          children:[
+          children: [
             Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
             const SizedBox(width: 4),
             Icon(isExpanded ? Icons.expand_less : Icons.expand_more, size: 20),
@@ -580,7 +587,7 @@ class _AddSubtaskTrigger extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Row(
-          children:[
+          children: [
             Icon(Icons.add, size: 18, color: cs.primary),
             const SizedBox(width: 8),
             Text("Add subtask", style: TextStyle(fontSize: 14, color: cs.primary)),

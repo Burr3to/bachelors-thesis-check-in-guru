@@ -112,17 +112,31 @@ public class TaskController(ITaskFacade taskFacade)
     [AllowAnonymous]
     public async Task<ActionResult<TaskPublicDetailModel>> GetPublicSubtasksByHash([FromRoute] string hash)
     {
-        // Používame taskFacade (alebo _taskFacade, ak ste si ho definovali)
         var result = await ((ITaskFacade)Facade).GetTaskPublicDetailByHashAsync(hash);
 
         if (result.IsSuccess)
             return Ok(result.Value);
 
+        // Not the best way to handle this, but for now we want to return 200 OK even when the user
+        // is not authenticated or has forbidden domain, because the FE needs to know that the task
+        // exists and what is the reason of failure (401 vs 403).
+        // Ak chýba login (401)
         if (result.ErrorType == ErrorType.Unauthorized)
-            return Ok(new TaskDetailModel
-                { RequiresAuthenticationToComplete = true, Title = "", Hash = "", SubtaskMode = SubtaskMode.Shared });
+            return Ok(new TaskPublicDetailModel
+            {
+                RequiresAuthenticationToComplete = true,
+                Title = "null"
+            });
 
-        // Spracovanie chyby (404, 401, 500...)
+        // NOVÉ: Ak má zlú doménu (403) -> vrátime 200 OK, ale s info o zákaze
+        if (result.ErrorType == ErrorType.Forbidden)
+            return Ok(new TaskPublicDetailModel
+            {
+                IsForbidden = true,
+                ForbiddenMessage = result.ErrorMessage,
+                Title = "null"
+            });
+
         return HandleResultFailure(result);
     }
 }

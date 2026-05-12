@@ -1,6 +1,8 @@
 import 'package:checkin_frontend/core/models/subtask_instance/subtask_combined_list_model.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/utils/l10n_extensions.dart';
+// Tvoj nový import pre responzivitu
+import '../../../../core/utils/responsive.dart';
 
 class SubtaskListCard extends StatelessWidget {
   final List<SubtaskCombinedListModel> subtasks;
@@ -24,6 +26,7 @@ class SubtaskListCard extends StatelessWidget {
     return Card(
       color: cs.surfaceContainer,
       elevation: 0,
+      margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(color: cs.outlineVariant),
@@ -37,12 +40,16 @@ class SubtaskListCard extends StatelessWidget {
         itemBuilder: (context, index) {
           final subtask = visibleSubtasks[index];
           final isDone = subtask.isCompleted;
-
-          // Kontrola, či subtask má platný popis
           final bool hasDescription = subtask.description != null && subtask.description!.trim().isNotEmpty;
+
+          final contentPadding = EdgeInsets.symmetric(
+            horizontal: context.isMobile ? 8.0 : 16.0,
+            vertical: context.isMobile ? 4.0 : 8.0,
+          );
 
           if (isDone) {
             return ListTile(
+              contentPadding: contentPadding,
               leading: const Icon(Icons.check_circle, color: Colors.green),
               title: Text(
                 subtask.title,
@@ -57,7 +64,7 @@ class SubtaskListCard extends StatelessWidget {
                 ),
                 style: const TextStyle(
                   color: Colors.green,
-                  fontSize: 12,
+                  fontSize: 11,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -65,22 +72,21 @@ class SubtaskListCard extends StatelessWidget {
           }
 
           return CheckboxListTile(
+            contentPadding: contentPadding,
             value: selectedIds.contains(subtask.id),
             onChanged: (val) => onSelectionChanged(subtask.id, val ?? false),
-            // Title sa vycentruje automaticky, ak subtitle dostane null
             title: Text(
               subtask.title,
-              style: TextStyle(color: cs.onSurface),
+              style: TextStyle(color: cs.onSurface, fontSize: context.isMobile ? 14 : 16),
             ),
             subtitle: hasDescription
                 ? Text(
               subtask.description!,
               style: TextStyle(color: cs.onSurfaceVariant),
             )
-                : null, // Ak nie je popis, posielame null -> title sa vycentruje
+                : null,
             activeColor: cs.primary,
             controlAffinity: ListTileControlAffinity.leading,
-            // isThreeLine: false zabezpečí, že ak nie je subtitle, title bude v strede
             isThreeLine: false,
           );
         },

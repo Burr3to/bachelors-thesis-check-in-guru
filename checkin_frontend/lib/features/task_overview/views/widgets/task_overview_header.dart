@@ -65,6 +65,10 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
   bool? _isDomainValid;
   bool _isValidating = false;
 
+  // POMOCNÉ FUNKCIE PRE BEZPEČNÚ PRÁCU S DOMÉNOU
+  bool _hasDomain(String? domain) => domain != null && domain.trim().isNotEmpty;
+  String _cleanDomain(String? domain) => (domain ?? '').replaceAll('@', '').trim();
+
   @override
   void initState() {
     super.initState();
@@ -72,11 +76,13 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
     _currentState = widget.currentState;
     _deadlineDate = widget.deadlineDate;
 
-    _domainRestrictionActive = widget.allowedDomain != null;
-    String cleanDomain = (widget.allowedDomain ?? '').replaceAll('@', '');
-    _domainController = TextEditingController(text: cleanDomain);
+    // Inicializácia pomocou bezpečných funkcií
+    _domainRestrictionActive = _hasDomain(widget.allowedDomain);
+    _domainController = TextEditingController(text: _cleanDomain(widget.allowedDomain));
 
-    if (widget.allowedDomain != null) _isDomainValid = true;
+    if (_domainRestrictionActive) {
+      _isDomainValid = true;
+    }
   }
 
   @override
@@ -93,12 +99,19 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
       _deadlineDate = widget.deadlineDate;
     }
 
+    // Vylepšená detekcia zmien domény (napr. keď dáta prídu z API neskôr)
     if (oldWidget.allowedDomain != widget.allowedDomain && !_isValidating) {
-      String cleanDomain = (widget.allowedDomain ?? '').replaceAll('@', '');
-      _domainController.text = cleanDomain;
+      final newActive = _hasDomain(widget.allowedDomain);
+      final newClean = _cleanDomain(widget.allowedDomain);
+
+      // Aktualizujeme text iba ak je iný, aby sme neresetovali kurzor pri písaní
+      if (_domainController.text != newClean) {
+        _domainController.text = newClean;
+      }
+
       setState(() {
-        _domainRestrictionActive = widget.allowedDomain != null;
-        _isDomainValid = widget.allowedDomain != null ? true : null;
+        _domainRestrictionActive = newActive;
+        _isDomainValid = newActive ? true : null;
       });
     }
   }
@@ -114,9 +127,11 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
 
   void _validateDomain(String value) {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
-    if (value.isEmpty) {
+
+    final cleanValue = value.trim();
+    if (cleanValue.isEmpty) {
       setState(() => _isDomainValid = null);
-      widget.onDomainChanged(null);
+      widget.onDomainChanged(null); // Ak zmaže input, pošleme null (zrušenie reštrikcie)
       return;
     }
 
@@ -124,13 +139,14 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
       setState(() => _isValidating = true);
       try {
         final api = ref.read(invitationApiServiceProvider);
-        final isValid = await api.validateDomain(value);
+        final isValid = await api.validateDomain(cleanValue);
         if (mounted) {
           setState(() {
             _isDomainValid = isValid;
             _isValidating = false;
           });
-          if (isValid) widget.onDomainChanged(value);
+          // VŽDY pošleme rodičovi doménu so zavináčom, aby sa to na BE uložilo ako "@vutbr.cz"
+          if (isValid) widget.onDomainChanged('@$cleanValue');
         }
       } catch (e) {
         if (mounted) setState(() => _isValidating = false);
@@ -154,9 +170,7 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children:[
-            // ==========================================
             // RIADOK 1: ACCESS MODE -> DOMAIN SELECT
-            // ==========================================
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -170,12 +184,8 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
                 ],
               ),
             ),
-
             Divider(height: 1, color: cs.outlineVariant.withAlpha(80)),
-
-            // ==========================================
             // RIADOK 2: DEADLINE -> ACTION BUTTONS
-            // ==========================================
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -184,12 +194,8 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children:[
-                      // Ľavá polovica: Deadline
-                      Expanded(
-                        child: _buildDeadlineCell(cs),
-                      ),
+                      Expanded(child: _buildDeadlineCell(cs)),
                       const SizedBox(width: 12),
-                      // Pravá polovica: Akčné tlačidlá (zalamovacie)
                       Expanded(
                         child: Wrap(
                           alignment: WrapAlignment.end,
@@ -277,6 +283,9 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
     );
   }
 
+  // --- CELL BUILDERS (Ostatné nechávame nezmenené, upravujeme len _buildDomainCell) ---
+
+  // ... _buildDeadlineCell a _buildAccessCell ostávajú rovnaké ...
   Widget _buildDeadlineCell(ColorScheme cs) {
     return _BaseCell(
       label: "DEADLINE",
@@ -342,7 +351,6 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children:[
-              // Flexible zabezpečí, že ak nie je miesto, "Restriction" sa skráti s 3 bodkami
               Flexible(
                 child: Text(
                   "Restriction",
@@ -363,7 +371,14 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
                     value: _domainRestrictionActive,
                     onChanged: (val) {
                       setState(() => _domainRestrictionActive = val);
-                      if (!val) widget.onDomainChanged(null);
+                      if (!val) {
+                        widget.onDomainChanged(null); // Vypnutie zruší doménu
+                      } else {
+                        // Ak to zapne a text tam už je, znovu ho odošleme/zvalidujeme
+                        if (_domainController.text.isNotEmpty) {
+                          _validateDomain(_domainController.text);
+                        }
+                      }
                     },
                   ),
                 ),
@@ -387,7 +402,7 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
                 onChanged: _validateDomain,
                 style: const TextStyle(fontSize: 15),
                 decoration: InputDecoration(
-                  prefixText: '@ ',
+                  prefixText: '@ ', // TOTO ROBÍ PRESNE TO ČO CHCEŠ - VIZUÁLNY ZAVINÁČ
                   prefixStyle: TextStyle(
                     color: cs.onSurface,
                     fontSize: 15,
@@ -422,6 +437,7 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
     );
   }
 
+  // Zvyšné metódy ostávajú bezo zmeny
   Widget _buildCopyButton(ColorScheme cs) {
     return TextButton.icon(
       onPressed: _handleCopy,
@@ -436,7 +452,6 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
 
   Widget _buildStateToggleButton(ColorScheme cs) {
     final isCompleted = _currentState == TaskState.completed;
-
     return TextButton.icon(
       onPressed: () {
         final newState = isCompleted ? TaskState.inProgress : TaskState.completed;
@@ -531,7 +546,6 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
       VerticalDivider(width: 32, color: cs.outlineVariant.withAlpha(80), thickness: 1);
 }
 
-// Interaktívna bunka
 class _BaseCell extends StatefulWidget {
   final String label;
   final IconData icon;

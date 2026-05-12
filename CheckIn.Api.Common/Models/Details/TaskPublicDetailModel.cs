@@ -25,4 +25,8 @@ public record TaskPublicDetailModel : IEntityModel
     public string? AllowedDomain { get; init; }
 
     public List<SubtaskCombinedListModel> Subtasks { get; init; } = new();
+
+
+    public bool IsForbidden { get; set; }
+    public string? ForbiddenMessage { get; set; }
 }

@@ -19,7 +19,7 @@ class SignalRService {
   Future<void> init() async {
     Logger.root.level = Level.ALL;
 
-    final hubUrl = '${_baseUrl.endsWith('/') ? _baseUrl : '$_baseUrl/'}hubs/tasks';
+    final hubUrl = '${_baseUrl.endsWith('/') ? _baseUrl : '$_baseUrl/'}api/hubs/tasks';
 
     _hubConnection = HubConnectionBuilder()
         .withUrl(

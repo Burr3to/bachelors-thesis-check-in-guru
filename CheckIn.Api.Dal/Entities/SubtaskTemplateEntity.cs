@@ -9,7 +9,7 @@ public class SubtaskTemplateEntity : IEntity
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
 
     [MaxLength(255)] public required string Title { get; set; }
-    [MaxLength(512)] public string? Description { get; set; }
+    public string? Description { get; set; }
     public bool IsGeneratedFromTask { get; set; }
 
     // FK na Parent Task

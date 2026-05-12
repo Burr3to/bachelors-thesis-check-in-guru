@@ -30,7 +30,7 @@ class RespondentCard extends StatelessWidget {
     final isMobile = context.isMobile;
     final firstItem = items.first;
 
-    final respondentName = firstItem.respondentName ?? "Not started";
+    final respondentName = firstItem.respondentName ?? "";
     final respondentEmail = items.firstWhereOrNull((s) => true)?.assignedToEmail;
     final isVerified = items.any((s) => s.completedByUserId != null);
     final int completedCount = items.where((s) => s.isCompleted).length;
@@ -60,6 +60,11 @@ class RespondentCard extends StatelessWidget {
       statusLabel = "$overdueCount Overdue";
       statusIcon = Icons.error_outline;
       statusColor = cs.error;
+    } else if (completedCount > 0) {
+      progressColor = cs.primary;
+      statusLabel = "In Progress";
+      statusIcon = Icons.autorenew;
+      statusColor = Colors.orange;
     }
 
     Widget headerContent;
@@ -261,11 +266,11 @@ class TaskItemRow extends StatelessWidget {
                     padding: const EdgeInsets.only(top: 4),
                     child: Row(
                       children:[
-                        Icon(Icons.access_time, size: 10, color: contentColor.withOpacity(0.8)),
+                        Icon(Icons.access_time, size: 12, color: contentColor.withOpacity(0.8)),
                         const SizedBox(width: 4),
                         Text(
                           "${isLate ? 'Overdue ' : ''}${DateFormat('dd.MM HH:mm').format(subtask.completedAt!.toLocal())}",
-                          style: TextStyle(fontSize: 11, color: contentColor.withOpacity(0.8)),
+                          style: TextStyle(fontSize: 12, color: contentColor.withAlpha(255)),
                         ),
                       ],
                     ),

@@ -154,7 +154,7 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
               spacing: 8,
               runSpacing: 4,
               children: _detectedEmails.map((email) => InputChip(
-                label: Text(email, style: const TextStyle(fontSize: 12)),
+                label: Text(email, style: TextStyle(fontSize: 13, color: cs.onSurface, fontWeight: FontWeight.w500)),
                 onDeleted: () => _removeEmail(email),
                 deleteIcon: const Icon(Icons.remove_circle_outline, size: 16),
                 deleteIconColor: cs.error,

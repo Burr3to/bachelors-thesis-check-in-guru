@@ -8,14 +8,14 @@ class RespondentSignatureField extends ConsumerWidget {
   final UserProfile? auth;
   final TextEditingController controller;
   final VoidCallback onChanged;
-  final VoidCallback onSubmitted; // PRIDANÉ
+  final VoidCallback onSubmitted;
 
   const RespondentSignatureField({
     super.key,
     required this.auth,
     required this.controller,
     required this.onChanged,
-    required this.onSubmitted, // PRIDANÉ
+    required this.onSubmitted,
   });
 
   @override
@@ -26,8 +26,8 @@ class RespondentSignatureField extends ConsumerWidget {
       return TextField(
         controller: controller,
         style: TextStyle(color: cs.onSurface),
-        textInputAction: TextInputAction.send, // PRIDANÉ: Zmení Enter na klávesnici na tlačidlo "Odoslať/Hotovo"
-        onSubmitted: (_) => onSubmitted(),     // PRIDANÉ: Zavolá _submit z nadradeného widgetu pri stlačení Enter
+        textInputAction: TextInputAction.send,
+        onSubmitted: (_) => onSubmitted(),
         decoration: InputDecoration(
           labelText: context.l10n.respond_sig_label,
           labelStyle: TextStyle(color: cs.onSurfaceVariant),

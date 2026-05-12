@@ -52,7 +52,10 @@ class AppTopBar extends ConsumerWidget implements PreferredSizeWidget {
           ),
           padding: EdgeInsets.all(isMobile ? 8 : 12),
           constraints: const BoxConstraints(), // Zruší defaultné obrovské okraje
-          onPressed: () => ref.read(themeProvider.notifier).toggleTheme(),
+          onPressed: () {
+            final platformBrightness = MediaQuery.of(context).platformBrightness;
+            ref.read(themeProvider.notifier).toggleTheme(platformBrightness);
+          },
         ),
 
         SizedBox(width: isMobile ? 4 : 8),
