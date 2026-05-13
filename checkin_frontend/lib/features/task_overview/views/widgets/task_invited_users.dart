@@ -47,7 +47,7 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
 
   void _startCooldown() {
     setState(() => _cooldownActive = true);
-    Future.delayed(const Duration(seconds: 30), () {
+    Future.delayed(const Duration(seconds: 5), () {
       if (mounted) setState(() => _cooldownActive = false);
     });
   }

@@ -224,7 +224,10 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+//deploy
 app.MapHub<TaskHub>("/hubs/tasks");
+//localhost
+app.MapHub<TaskHub>("/api/hubs/tasks");
 
 app.Run();
 

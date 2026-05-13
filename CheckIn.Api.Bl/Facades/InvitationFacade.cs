@@ -78,7 +78,6 @@ public class InvitationFacade(
 
     private async Task SyncAlreadyCompletedInvitationsAsync(CheckInDbContext db, Guid taskId, List<string> emails)
     {
-        // 0. Zistíme režim úlohy (Shared vs Individual)
         var task = await db.Tasks
             .Select(t => new { t.Id, t.SubtaskMode })
             .FirstOrDefaultAsync(t => t.Id == taskId);
@@ -88,60 +87,43 @@ public class InvitationFacade(
         foreach (var email in emails)
         {
             var normalizedEmail = email.ToLower().Trim();
-            var user = await db.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == normalizedEmail);
-            Guid? userId = user?.Id;
 
-            // Základný query pre inštancie patriace k tomuto tasku
-            var instancesQuery = db.SubtaskInstances
-                .Where(i => i.TemplateSubtask.ParentTaskId == taskId);
+            var invitation = await db.Invitations
+                .FirstOrDefaultAsync(i => i.TaskId == taskId && i.Email.ToLower() == normalizedEmail);
+
+            if (invitation == null) continue;
 
             if (task.SubtaskMode == SubtaskMode.Shared)
             {
-                // --- REŽIM: SHARED ---
-                // Tu chceme označiť pozvánku za vybavenú IBA ak existuje záznam, 
-                // ktorý je jasne podpísaný týmto konkrétnym človekom.
-                // Ak je AssignedToUserId null, znamená to, že to môže splniť ktokoľvek, 
-                // ale my tu hľadáme dôkaz, že to splnil PRÁVE tento email.
-                var specificallyDoneByMe = await instancesQuery.AnyAsync(i =>
-                    ((userId != null && i.AssignedToUserId == userId) ||
-                     (i.RespondentName != null && i.RespondentName.ToLower() == normalizedEmail))
-                    && i.IsCompleted);
+                // --- SHARED MODE: Hľadáme cez CompletedByUserId a prepojenie na tabuľku Users ---
+                // Čip zozelenie, ak v DB existuje inštancia tohto tasku, ktorú splnil User s týmto emailom.
+                var userHasContributed = await db.SubtaskInstances
+                    .AnyAsync(si => si.TemplateSubtask.ParentTaskId == taskId
+                                    && si.IsCompleted
+                                    && si.CompletedByUserId != null
+                                    && db.Users.Any(u =>
+                                        u.Id == si.CompletedByUserId && u.Email.ToLower() == normalizedEmail));
 
-                if (specificallyDoneByMe)
-                {
-                    var invitation = await db.Invitations
-                        .FirstOrDefaultAsync(i => i.TaskId == taskId && i.Email.ToLower() == normalizedEmail);
-
-                    if (invitation != null)
-                    {
-                        invitation.IsAccepted = true;
-                        invitation.IsCompleted = true;
-                    }
-                }
+                invitation.IsCompleted = userHasContributed;
+                if (userHasContributed) invitation.IsAccepted = true;
             }
             else
             {
-                var hasPendingWork = await instancesQuery.AnyAsync(i =>
-                    ((userId != null && i.AssignedToUserId == userId) ||
-                     (i.RespondentName != null && i.RespondentName.ToLower() == normalizedEmail))
-                    && !i.IsCompleted);
+                // --- INDIVIDUAL MODE: Hľadáme cez AssignedToEmail ---
+                // Tu je to presné, lebo každá podúloha má v sebe natvrdo email, ktorému bola pridelená.
 
-                var hasAnyCompleted = await instancesQuery.AnyAsync(i =>
-                    ((userId != null && i.AssignedToUserId == userId) ||
-                     (i.RespondentName != null && i.RespondentName.ToLower() == normalizedEmail))
-                    && i.IsCompleted);
+                var userInstances = db.SubtaskInstances
+                    .Where(si => si.TemplateSubtask.ParentTaskId == taskId
+                                 && si.AssignedToEmail.ToLower() == normalizedEmail);
 
-                if (!hasPendingWork && hasAnyCompleted)
-                {
-                    var invitation = await db.Invitations
-                        .FirstOrDefaultAsync(i => i.TaskId == taskId && i.Email.ToLower() == normalizedEmail);
+                var hasPendingWork = await userInstances.AnyAsync(si => !si.IsCompleted);
+                var hasAnyCompleted = await userInstances.AnyAsync(si => si.IsCompleted);
 
-                    if (invitation != null)
-                    {
-                        invitation.IsAccepted = true;
-                        invitation.IsCompleted = true;
-                    }
-                }
+                // Zozelenie: nemá nič rozrobené a aspoň jednu vec už dokončil
+                invitation.IsCompleted = !hasPendingWork && hasAnyCompleted;
+
+                // Fialová (Accepted): aspoň jednu vec už klikol (alebo otvoril, ak to trackuješ inde)
+                if (hasAnyCompleted) invitation.IsAccepted = true;
             }
         }
     }

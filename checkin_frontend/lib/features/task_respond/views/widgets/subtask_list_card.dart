@@ -1,7 +1,6 @@
 import 'package:checkin_frontend/core/models/subtask_instance/subtask_combined_list_model.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/utils/l10n_extensions.dart';
-// Tvoj nový import pre responzivitu
 import '../../../../core/utils/responsive.dart';
 
 class SubtaskListCard extends StatelessWidget {
@@ -39,7 +38,13 @@ class SubtaskListCard extends StatelessWidget {
             Divider(height: 1, indent: 16, endIndent: 16, color: cs.outlineVariant),
         itemBuilder: (context, index) {
           final subtask = visibleSubtasks[index];
+
           final isDone = subtask.isCompleted;
+          // Zistíme, či to bolo splnené neskoro
+          final isLate = isDone && subtask.completedAt != null && subtask.completedAt!.isAfter(subtask.deadline);
+          // Zistíme, či to ešte nie je splnené a termín už prešiel
+          final isOverdue = !isDone && DateTime.now().isAfter(subtask.deadline);
+
           final bool hasDescription = subtask.description != null && subtask.description!.trim().isNotEmpty;
 
           final contentPadding = EdgeInsets.symmetric(
@@ -48,23 +53,32 @@ class SubtaskListCard extends StatelessWidget {
           );
 
           if (isDone) {
+            // Farba podľa toho, či to stihol načas alebo nie
+            final statusColor = isLate ? cs.error : Colors.green;
+            final statusIcon = isLate ? Icons.alarm_off : Icons.check_circle;
+
+            // Text, ktorý sa zobrazí (ak máš l10n pre neskoro, použi ho, inak hardcoded)
+            final String respondentText = subtask.respondentName ?? context.l10n.common_unknown;
+            final String subtitleText = isLate
+                ? "Completed after deadline ($respondentText)"
+                : context.l10n.respond_completed_by(respondentText);
+
             return ListTile(
               contentPadding: contentPadding,
-              leading: const Icon(Icons.check_circle, color: Colors.green),
+              leading: Icon(statusIcon, color: statusColor),
               title: Text(
                 subtask.title,
                 style: TextStyle(
-                  decoration: TextDecoration.lineThrough,
                   color: cs.onSurfaceVariant,
+                  fontSize: 17,
+                  // Minimalistický detail: prečiarknutý text pre hotové úlohy
                 ),
               ),
               subtitle: Text(
-                context.l10n.respond_completed_by(
-                  subtask.respondentName ?? context.l10n.common_unknown,
-                ),
-                style: const TextStyle(
-                  color: Colors.green,
-                  fontSize: 11,
+                subtitleText,
+                style: TextStyle(
+                  color: statusColor,
+                  fontSize: 13,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -77,7 +91,12 @@ class SubtaskListCard extends StatelessWidget {
             onChanged: (val) => onSelectionChanged(subtask.id, val ?? false),
             title: Text(
               subtask.title,
-              style: TextStyle(color: cs.onSurface, fontSize: context.isMobile ? 14 : 16),
+              // Ak je úloha nesplnená a po termíne, bude svietiť načerveno
+              style: TextStyle(
+                color: isOverdue ? cs.error : cs.onSurface,
+                fontSize: context.isMobile ? 14 : 16,
+                fontWeight: isOverdue ? FontWeight.bold : FontWeight.normal,
+              ),
             ),
             subtitle: hasDescription
                 ? Text(

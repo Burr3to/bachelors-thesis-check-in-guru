@@ -257,15 +257,44 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
                           ref.read(taskCreateProvider.notifier).updateAllowedDomain(domain);
                         },
                         onDateTap: () async {
-                          final picked = await showDatePicker(
+                          // 1. Výber dátumu
+                          final pickedDate = await showDatePicker(
                             context: context,
-                            initialDate: DateTime.now(),
-                            firstDate: DateTime.now(),
+                            initialDate: deadline.toLocal(), // Lepšie UX: nastaví sa na už vybratý dátum
+                            firstDate: DateTime.now().subtract(const Duration(days: 1)), // Pre istotu, ak by vyberal dnešok
                             lastDate: DateTime(2100),
                           );
-                          if (picked != null) {
-                            final endOfDay = _normalizeToEndOfDay(picked);
-                            notifier.setDeadline(endOfDay.toUtc());
+
+                          if (pickedDate != null) {
+                            // 2. Overenie kontextu (dobrá prax vo Flutteri po async volaní)
+                            if (!context.mounted) return;
+
+                            // 3. Výber času
+                            final pickedTime = await showTimePicker(
+                              context: context,
+                              initialTime: TimeOfDay.fromDateTime(deadline.toLocal()), // Nastaví sa na už vybratý čas
+                              builder: (BuildContext context, Widget? child) {
+                                return MediaQuery(
+                                  // Tento blok zabezpečí, že čas sa bude vyberať v 24-hodinovom formáte (nepovinné, ale u nás bežné)
+                                  data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+                                  child: child!,
+                                );
+                              },
+                            );
+
+                            if (pickedTime != null) {
+                              // 4. Spojenie dátumu a času do jedného DateTime objektu
+                              final finalDateTime = DateTime(
+                                pickedDate.year,
+                                pickedDate.month,
+                                pickedDate.day,
+                                pickedTime.hour,
+                                pickedTime.minute,
+                              );
+
+                              // 5. Uloženie
+                              notifier.setDeadline(finalDateTime.toUtc());
+                            }
                           }
                         },
                         onAuthChanged: notifier.toggleAuth,

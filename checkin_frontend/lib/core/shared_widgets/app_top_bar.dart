@@ -201,8 +201,8 @@ class _UserAccountSection extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children:[
-              Text(user.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-              Text(user.email, style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+              Text(user.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+              Text(user.email, style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant)),
             ],
           ),
         if (!isMobile) const SizedBox(width: 10),

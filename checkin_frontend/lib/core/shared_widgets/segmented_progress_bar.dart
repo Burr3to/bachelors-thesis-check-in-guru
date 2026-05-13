@@ -3,14 +3,14 @@ import 'package:flutter/material.dart';
 
 class SegmentedProgressBar extends StatelessWidget {
   final int green;
-  final int orange;
+  final int red; // Zmenené z orange na red
   final int grey;
   final double height;
 
   const SegmentedProgressBar({
     super.key,
     required this.green,
-    this.orange = 0,
+    this.red = 0,
     required this.grey,
     this.height = 10,
   });
@@ -18,7 +18,7 @@ class SegmentedProgressBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final int total = green + orange + grey;
+    final int total = green + red + grey;
 
     return Container(
       height: height,
@@ -32,11 +32,14 @@ class SegmentedProgressBar extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: Row(
-        children: [
+        children:[
+          // VČAS: Zelená
           if (green > 0)
             Expanded(flex: green, child: Container(color: Colors.green.shade400)),
-          if (orange > 0)
-            Expanded(flex: orange, child: Container(color: Colors.orange.shade300)),
+          // PO TERMÍNE (LATE): Červená
+          if (red > 0)
+            Expanded(flex: red, child: Container(color: Colors.red.shade400)),
+          // NEDOKONČENÉ: Sivá
           if (grey > 0 || total == 0)
             Expanded(
               flex: (total == 0) ? 1 : grey,

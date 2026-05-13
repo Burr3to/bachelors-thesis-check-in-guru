@@ -17,6 +17,8 @@ _TaskSummaryStats _$TaskSummaryStatsFromJson(Map<String, dynamic> json) =>
       notStarted: (json['notStarted'] as num?)?.toInt() ?? 0,
       totalSubtasks: (json['totalSubtasks'] as num?)?.toInt() ?? 0,
       completedSubtasks: (json['completedSubtasks'] as num?)?.toInt() ?? 0,
+      completedOnTime: (json['completedOnTime'] as num?)?.toInt() ?? 0,
+      issuesCount: (json['issuesCount'] as num?)?.toInt() ?? 0,
     );
 
 Map<String, dynamic> _$TaskSummaryStatsToJson(_TaskSummaryStats instance) =>
@@ -30,6 +32,8 @@ Map<String, dynamic> _$TaskSummaryStatsToJson(_TaskSummaryStats instance) =>
       'notStarted': instance.notStarted,
       'totalSubtasks': instance.totalSubtasks,
       'completedSubtasks': instance.completedSubtasks,
+      'completedOnTime': instance.completedOnTime,
+      'issuesCount': instance.issuesCount,
     };
 
 const _$SubtaskModeEnumMap = {SubtaskMode.shared: 0, SubtaskMode.individual: 1};

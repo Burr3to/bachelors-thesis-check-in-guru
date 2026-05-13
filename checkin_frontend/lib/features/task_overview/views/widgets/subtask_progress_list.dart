@@ -124,23 +124,34 @@ class _SubtaskProgressListState extends ConsumerState<SubtaskProgressList> {
   }
 
   // --- SHARED MODE ---
+  // --- SHARED MODE ---
   Widget _buildSharedMode(BuildContext context, ColorScheme cs, bool isMobile) {
     final displayTasks = widget.isMainTaskOnly
         ? widget.subtasks.where((s) => s.isCompleted).toList()
         : widget.subtasks;
 
-    final int completed = displayTasks.where((s) => s.isCompleted).length;
     final int total = displayTasks.length;
-    final int remaining = total - completed;
-    final int percent = total > 0 ? ((completed / total) * 100).toInt() : 0;
+
+    final int onTimeCount = displayTasks.where((s) =>
+    s.isCompleted && (s.completedAt == null || !s.completedAt!.isAfter(s.deadline))
+    ).length;
+
+    final int lateCount = displayTasks.where((s) =>
+    s.isCompleted && s.completedAt != null && s.completedAt!.isAfter(s.deadline)
+    ).length;
+
+    final int remaining = total - (onTimeCount + lateCount);
+
+    final int completedTotal = onTimeCount + lateCount;
+    final int percent = total > 0 ? ((completedTotal / total) * 100).toInt() : 0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children:[
+      children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.end,
-          children:[
+          children: [
             Expanded(
               child: Text(
                 widget.isMainTaskOnly ? "Signatures / Completions" : "Shared Progress",
@@ -148,13 +159,26 @@ class _SubtaskProgressListState extends ConsumerState<SubtaskProgressList> {
               ),
             ),
             if (!widget.isMainTaskOnly)
-              Text("$completed/$total ($percent%)", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: cs.primary)),
+              Text(
+                  "$completedTotal/$total ($percent%)",
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: lateCount > 0 && onTimeCount == 0 ? Colors.red : cs.primary
+                  )
+              ),
           ],
         ),
 
         if (!widget.isMainTaskOnly) ...[
           const SizedBox(height: 8),
-          SegmentedProgressBar(green: completed, grey: remaining, height: 12),
+          // POUŽITIE NOVÝCH FARIEB
+          SegmentedProgressBar(
+              green: onTimeCount,
+              red: lateCount,     // Červená pre tie, čo sú neskoro
+              grey: remaining,
+              height: 12
+          ),
         ],
 
         const SizedBox(height: 24),

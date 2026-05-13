@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart'; // Potrebné pre DateFormat
 
+import '../../../../core/utils/date_formatter.dart';
 import '../../../../core/utils/quill_viewer.dart';
-// Tvoj nový import pre responzivitu
 import '../../../../core/utils/responsive.dart';
 
 class TaskHeader extends StatelessWidget {
@@ -14,27 +14,74 @@ class TaskHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final deadlineStr = DateFormat('dd.MM.yyyy').format(deadline.toLocal());
     final cs = Theme.of(context).colorScheme;
+
+    // --- LOGIKA FARIEB A IKON ---
+    final now = DateTime.now();
+    final localDeadline = deadline.toLocal();
+
+    final isOverdue = now.isAfter(localDeadline);
+    final isToday = now.year == localDeadline.year &&
+        now.month == localDeadline.month &&
+        now.day == localDeadline.day;
+
+    Color badgeColor;
+    IconData badgeIcon;
+
+    if (isOverdue) {
+      badgeColor = cs.error; // Červená pre zmeškané
+      badgeIcon = Icons.error_outline;
+    } else if (isToday) {
+      badgeColor = Colors.orange; // Oranžová pre dnešný termín
+      badgeIcon = Icons.schedule;
+    } else {
+      badgeColor = cs.primary; // Primárna pre normálnu budúcnosť
+      badgeIcon = Icons.calendar_today;
+    }
+
+    // --- TEXTY ---
+    // Hlavný text: Normálny absolútny dátum (napr. 15.05.2026 14:00)
+    final absoluteDateStr = DateFormat('dd.MM.yyyy HH:mm').format(localDeadline);
+    // Podnadpis: Relatívny text z tvojho formattera (napr. "Zajtra o 14:00" alebo "Dnes o 14:00")
+    final relativeDateStr = DateFormatter.formatRelativeDeadline(context, deadline);
 
     return Column(
       children:[
         Center(
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), // Mierne zväčšený padding pre 2 riadky
             decoration: BoxDecoration(
-              color: cs.errorContainer.withAlpha(100),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: cs.error.withAlpha(125)),
+              color: badgeColor.withAlpha(25),
+              borderRadius: BorderRadius.circular(12), // Zmenšený radius, pri 2 riadkoch to vyzerá lepšie ako úplná "tabletka"
+              border: Border.all(color: badgeColor.withAlpha(125)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children:[
-                Icon(Icons.alarm, size: 16, color: cs.error),
-                const SizedBox(width: 6),
-                Text(
-                  "Deadline: $deadlineStr",
-                  style: TextStyle(color: cs.error, fontWeight: FontWeight.bold),
+                Icon(badgeIcon, size: 24, color: badgeColor), // Zväčšená ikona, aby ladila k 2 riadkom
+                const SizedBox(width: 12),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children:[
+                    Text(
+                      absoluteDateStr,
+                      style: TextStyle(
+                        color: badgeColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    Text(
+                      relativeDateStr,
+                      style: TextStyle(
+                        color: badgeColor.withAlpha(200), // Trochu priehľadnejšia/menej výrazná farba pre relatívny text
+                        fontWeight: FontWeight.w500,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

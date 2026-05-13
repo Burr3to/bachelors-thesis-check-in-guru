@@ -30,10 +30,18 @@ class RespondentCard extends StatelessWidget {
     final isMobile = context.isMobile;
     final firstItem = items.first;
 
-    final respondentName = firstItem.respondentName ?? "";
+    final completedItem = items.firstWhereOrNull((s) => s.respondentName != null);
+
+    final respondentName = completedItem?.respondentName ?? "";
     final respondentEmail = items.firstWhereOrNull((s) => true)?.assignedToEmail;
     final isVerified = items.any((s) => s.completedByUserId != null);
+
+    // --- VÝPOČTY PRE PROGRESS BAR A STATUSY ---
     final int completedCount = items.where((s) => s.isCompleted).length;
+    // Dokončené, ale po deadline:
+    final int lateCount = items.where((s) => s.isCompleted && s.completedAt != null && s.completedAt!.isAfter(s.deadline)).length;
+    // Dokončené včas:
+    final int onTimeCount = completedCount - lateCount;
 
     final bool hasOverdue = items.any((s) => !s.isCompleted && s.deadline.isBefore(DateTime.now()));
     final isLate = isMainTaskOnly && firstItem.isCompleted && firstItem.completedAt != null && firstItem.completedAt!.isAfter(firstItem.deadline);
@@ -119,7 +127,14 @@ class RespondentCard extends StatelessWidget {
           if (!isMainTaskOnly)
             Row(
               children:[
-                Expanded(child: SegmentedProgressBar(green: completedCount, grey: totalTemplates - completedCount, height: 8)),
+                Expanded(
+                  child: SegmentedProgressBar(
+                    green: onTimeCount, // Včas
+                    red: lateCount,     // Neskoro
+                    grey: totalTemplates - completedCount, // Nedokončené
+                    height: 8,
+                  ),
+                ),
                 const SizedBox(width: 12),
                 Text("$completedCount/$totalTemplates", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: progressColor)),
               ],
@@ -157,7 +172,12 @@ class RespondentCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 if (!isMainTaskOnly)
-                  SegmentedProgressBar(green: completedCount, grey: totalTemplates - completedCount, height: 6),
+                  SegmentedProgressBar(
+                    green: onTimeCount,
+                    red: lateCount,
+                    grey: totalTemplates - completedCount,
+                    height: 6,
+                  ),
               ],
             ),
           ),
@@ -238,6 +258,9 @@ class TaskItemRow extends StatelessWidget {
       icon = Icons.error_outline;
     }
 
+    // Skontrolujeme, či má subtask description (ak sa to v tvojom modeli volá inak napr. "notes", zmeň to tu)
+    final hasDescription = subtask.description != null && subtask.description!.trim().isNotEmpty;
+
     return Container(
       padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 16, vertical: 10),
       color: rowColor,
@@ -253,13 +276,37 @@ class TaskItemRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children:[
-                Text(
-                  subtask.title,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: contentColor,
-                    fontWeight: isOverdue ? FontWeight.bold : FontWeight.normal,
-                  ),
+                Row(
+                  children:[
+                    // Názov úlohy s pretekaním ...
+                    Flexible(
+                      child: Text(
+                        subtask.title,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: contentColor,
+                          fontWeight: isOverdue ? FontWeight.bold : FontWeight.normal,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    // Ak existuje popis, zobrazí sa vedľa šedou farbou a tiež preteká ...
+                    if (hasDescription) ...[
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          subtask.description!,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: cs.onSurfaceVariant,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
                 if (subtask.isCompleted && subtask.completedAt != null)
                   Padding(

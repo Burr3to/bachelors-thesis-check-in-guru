@@ -158,17 +158,44 @@ class _TaskOverviewPageState extends ConsumerState<TaskOverviewPage> {
   }
 
   Future<void> _selectDeadline(BuildContext context, TaskDetailModel task) async {
-    final DateTime? picked = await showDatePicker(
+    // 1. Výber dátumu
+    final DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: task.deadLine.toLocal(),
       firstDate: DateTime.now().subtract(const Duration(days: 365)),
       lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
     );
 
-    if (picked != null) {
-      final localDeadline = DateTime(picked.year, picked.month, picked.day, 23, 59, 59);
-      final utcDeadline = localDeadline.toUtc();
-      _updateTask(context, task, deadline: utcDeadline);
+    if (pickedDate != null) {
+      // Bezpečnostná poistka pre Flutter po await
+      if (!context.mounted) return;
+
+      // 2. Výber času
+      final TimeOfDay? pickedTime = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(task.deadLine.toLocal()),
+        builder: (BuildContext context, Widget? child) {
+          return MediaQuery(
+            data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+            child: child!,
+          );
+        },
+      );
+
+      if (pickedTime != null) {
+        // 3. Spojenie vybratého dátumu a času do jedného lokálneho DateTime
+        final localDeadline = DateTime(
+          pickedDate.year,
+          pickedDate.month,
+          pickedDate.day,
+          pickedTime.hour,
+          pickedTime.minute,
+        );
+
+        // 4. Konverzia na UTC a update
+        final utcDeadline = localDeadline.toUtc();
+        _updateTask(context, task, deadline: utcDeadline);
+      }
     }
   }
 

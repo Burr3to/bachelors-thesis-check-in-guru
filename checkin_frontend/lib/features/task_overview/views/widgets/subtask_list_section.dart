@@ -207,11 +207,13 @@ class _SubtaskListSectionState extends ConsumerState<SubtaskListSection> {
                   controller: _newTitleController,
                   autofocus: true,
                   decoration: _inputDeco(context, "Subtask title"),
+                  onSubmitted: (_) => _addTemplate(),
                 ),
                 const SizedBox(height: 8),
                 TextField(
                   controller: _newDescController,
                   decoration: _inputDeco(context, "Description (optional)"),
+                  onSubmitted: (_) => _addTemplate(),
                 ),
                 const SizedBox(height: 12),
                 Row(

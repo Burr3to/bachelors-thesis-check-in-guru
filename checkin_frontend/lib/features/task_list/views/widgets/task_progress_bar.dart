@@ -61,24 +61,28 @@ class TaskProgressBar extends ConsumerWidget {
 
   List<Widget> _buildSegments(ColorScheme colorScheme, TaskSummaryStats stats) {
     final emptyColor = colorScheme.surfaceContainerHighest;
-    if (stats.mode == SubtaskMode.shared) {
-      final completed = stats.completedSubtasks;
-      final total = stats.totalSubtasks;
-      final remaining = total - completed;
 
+    if (stats.mode == SubtaskMode.shared) {
+      // SHARED MODE:
+      // Zelená (včas), Červená (hotové neskoro), Sivá (nehotové)
       return [
-        if (completed > 0)
-          Expanded(flex: completed, child: Container(color: Colors.green.shade400)),
-        if (remaining > 0 || total == 0)
-          Expanded(flex: remaining == 0 && total == 0 ? 1 : remaining,
+        if (stats.completedOnTime > 0)
+          Expanded(flex: stats.completedOnTime, child: Container(color: Colors.green.shade400)),
+        if (stats.issuesCount > 0)
+          Expanded(flex: stats.issuesCount, child: Container(color: Colors.red.shade400)),
+        if (stats.notStarted > 0 || stats.totalSubtasks == 0)
+          Expanded(flex: stats.notStarted == 0 && stats.totalSubtasks == 0 ? 1 : stats.notStarted,
               child: Container(color: emptyColor)),
       ];
     } else {
-      // INDIVIDUAL MODE: Zelená, Oranžová, Sivá
+      // INDIVIDUAL MODE:
+      // Zelená (všetko včas), Červená (všetko hotové, ale neskoro), Oranžová (rozrobené), Sivá (nezačaté)
       final total = stats.totalRespondents;
       return [
-        if (stats.completedFull > 0)
-          Expanded(flex: stats.completedFull, child: Container(color: Colors.green.shade400)),
+        if (stats.completedOnTime > 0)
+          Expanded(flex: stats.completedOnTime, child: Container(color: Colors.green.shade400)),
+        if (stats.issuesCount > 0)
+          Expanded(flex: stats.issuesCount, child: Container(color: Colors.red.shade400)),
         if (stats.inProgress > 0)
           Expanded(flex: stats.inProgress, child: Container(color: Colors.orange.shade300)),
         if (stats.notStarted > 0 || total == 0)

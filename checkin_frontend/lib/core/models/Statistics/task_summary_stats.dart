@@ -11,15 +11,16 @@ sealed class TaskSummaryStats with _$TaskSummaryStats {
     required SubtaskMode mode,
     required double globalProgress,
 
-    // Individual Mode polia
     @Default(0) int totalRespondents,
     @Default(0) int completedFull,
     @Default(0) int inProgress,
     @Default(0) int notStarted,
-
-    // Shared Mode polia
     @Default(0) int totalSubtasks,
     @Default(0) int completedSubtasks,
+
+    // --- NOVÉ POLIA PRE FARBY ---
+    @Default(0) int completedOnTime, // Pre ZELENÚ farbu
+    @Default(0) int issuesCount,     // Pre ČERVENÚ farbu
   }) = _TaskSummaryStats;
 
   factory TaskSummaryStats.fromJson(Map<String, dynamic> json) =>

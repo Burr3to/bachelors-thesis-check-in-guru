@@ -181,9 +181,6 @@ public class TaskFacade(
         return await GetByIdAsync(task.Id);
     }
 
-    // =========================================================
-    // --- REFACTORED SHARED LOGIC FOR INSTANCES & TEMPLATES ---
-    // =========================================================
 
     private void CreateInstancesForTemplates(
         IEnumerable<SubtaskTemplateEntity> templates, Guid responseGroupId, string? email, Guid? userId,
@@ -236,8 +233,6 @@ public class TaskFacade(
             }
         }
     }
-
-    // =========================================================
 
     private async Task ProcessNewInvitations(TaskEntity task, List<string> emailsToInvite, bool isNewTask)
     {
@@ -308,6 +303,14 @@ public class TaskFacade(
     {
         var normalizedEmails = emails.Select(e => e.ToLower().Trim()).ToList();
 
+        // 1. Zistíme režim úlohy
+        var task = await dbContext.Tasks
+            .Select(t => new { t.Id, t.SubtaskMode })
+            .FirstOrDefaultAsync(t => t.Id == taskId);
+
+        if (task == null) return Result<bool>.NotFound();
+
+        // 2. Nájdeme pozvánky na odstránenie
         var invitationsToRemove = await dbContext.Invitations
             .Where(i => i.TaskId == taskId && normalizedEmails.Contains(i.Email.ToLower()))
             .ToListAsync();
@@ -315,17 +318,64 @@ public class TaskFacade(
         if (!invitationsToRemove.Any())
             return Result<bool>.Success(true);
 
-        var instancesToRemove = await dbContext.SubtaskInstances
-            .Where(si => si.TemplateSubtask.ParentTaskId == taskId &&
-                         si.AssignedToEmail != null &&
-                         normalizedEmails.Contains(si.AssignedToEmail.ToLower()))
+        // 3. Získame ID používateľov (potrebné pre oba módy na identifikáciu cez UserId)
+        var userIds = await dbContext.Users
+            .Where(u => normalizedEmails.Contains(u.Email.ToLower()))
+            .Select(u => u.Id)
             .ToListAsync();
 
         try
         {
+            if (task.SubtaskMode == SubtaskMode.Individual)
+            {
+                // --- INDIVIDUAL MODE (VRÁTENÁ A POSILNENÁ LOGIKA) ---
+                // Mažeme VŠETKY inštancie pridelené daným emailom/userom.
+                // Či sú splnené (3) alebo nesplnené (5), musia zmiznúť všetky, 
+                // pretože v Individual móde má každý svoju vlastnú sadu.
+                var instancesToRemove = await dbContext.SubtaskInstances
+                    .Where(si => si.TemplateSubtask.ParentTaskId == taskId &&
+                                 (
+                                     (si.AssignedToEmail != null &&
+                                      normalizedEmails.Contains(si.AssignedToEmail.ToLower())) ||
+                                     (si.AssignedToUserId != null && userIds.Contains(si.AssignedToUserId.Value))
+                                 ))
+                    .ToListAsync();
+
+                if (instancesToRemove.Any())
+                {
+                    dbContext.SubtaskInstances.RemoveRange(instancesToRemove);
+                }
+            }
+            else
+            {
+                // --- SHARED MODE (BEZPEČNÝ RESET) ---
+                // Tu inštancie nemažeme (sú spoločné), len hľadáme tie, ktoré tito ľudia reálne klikli.
+                var instancesToReset = await dbContext.SubtaskInstances
+                    .Where(si => si.TemplateSubtask.ParentTaskId == taskId &&
+                                 si.CompletedByUserId != null &&
+                                 userIds.Contains(si.CompletedByUserId.Value))
+                    .ToListAsync();
+
+                foreach (var si in instancesToReset)
+                {
+                    si.IsCompleted = false;
+                    si.CompletedByUserId = null;
+                    si.CompletedAt = null;
+                    si.RespondentName = null;
+                    si.Comment = null;
+                }
+            }
+
+            // Odstránime samotné pozvánky
             dbContext.Invitations.RemoveRange(invitationsToRemove);
-            dbContext.SubtaskInstances.RemoveRange(instancesToRemove);
+
             await dbContext.SaveChangesAsync();
+
+            // SignalR notifikácie
+            var taskRoom = taskId.ToString().ToLower();
+            await hubContext.Clients.Group(taskRoom).SendAsync("TaskInvitationsChanged");
+            await hubContext.Clients.Group(taskRoom).SendAsync("TaskInstancesChanged");
+
             return Result<bool>.Success(true);
         }
         catch (Exception e)
@@ -484,6 +534,7 @@ public class TaskFacade(
 
     public async Task<Result<List<TaskSummaryStats>>> GetSummaryStats(List<Guid> taskIds)
     {
+        // Vytiahneme aj CompletedAt a DeadLine!
         var allInstances = await dbContext.SubtaskInstances
             .Where(i => taskIds.Contains(i.TemplateSubtask.ParentTaskId))
             .Select(i => new
@@ -492,7 +543,9 @@ public class TaskFacade(
                 i.TemplateSubtask.ParentTask.SubtaskMode,
                 i.AssignedToUserId,
                 i.IsCompleted,
-                i.ResponseGroupId
+                i.ResponseGroupId,
+                i.CompletedAt, // PRIDANÉ
+                Deadline = i.TemplateSubtask.ParentTask.DeadLine // PRIDANÉ (Ak je deadline inde, uprav cestu)
             })
             .ToListAsync();
 
@@ -501,6 +554,7 @@ public class TaskFacade(
             .Select(t => new { t.Id, t.SubtaskMode })
             .ToDictionaryAsync(t => t.Id, t => t.SubtaskMode);
 
+        var now = DateTime.UtcNow;
         var results = new List<TaskSummaryStats>();
 
         foreach (var taskId in taskIds)
@@ -515,7 +569,11 @@ public class TaskFacade(
                     .Select(g => new
                     {
                         TotalCount = g.Count(),
-                        CompletedCount = g.Count(x => x.IsCompleted)
+                        CompletedCount = g.Count(x => x.IsCompleted),
+                        // Osoba je "Late", ak má všetko hotové, ale aspoň jeden subtask bol po deadline
+                        IsFinishedLate = g.All(x => x.IsCompleted) && g.Any(x => x.CompletedAt > x.Deadline),
+                        // Osoba je "OnTime", ak má všetko hotové a všetko bolo včas
+                        IsFinishedOnTime = g.All(x => x.IsCompleted) && g.All(x => x.CompletedAt <= x.Deadline)
                     }).ToList();
 
                 results.Add(new TaskSummaryStats()
@@ -523,27 +581,39 @@ public class TaskFacade(
                     TaskId = taskId,
                     Mode = mode,
                     TotalRespondents = userGroups.Count,
-                    CompletedFull = userGroups.Count(u => u.CompletedCount == u.TotalCount && u.TotalCount > 0),
-                    InProgress = userGroups.Count(u => u.CompletedCount > 0 && u.CompletedCount < u.TotalCount),
-                    NotStarted = userGroups.Count(u => u.CompletedCount == 0),
+
+                    CompletedOnTime = userGroups.Count(u => u.IsFinishedOnTime), // Zelená
+                    IssuesCount = userGroups.Count(u => u.IsFinishedLate), // Červená
+                    InProgress =
+                        userGroups.Count(u => u.CompletedCount > 0 && u.CompletedCount < u.TotalCount), // Oranžová
+                    NotStarted = userGroups.Count(u => u.CompletedCount == 0), // Sivá
+
                     GlobalProgress = userGroups.Count == 0
                         ? 0
-                        : (double)userGroups
-                            .Count(u => u.CompletedCount == u.TotalCount) / userGroups.Count * 100
+                        : (double)userGroups.Count(u => u.CompletedCount == u.TotalCount) / userGroups.Count * 100
                 });
             }
             else // Shared Mode
             {
                 int total = taskInstances.Count;
-                int completed = taskInstances.Count(i => i.IsCompleted);
+                // Zelená: Dokončené a včas
+                int completedOnTime = taskInstances.Count(i => i.IsCompleted && i.CompletedAt <= i.Deadline);
+                // Červená: Dokončené, ale po deadline (Late)
+                int completedLate = taskInstances.Count(i => i.IsCompleted && i.CompletedAt > i.Deadline);
+                // Sivá: Všetko ostatné, čo nie je hotové (bez ohľadu na to, či už mešká alebo nie)
+                int notCompleted = total - completedOnTime - completedLate;
 
                 results.Add(new TaskSummaryStats()
                 {
                     TaskId = taskId,
                     Mode = mode,
                     TotalSubtasks = total,
-                    CompletedSubtasks = completed,
-                    GlobalProgress = total == 0 ? 0 : (double)completed / total * 100
+                    CompletedSubtasks = completedOnTime + completedLate, // Pre label X/Y (celkovo hotové)
+
+                    // Farby pre Progress Bar:
+                    CompletedOnTime = completedOnTime, // Zelená
+                    IssuesCount = completedLate, // Červená (iba tie, čo sú hotové neskoro)
+                    NotStarted = notCompleted // Sivá (všetko nehotové)
                 });
             }
         }

@@ -214,7 +214,7 @@ class _TaskSettingsSectionState extends ConsumerState<TaskSettingsSection> {
               child: Text(
                 widget.selectedDeadline == null
                     ? "Set deadline"
-                    : DateFormat('dd MMM yyyy').format(widget.selectedDeadline!),
+                    : DateFormat('dd MMM yyyy HH:mm').format(widget.selectedDeadline!.toLocal()),
                 style: TextStyle(fontSize: 14, color: cs.onSurface),
               ),
             ),

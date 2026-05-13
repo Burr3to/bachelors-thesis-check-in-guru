@@ -21,11 +21,23 @@ public class TaskMapperProfile : Profile
         CreateMap<TaskEntity, TaskDetailModel>()
             .ForMember(dest => dest.State, opt => opt.MapFrom(src => calculateState(src)))
             .ForMember(dest => dest.Invitations, opt => opt.MapFrom(src =>
-                src.Invitations.OrderBy(i => i.Email)));
+                src.Invitations.OrderBy(i => i.Email)))
+            .ForMember(dest => dest.DeadLine,
+                opt => opt.MapFrom(src => DateTime.SpecifyKind(src.DeadLine, DateTimeKind.Utc)))
+            .ForMember(dest => dest.CreatedAt,
+                opt => opt.MapFrom(src => DateTime.SpecifyKind(src.CreatedAt, DateTimeKind.Utc)))
+            .ForMember(dest => dest.LastModifiedAt,
+                opt => opt.MapFrom(src => DateTime.SpecifyKind(src.LastModifiedAt, DateTimeKind.Utc)));
+
         CreateMap<TaskDetailModel, TaskEntity>();
 
         CreateMap<TaskEntity, TaskListModel>()
-            .ForMember(dest => dest.State, opt => opt.MapFrom(src => calculateState(src)));
+            .ForMember(dest => dest.State, opt => opt.MapFrom(src => calculateState(src))).ForMember(
+                dest => dest.DeadLine, opt => opt.MapFrom(src => DateTime.SpecifyKind(src.DeadLine, DateTimeKind.Utc)))
+            .ForMember(dest => dest.CreatedAt,
+                opt => opt.MapFrom(src => DateTime.SpecifyKind(src.CreatedAt, DateTimeKind.Utc)))
+            .ForMember(dest => dest.LastModifiedAt,
+                opt => opt.MapFrom(src => DateTime.SpecifyKind(src.LastModifiedAt, DateTimeKind.Utc)));
         CreateMap<TaskListModel, TaskEntity>();
 
         CreateMap<TaskCreateModel, TaskEntity>()

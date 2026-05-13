@@ -299,7 +299,7 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
             children:[
               Flexible(
                 child: Text(
-                  DateFormat('MMMM d').format(_deadlineDate),
+                  DateFormat('MMMM d HH:mm').format(_deadlineDate.toLocal()),
                   style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16, color: cs.primary),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
