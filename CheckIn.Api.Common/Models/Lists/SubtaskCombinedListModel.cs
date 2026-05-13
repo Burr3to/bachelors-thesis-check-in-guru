@@ -5,8 +5,7 @@ namespace CheckIn.Api.Common.Models.Lists;
 
 public record SubtaskCombinedListModel : IEntityModel
 {
-    // Dáta zo SubtaskInstanceEntity
-    public Guid Id { get; init; } // Toto je ID inštancie! (pre kliknutie Complete)
+    public Guid Id { get; init; }
     public bool IsCompleted { get; init; }
     public Guid ResponseGroupId { get; set; }
     [MaxLength(255)] public string? RespondentName { get; init; }
@@ -20,8 +19,7 @@ public record SubtaskCombinedListModel : IEntityModel
     public DateTime CreatedAt { get; init; }
     public DateTime Deadline { get; init; }
 
-    // Dáta zo SubtaskTemplateEntity
     public required string Title { get; init; }
     public string? Description { get; init; }
-    public Guid TemplateSubtaskId { get; init; } // ID šablóny, ak by sme ju potrebovali
+    public Guid TemplateSubtaskId { get; init; }
 }

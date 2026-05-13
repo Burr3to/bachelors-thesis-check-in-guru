@@ -4,7 +4,8 @@ import '../../../../core/providers/task_create/task_create_provider.dart';
 import '../../../../core/utils/l10n_extensions.dart';
 import '../../../../core/utils/responsive.dart';
 
-
+/// A section within the task creation form that allows users to add, remove,
+/// and edit subtask templates (titles and detailed descriptions).
 class SubtaskInputSection extends ConsumerStatefulWidget {
   final VoidCallback onRemoveSection;
 
@@ -17,11 +18,17 @@ class SubtaskInputSection extends ConsumerStatefulWidget {
 class _SubtaskInputSectionState extends ConsumerState<SubtaskInputSection> {
   final _inputController = TextEditingController();
   final FocusNode _inputFocusNode = FocusNode();
+
+  /// Keeps track of which subtask list items are expanded to show the description field.
   final Set<int> _expandedIndices = {};
 
+  /// Submits the current text input as a new subtask title.
   void _submitSubtask() {
     if (_inputController.text.trim().isEmpty) return;
+
+    // Add subtask to the global creation state
     ref.read(taskCreateProvider.notifier).addSubtask(_inputController.text.trim());
+
     _inputController.clear();
     _inputFocusNode.requestFocus();
   }
@@ -40,7 +47,7 @@ class _SubtaskInputSectionState extends ConsumerState<SubtaskInputSection> {
     final isMobile = context.isMobile;
 
     return Container(
-      // Na mobile menší padding
+      // Apply compact padding on mobile devices
       padding: EdgeInsets.all(isMobile ? 12 : 16),
       decoration: BoxDecoration(
         color: cs.surface,
@@ -49,11 +56,12 @@ class _SubtaskInputSectionState extends ConsumerState<SubtaskInputSection> {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children:[
+        children: [
+          // Section Header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children:[
-              Expanded( // Expanded aby dlhý nadpis nepretiekol
+            children: [
+              Expanded(
                 child: Text(
                   context.l10n.task_create_subtasks_title,
                   style: TextStyle(fontWeight: FontWeight.bold, color: cs.onSurface),
@@ -73,8 +81,9 @@ class _SubtaskInputSectionState extends ConsumerState<SubtaskInputSection> {
           ),
           const SizedBox(height: 8),
 
+          // Input field for new subtasks
           Row(
-            children:[
+            children: [
               Expanded(
                 child: TextField(
                   controller: _inputController,
@@ -101,6 +110,7 @@ class _SubtaskInputSectionState extends ConsumerState<SubtaskInputSection> {
             ],
           ),
 
+          // List of added subtasks
           if (subtasks.isNotEmpty) ...[
             const SizedBox(height: 16),
             ListView.separated(
@@ -120,7 +130,8 @@ class _SubtaskInputSectionState extends ConsumerState<SubtaskInputSection> {
                     border: Border.all(color: cs.outlineVariant.withAlpha(125)),
                   ),
                   child: Column(
-                    children:[
+                    children: [
+                      // Subtask Row (Title and Actions)
                       ListTile(
                         visualDensity: VisualDensity.compact,
                         contentPadding: const EdgeInsets.only(left: 4, right: 8),
@@ -140,8 +151,8 @@ class _SubtaskInputSectionState extends ConsumerState<SubtaskInputSection> {
                           },
                         ),
                         title: Row(
-                          children:[
-                            // ZMENA: Obalené do Flexible, aby dlhý nadpis nezničil Row
+                          children: [
+                            // Flexible wrapper prevents long titles from breaking the row
                             Flexible(
                               child: Text(
                                 subtask.title,
@@ -149,11 +160,16 @@ class _SubtaskInputSectionState extends ConsumerState<SubtaskInputSection> {
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
+                            // Inline preview of the description when collapsed
                             if (!isExpanded && hasDescription)
                               Expanded(
                                 child: Text(
                                   " • ${subtask.description}",
-                                  style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant.withOpacity(0.5), fontStyle: FontStyle.italic),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: cs.onSurfaceVariant.withOpacity(0.5),
+                                    fontStyle: FontStyle.italic,
+                                  ),
                                   overflow: TextOverflow.ellipsis,
                                   maxLines: 1,
                                 ),
@@ -166,6 +182,7 @@ class _SubtaskInputSectionState extends ConsumerState<SubtaskInputSection> {
                         ),
                       ),
 
+                      // Expanded input for detailed subtask notes
                       if (isExpanded)
                         Padding(
                           padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),

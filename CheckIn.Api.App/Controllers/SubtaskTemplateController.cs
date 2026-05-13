@@ -10,6 +10,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CheckIn.Api.App.Controllers;
 
+/// <summary>
+/// Controller for managing subtask templates (blueprints).
+/// Inherits standard CRUD operations from ApiControllerBase.
+/// </summary>
 [Route("api/[controller]")]
 [ApiController]
 [Authorize(AuthenticationSchemes = "Bearer")]
@@ -18,5 +22,4 @@ public class SubtaskTemplateController(ISubtaskTemplateFacade facade)
             SubtaskTemplateCreateModel, SubtaskTemplateUpdateModel, SubtaskTemplateQuery>
         (facade)
 {
-    // Všetok CRUD je zdedený z ApiControllerBase
 }

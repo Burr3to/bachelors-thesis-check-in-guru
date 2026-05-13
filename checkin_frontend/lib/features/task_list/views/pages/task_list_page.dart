@@ -7,8 +7,6 @@ import '../../../../core/providers/signalr_provider.dart';
 import '../../../../core/services/signalr_service.dart';
 import '../../../../core/providers/task_providers.dart';
 import '../../../../core/utils/l10n_extensions.dart';
-
-// --- TENTO IMPORT PRIDAJ ---
 import '../../../../core/utils/responsive.dart';
 
 import '../widgets/task_card.dart';
@@ -16,6 +14,8 @@ import '../widgets/task_filters_drawer.dart';
 import '../widgets/task_list_header.dart';
 import '../widgets/task_pagination_bar.dart';
 
+/// Main dashboard page displaying a paginated list of tasks created by the user.
+/// Includes real-time updates via SignalR to refresh the list when tasks change.
 class TaskListPage extends ConsumerStatefulWidget {
   const TaskListPage({super.key});
 
@@ -27,40 +27,39 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
   late SignalRService _signalRService;
 
   @override
-  void dispose() {
-    _signalRService.connection?.off("AuthorTaskUpdated", method: _handleAuthorTaskUpdated);
-    super.dispose();
-  }
-
-  @override
   void initState() {
     super.initState();
     _signalRService = ref.read(signalRProvider);
+
+    // Defer SignalR setup until after the widget is mounted
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _setupSignalR();
     });
   }
 
+  /// Sets up the SignalR connection and joins the user-specific room.
   void _setupSignalR() async {
     final user = ref.read(authProvider).user;
-    if (user == null) {
-      print("DEBUG: SignalR - User je null, nemôžem sa pripojiť do UserRoom");
-      return;
-    }
+    if (user == null) return;
 
-    print("DEBUG: SignalR - Pripájam sa do UserRoom pre: ${user.userId}");
+    // Join the private user room for dashboard-wide updates
     await _signalRService.joinUserRoom(user.userId);
     _signalRService.connection?.on("AuthorTaskUpdated", _handleAuthorTaskUpdated);
   }
 
+  /// Callback triggered when the server notifies that a task owned by the user has changed.
   void _handleAuthorTaskUpdated(List<Object?>? arguments) {
-    final updatedTaskId = arguments?[0] as String?;
-    print("DEBUG: SignalR - PRIJATÝ SIGNÁL! Zmenil sa task: $updatedTaskId");
-
     if (mounted) {
+      // Invalidate the provider to trigger a fresh data fetch from the API
       ref.invalidate(taskListProvider);
-      print("DEBUG: SignalR - Provider taskListProvider bol invalidovaný");
     }
+  }
+
+  @override
+  void dispose() {
+    // Unsubscribe from real-time events to prevent memory leaks
+    _signalRService.connection?.off("AuthorTaskUpdated", method: _handleAuthorTaskUpdated);
+    super.dispose();
   }
 
   @override
@@ -68,9 +67,6 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     final colorScheme = Theme.of(context).colorScheme;
     final user = ref.watch(authProvider).user;
     final asyncTasks = ref.watch(taskListProvider);
-    final pagination = ref.watch(taskQueryProvider);
-
-    // Zistíme, či sme na mobile
     final isMobile = context.isMobile;
 
     if (user == null) {
@@ -81,7 +77,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
       backgroundColor: colorScheme.surface,
       endDrawer: const TaskFiltersDrawer(),
 
-      // ZMENA PRE MOBIL: Pridáme Floating Action Button (len na mobile)
+      // Display FAB only on mobile for easier task creation
       floatingActionButton: isMobile
           ? FloatingActionButton(
         onPressed: () => context.go('/tasks/create'),
@@ -95,11 +91,10 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.end,
-          children:[
-            // HLAVIČKA
+          children: [
+            // Header with search, filtering, and view controls
             const TaskListHeader(),
 
-            // ZOZNAM ÚLOH
             Expanded(
               child: asyncTasks.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
@@ -124,12 +119,12 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                   }
 
                   return Stack(
-                    children:[
-                      // 1. VRSTVA: Zoznam úloh
+                    children: [
+                      // Layer 1: The Task Collection View
                       Padding(
                         padding: const EdgeInsets.only(bottom: 20),
-                        // ZMENA PRE MOBIL: GridView pre Desktop, ListView pre Mobil
                         child: isMobile
+                        // Single column list for mobile screens
                             ? ListView.separated(
                           padding: const EdgeInsets.only(bottom: 100),
                           itemCount: tasks.length,
@@ -138,6 +133,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                             return TaskCard(task: tasks[index]);
                           },
                         )
+                        // Multi-column grid for desktop/web screens
                             : GridView.builder(
                           padding: const EdgeInsets.only(bottom: 100),
                           gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
@@ -153,7 +149,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                         ),
                       ),
 
-                      // 2. VRSTVA: Plávajúca paginácia
+                      // Layer 2: Floating Pagination Controls
                       Positioned(
                         bottom: 20,
                         left: 0,

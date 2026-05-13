@@ -4,6 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/models/user/user_profile.dart';
 import '../../../../core/utils/l10n_extensions.dart';
 
+/// A widget that provides a signature input field for respondents.
+/// If the user is unauthenticated, it shows a text field for manual name entry.
+/// If authenticated, it displays a verified profile card with a logout option.
 class RespondentSignatureField extends ConsumerWidget {
   final UserProfile? auth;
   final TextEditingController controller;
@@ -22,6 +25,7 @@ class RespondentSignatureField extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
 
+    // CASE 1: Anonymous respondent - show a text input field
     if (auth == null) {
       return TextField(
         controller: controller,
@@ -40,6 +44,7 @@ class RespondentSignatureField extends ConsumerWidget {
       );
     }
 
+    // CASE 2: Authenticated user - show a verified identity card
     return Card(
       color: cs.primary.withAlpha(25),
       elevation: 0,

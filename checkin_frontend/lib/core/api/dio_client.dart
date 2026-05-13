@@ -1,18 +1,17 @@
 import 'package:dio/dio.dart';
 import 'package:firebase_performance_dio/firebase_performance_dio.dart';
 import 'package:flutter/foundation.dart';
-
 import '../services/auth_interceptor.dart';
 
+/// Factory class for creating and configuring the Dio HTTP client.
 class DioClient {
-  // Singleton alebo len getter, záleží ako to chceš používať.
-  // Pre Riverpod je lepšie to mať ako Provider.
 
+  /// Initializes the Dio instance with base URL, timeouts, and necessary interceptors.
   static Dio createDio() {
+    // Determine the environment URL based on the build mode
     final String apiUrl = kReleaseMode
-        ? 'https://checkin.fit.vutbr.cz/checkin/' // Produkčná URL (zmeníš podľa servera)
-        //? 'https://checkin-backend-bp.azurewebsites.net'
-        : 'https://localhost:7084/'; // Lokálna URL pre vývoj
+        ? 'https://checkin.fit.vutbr.cz/checkin/'
+        : 'https://localhost:7084/';
 
     final dio = Dio(
       BaseOptions(
@@ -20,17 +19,20 @@ class DioClient {
         connectTimeout: const Duration(seconds: 30),
         receiveTimeout: const Duration(seconds: 30),
         validateStatus: (status) {
+          // Accept status codes up to 299 as successful
           return status != null && status < 300;
         },
-        headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
       ),
     );
 
-    // Pridáme Interceptor na logovanie (aby si videl v konzole čo sa deje)
-    //dio.interceptors.add(LogInterceptor(requestBody: true, responseBody: true));
-
+    // Adds authentication management for session handling
     dio.interceptors.add(AuthInterceptor(dio, apiUrl));
 
+    // Basic error logging for debugging API failures
     dio.interceptors.add(LogInterceptor(
       requestHeader: false,
       requestBody: false,
@@ -39,9 +41,11 @@ class DioClient {
       error: true,
     ));
 
+    // Enable performance monitoring in production builds
     if (kReleaseMode) {
       dio.interceptors.add(DioFirebasePerformanceInterceptor());
     }
+
     return dio;
   }
 }

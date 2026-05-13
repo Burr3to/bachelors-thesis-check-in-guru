@@ -6,10 +6,11 @@ import '../../../../core/models/task/query/task_list_query.dart';
 import '../../../../core/providers/task_providers.dart';
 import '../../../../core/shared_widgets/primary_button.dart';
 import '../../../../core/utils/l10n_extensions.dart';
-
-// --- TENTO IMPORT PRIDAJ ---
 import '../../../../core/utils/responsive.dart';
 
+/// A header widget for the task list screen.
+/// Includes a debounced search bar, a filter toggle with a notification badge,
+/// and a conditional create button for desktop users.
 class TaskListHeader extends ConsumerStatefulWidget {
   const TaskListHeader({super.key});
 
@@ -21,6 +22,7 @@ class _TaskListHeaderState extends ConsumerState<TaskListHeader> {
   Timer? _debounce;
   final TextEditingController _searchController = TextEditingController();
 
+  /// Handles search input changes with a 500ms debounce to prevent excessive API calls.
   void _onSearchChanged(String query) {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), () {
@@ -43,15 +45,15 @@ class _TaskListHeaderState extends ConsumerState<TaskListHeader> {
     final hasFilters = filterCount > 0;
     final isMobile = context.isMobile;
 
-    // Na mobile mierne znížime výšku search baru pre elegantnejší vzhľad
+    // Adjust height and font sizes based on screen type
     final double commonHeight = isMobile ? 50.0 : 60.0;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 24),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
-        children:[
-          // 1. SEARCH BAR
+        children: [
+          // 1. SEARCH BAR - Expandable text field with debounced logic
           Expanded(
             child: SizedBox(
               height: commonHeight,
@@ -62,11 +64,9 @@ class _TaskListHeaderState extends ConsumerState<TaskListHeader> {
                 maxLines: null,
                 minLines: null,
                 textAlignVertical: TextAlignVertical.center,
-                // Na mobile menší font (16 miesto 18)
                 style: TextStyle(color: cs.onSurface, fontSize: isMobile ? 16 : 18),
                 decoration: InputDecoration(
                   hintText: context.l10n.tasks_header_search_hint,
-                  // ZMENA: Ak sme na mobile, zmenšíme hint, aby sa nestal pretečeným
                   hintStyle: TextStyle(
                       fontSize: isMobile ? 14 : null,
                       color: cs.onSurfaceVariant.withOpacity(0.7)
@@ -90,7 +90,7 @@ class _TaskListHeaderState extends ConsumerState<TaskListHeader> {
 
           const SizedBox(width: 12),
 
-          // 2. FILTER BUTTON s Badge
+          // 2. FILTER BUTTON - Opens the filter drawer and shows active filter count
           SizedBox(
             width: commonHeight,
             height: commonHeight,
@@ -118,7 +118,7 @@ class _TaskListHeaderState extends ConsumerState<TaskListHeader> {
             ),
           ),
 
-          // 3. CREATE TASK BUTTON (Zobrazí sa LEN na desktope)
+          // 3. CREATE TASK BUTTON - Visible only on desktop (mobile uses FAB)
           if (!isMobile) ...[
             const SizedBox(width: 12),
             PrimaryButton(

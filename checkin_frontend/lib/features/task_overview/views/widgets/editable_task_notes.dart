@@ -3,10 +3,11 @@ import 'package:flutter_quill/flutter_quill.dart';
 import '../../../../core/utils/l10n_extensions.dart';
 import '../../../../core/utils/quill_utils.dart';
 import '../../../../core/utils/quill_viewer.dart';
-// --- IMPORT PRE RESPONSIVE ---
 import '../../../../core/utils/responsive.dart';
 import 'hover_editable_wrapper.dart';
 
+/// A widget that allows users to view and edit task notes using a rich text editor (Quill).
+/// It toggles between a display mode and an interactive editing mode.
 class EditableTaskNotes extends StatefulWidget {
   final String? initialNotes;
   final Function(String) onSave;
@@ -27,6 +28,7 @@ class _EditableTaskNotesState extends State<EditableTaskNotes> {
     _initController();
   }
 
+  /// Initializes the Quill controller with the provided JSON content.
   void _initController() {
     _controller = QuillUtils.stringToController(widget.initialNotes);
     _controller.readOnly = false;
@@ -47,7 +49,7 @@ class _EditableTaskNotesState extends State<EditableTaskNotes> {
       isEditing: _isEditing,
       initialValue: widget.initialNotes ?? "",
       hintText: context.l10n.overview_notes_empty,
-      // Na mobile trošku menší font pre notes
+      // Adjust font size slightly for mobile readability
       style: theme.textTheme.bodyLarge?.copyWith(height: 1.5, fontSize: isMobile ? 14 : 16),
       onEditTrigger: () => setState(() => _isEditing = true),
       onCancel: () {
@@ -60,13 +62,16 @@ class _EditableTaskNotesState extends State<EditableTaskNotes> {
         widget.onSave(QuillUtils.controllerToString(_controller));
         setState(() => _isEditing = false);
       },
+      // Display mode: uses QuillViewer to render rich text
       viewChild: widget.initialNotes == null || widget.initialNotes!.isEmpty
           ? null
           : IgnorePointer(
         child: QuillViewer(jsonText: widget.initialNotes),
       ),
+      // Edit mode: provides a toolbar and a scrollable editor area
       editChild: Column(
-        children:[
+        children: [
+          // Formatting Toolbar
           Container(
             width: double.infinity,
             decoration: BoxDecoration(
@@ -88,14 +93,15 @@ class _EditableTaskNotesState extends State<EditableTaskNotes> {
                 showHeaderStyle: false,
                 showQuote: false,
                 showBackgroundColorButton: false,
-                // KĽÚČOVÁ OPRAVA PRE MOBIL - Scroll namiesto zalomenia nad klávesnicou
+                // On mobile, keep the toolbar in a single scrollable row to save vertical space
                 multiRowsDisplay: !isMobile,
               ),
             ),
           ),
 
+          // Main Editor Area
           Container(
-            // Znížená výška editora na mobile
+            // Responsive constraints to ensure the editor doesn't grow indefinitely
             constraints: BoxConstraints(
                 minHeight: isMobile ? 120 : 200,
                 maxHeight: isMobile ? 250 : 400

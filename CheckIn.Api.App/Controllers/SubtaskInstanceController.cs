@@ -11,6 +11,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CheckIn.Api.App.Controllers;
 
+/// <summary>
+/// Controller for managing the execution state of subtasks (Subtask Instances).
+/// </summary>
 [Route("api/[controller]")]
 [ApiController]
 [Authorize(AuthenticationSchemes = "Bearer")]
@@ -19,7 +22,10 @@ public class SubtaskInstanceController(ISubtaskInstanceFacade facade)
             SubtaskInstanceCreateModel, SubtaskInstanceUpdateModel, SubtaskInstanceQuery>
         (facade)
 {
-    [HttpPost("bulk-complete")] // Nový hromadný endpoint
+    /// <summary>
+    /// Updates the completion status for multiple subtask instances at once.
+    /// </summary>
+    [HttpPost("bulk-complete")]
     [AllowAnonymous]
     public async Task<ActionResult<int>> BulkComplete([FromBody] BulkSubtaskCompleteModel model)
     {
@@ -31,9 +37,11 @@ public class SubtaskInstanceController(ISubtaskInstanceFacade facade)
         var result = await ((ISubtaskInstanceFacade)Facade).BulkCompleteAsync(model);
 
         if (result.IsSuccess)
+        {
             return Ok(new { CompletedCount = result.Value });
+        }
 
-        // Vráti 401, 403, 500 atď.
+        // Map errors to appropriate HTTP status codes (401, 403, etc.)
         return HandleResultFailure(result);
     }
 }

@@ -2,35 +2,59 @@ using CheckIn.Api.Common.Enums;
 
 namespace CheckIn.Api.Common.Statistics;
 
+/// <summary>
+/// Data structure representing aggregated statistics for a task, 
+/// used for rendering progress bars and dashboard overviews.
+/// </summary>
 public class TaskSummaryStats
 {
     public Guid TaskId { get; set; }
     public SubtaskMode Mode { get; set; }
     public double GlobalProgress { get; set; }
 
-    // --- Nové polia pre detailnú vizualizáciu (Farby progress baru) ---
+    // --- Visualization Fields (Progress Bar Colors) ---
 
     /// <summary>
-    /// Počet entít (osôb v Individual / subtaskov v Shared), ktoré sú kompletne dokončené VČAS.
-    /// Táto hodnota napĺňa ZELENÚ časť progress baru.
+    /// Number of entities (participants in Individual mode / subtasks in Shared mode) 
+    /// that are completely finished ON TIME. 
+    /// This value populates the GREEN section of the progress bar.
     /// </summary>
     public int CompletedOnTime { get; set; }
 
     /// <summary>
-    /// Počet entít (osôb v Individual / subtaskov v Shared), ktoré majú problém (neskoro splnené alebo aktuálne meškajú).
-    /// Táto hodnota napĺňa ČERVENÚ časť progress baru.
+    /// Number of entities (participants in Individual mode / subtasks in Shared mode) 
+    /// that have an issue (completed late or currently overdue). 
+    /// This value populates the RED section of the progress bar.
     /// </summary>
     public int IssuesCount { get; set; }
 
-    // --- Pôvodné polia (zostávajú pre spätnú kompatibilitu a textové labely) ---
+    // --- Individual Mode Specifics ---
 
-    // Individual Mode
     public int TotalRespondents { get; set; }
-    public int CompletedFull { get; set; } // Celkový počet ľudí, čo majú hotovo (bez ohľadu na včas/neskoro)
-    public int InProgress { get; set; } // Začaté a nič nemešká (Oranžová časť)
-    public int NotStarted { get; set; } // Nezačaté a nič nemešká (Sivá časť)
 
-    // Shared Mode
+    /// <summary>
+    /// Total number of users who have finished (regardless of being on time or late).
+    /// </summary>
+    public int CompletedFull { get; set; }
+
+    /// <summary>
+    /// Number of participants who have started but not yet completed, and are not yet late.
+    /// This value populates the ORANGE section of the progress bar.
+    /// </summary>
+    public int InProgress { get; set; }
+
+    /// <summary>
+    /// Number of participants who haven't started yet and are not yet late.
+    /// This value populates the GRAY section of the progress bar.
+    /// </summary>
+    public int NotStarted { get; set; }
+
+    // --- Shared Mode Specifics ---
+
     public int TotalSubtasks { get; set; }
-    public int CompletedSubtasks { get; set; } // Čisto číselný údaj pre label X/Y
+
+    /// <summary>
+    /// Total number of completed subtasks, used primarily for the X/Y text label.
+    /// </summary>
+    public int CompletedSubtasks { get; set; }
 }

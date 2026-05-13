@@ -26,7 +26,7 @@ namespace CheckIn.Api.App.Controllers
         : ControllerBase
     {
         /// <summary>
-        /// Prijme Firebase ID Token od Flutter klienta, overí ho a vydá vlastný JWT.
+        /// Verifies Firebase ID Token, synchronizes the user locally, and issues a custom JWT.
         /// </summary>
         [HttpPost("verify-firebase-token")]
         [AllowAnonymous]
@@ -40,23 +40,22 @@ namespace CheckIn.Api.App.Controllers
             FirebaseToken decodedToken;
             try
             {
-                // Kľúčová linka: Overenie tokenu, využíva injektovaný _firebaseAuth
+                // Verify the token authenticity via Firebase Admin SDK
                 decodedToken = await firebaseAuth.VerifyIdTokenAsync(request.IdToken);
             }
             catch (FirebaseAuthException e)
             {
-                // Neplatný token (vypršaný, zmenený, zlá signatúra)
                 return Unauthorized($"Invalid Firebase token: {e.Message}");
             }
 
-            // Extrahovanie dát z Firebase tokenu
+            // Extract user data from the verified token claims
             var email = decodedToken.Claims.ContainsKey("email")
                 ? decodedToken.Claims["email"].ToString()
                 : null;
 
             var name = decodedToken.Claims.ContainsKey("name")
                 ? decodedToken.Claims["name"].ToString()
-                : "Nezname meno";
+                : "Unknown User";
 
             var firebaseUid = decodedToken.Uid;
 
@@ -65,12 +64,12 @@ namespace CheckIn.Api.App.Controllers
                 return BadRequest("Email not provided by Firebase.");
             }
 
-            // --- Spracovanie lokálnej Identity (ASP.NET Identity / PostgreSQL) ---
+            // Sync with local ASP.NET Identity system
             IdentityUser user = await userManager.FindByEmailAsync(email);
 
             if (user == null)
             {
-                // Používateľ neexistuje, vytvoríme ho
+                // Create local user if they don't exist yet
                 user = new IdentityUser { UserName = email, Email = email, EmailConfirmed = true };
                 var createResult = await userManager.CreateAsync(user);
 
@@ -81,31 +80,32 @@ namespace CheckIn.Api.App.Controllers
                 }
             }
 
+            // Update user profile in local database
             await userFacade.SaveAsync(Guid.Parse(user.Id), firebaseUid, user.Email, name);
 
-            // 1. Vygeneruj NOVÝ Access Token (teraz s krátkou expiráciou, napr. 15 minút)
+            // Generate short-lived Access Token and long-lived Refresh Token
             var accessToken = GenerateJwtToken(user, TimeSpan.FromMinutes(20));
-
-            // 2. Vygeneruj a ulož Refresh Token (dlhá expiráciu, napr. 30 dní)
             var refreshToken = await GenerateAndSaveRefreshToken(user.Id, TimeSpan.FromDays(30));
 
-            // 3. Pridaj Refresh Token do HttpOnly Cookie
+            // Store Refresh Token in a secure HttpOnly cookie
             AttachRefreshTokenToCookie(refreshToken.Token);
 
-            // 4. Vráť Access Token v tele odpovede
             return Ok(new
             {
-                token = accessToken, // Krátkožijúci JWT
+                token = accessToken,
                 userId = user.Id,
                 email = user.Email
             });
         }
 
+        /// <summary>
+        /// Rotates the Refresh Token and issues a new Access Token.
+        /// </summary>
         [HttpPost("refresh")]
-        [AllowAnonymous] // Tento endpoint musí byť neautorizovaný, pretože používa Refresh Token, nie JWT.
+        [AllowAnonymous]
         public async Task<IActionResult> RefreshToken()
         {
-            // 1. Získa Refresh Token z Cookie
+            // Extract the refresh token from secure cookies
             var refreshToken = Request.Cookies["refresh_token"];
 
             if (string.IsNullOrEmpty(refreshToken))
@@ -113,28 +113,22 @@ namespace CheckIn.Api.App.Controllers
                 return Unauthorized("Refresh token missing.");
             }
 
-            // 2. Nájdeme ho v databáze
+            // Validate the token against the database
             var tokenRecord = await dbContext.RefreshTokens
                 .Include(t => t.User)
                 .SingleOrDefaultAsync(t => t.Token == refreshToken);
 
             if (tokenRecord == null || tokenRecord.ExpiryDate < DateTime.UtcNow)
             {
-                // Token neexistuje alebo vypršal
                 return Unauthorized("Invalid or expired refresh token.");
             }
 
-            // 3. Vydáme nový Access Token (15m)
+            // Issue new tokens (Token Rotation pattern for enhanced security)
             var newAccessToken = GenerateJwtToken(tokenRecord.User, TimeSpan.FromMinutes(15));
-
-            // 4. Vydáme NOVÝ Refresh Token a starý zneplatníme (tzv. Rotating Refresh Tokens)
-            // Týmto zvyšujeme bezpečnosť - ak by bol token ukradnutý, platí iba raz.
             var newRefreshToken = await GenerateAndSaveRefreshToken(tokenRecord.UserId, TimeSpan.FromDays(30));
 
-            // 5. Nahradíme Cookie novým tokenom
             AttachRefreshTokenToCookie(newRefreshToken.Token);
 
-            // 6. Vrátime nový Access Token
             return Ok(new
             {
                 token = newAccessToken,
@@ -143,13 +137,15 @@ namespace CheckIn.Api.App.Controllers
             });
         }
 
+        /// <summary>
+        /// Creates a new refresh token and purges old ones for the user.
+        /// </summary>
         private async Task<RefreshToken> GenerateAndSaveRefreshToken(string userId, TimeSpan lifespan)
         {
             var token = Guid.NewGuid().ToString("N");
             var expiryDate = DateTime.UtcNow.Add(lifespan);
 
-
-            // Odstránenie starých tokenov (best practice)
+            // Best practice: remove existing tokens to prevent bloat and enforce single-session/rotation
             var existingTokens = dbContext.RefreshTokens.Where(t => t.UserId == userId);
             if (await existingTokens.AnyAsync())
             {
@@ -170,28 +166,32 @@ namespace CheckIn.Api.App.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                // Ak sa dva requesty "pobili", nevadí, jeden z nich vyhrá
+                // Silently handle concurrent token updates
             }
 
             return refreshToken;
         }
 
+        /// <summary>
+        /// Configures and attaches a secure HttpOnly cookie for the refresh token.
+        /// </summary>
         private void AttachRefreshTokenToCookie(string token)
         {
             var cookieOptions = new CookieOptions
             {
-                HttpOnly = true, // KĽÚČOVÉ: Neprístupné cez JavaScript (chráni proti XSS)
-                Secure = true, // KĽÚČOVÉ: Len cez HTTPS (chráni prenos)
-                Expires = DateTime.UtcNow.AddDays(30), // Expirácia zhodná s tokenom
-                SameSite = SameSiteMode.None, // Chráni proti CSRF
-                Path = "/" // Zabezpečí, že cookie sa pošle na všetky API endpointy
+                HttpOnly = true, // Prevents XSS access
+                Secure = true, // Requires HTTPS
+                Expires = DateTime.UtcNow.AddDays(30),
+                SameSite = SameSiteMode.None, // Required for cross-site requests (e.g., Flutter Web)
+                Path = "/"
             };
 
-            // POZOR: Flutter Web musí bežať na rovnakej doméne (alebo subdoméne) ako tvoj backend, 
-            // inak prehliadač cookie nepripojí kvôli SameSite politike.
             Response.Cookies.Append("refresh_token", token, cookieOptions);
         }
 
+        /// <summary>
+        /// Generates a signed JWT for the authenticated user.
+        /// </summary>
         private string GenerateJwtToken(IdentityUser user, TimeSpan lifespan)
         {
             var expirationTime = DateTime.UtcNow.Add(lifespan);

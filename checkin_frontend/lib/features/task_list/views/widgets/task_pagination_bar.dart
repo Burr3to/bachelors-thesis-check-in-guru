@@ -1,10 +1,11 @@
-import 'dart:ui'; // Potrebné pre BackdropFilter (voliteľné)
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/task_providers.dart';
 import '../../../../core/utils/l10n_extensions.dart';
 
-
+/// A floating pagination control bar for navigating through task list pages.
+/// It observes the current query state and calculates total pages based on total task count.
 class TaskPaginationBar extends ConsumerWidget {
   final int totalCount;
   const TaskPaginationBar({super.key, required this.totalCount});
@@ -13,12 +14,13 @@ class TaskPaginationBar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
 
-    // ZMENA TU: Sledujeme taskQueryProvider namiesto starého pagination providera
+    // Watch taskQueryProvider to synchronize pagination with active filters
     final query = ref.watch(taskQueryProvider);
 
-    // ZMENA TU: Používame query.pageNumber a query.pageSize
+    // Calculate the total number of pages based on total count and current page size
     final totalPages = (totalCount / query.pageSize).ceil();
 
+    // Do not render the bar if all items fit on a single page
     if (totalPages <= 1) return const SizedBox.shrink();
 
     return Center(
@@ -32,26 +34,34 @@ class TaskPaginationBar extends ConsumerWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Navigation to the previous page
             _PageButton(
               icon: Icons.arrow_back_ios_new,
-              // ZMENA TU: Voláme notifier na taskQueryProvider
               onPressed: query.pageNumber > 1
                   ? () => ref.read(taskQueryProvider.notifier).setPage(query.pageNumber - 1)
                   : null,
             ),
             const SizedBox(width: 16),
+
+            // Current page status indicator
             Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(context.l10n.tasks_pagination_page, style: TextStyle(fontSize: 9, color: cs.onSurfaceVariant, fontWeight: FontWeight.bold)),
-                Text("${query.pageNumber} / $totalPages",
-                    style: TextStyle(fontWeight: FontWeight.w900, color: cs.onSurface, fontSize: 14)),
+                Text(
+                    context.l10n.tasks_pagination_page,
+                    style: TextStyle(fontSize: 9, color: cs.onSurfaceVariant, fontWeight: FontWeight.bold)
+                ),
+                Text(
+                    "${query.pageNumber} / $totalPages",
+                    style: TextStyle(fontWeight: FontWeight.w900, color: cs.onSurface, fontSize: 14)
+                ),
               ],
             ),
             const SizedBox(width: 16),
+
+            // Navigation to the next page
             _PageButton(
               icon: Icons.arrow_forward_ios,
-              // ZMENA TU: Voláme notifier na taskQueryProvider
               onPressed: query.pageNumber < totalPages
                   ? () => ref.read(taskQueryProvider.notifier).setPage(query.pageNumber + 1)
                   : null,
@@ -63,7 +73,7 @@ class TaskPaginationBar extends ConsumerWidget {
   }
 }
 
-
+/// A private helper widget for rendering styled pagination arrow buttons.
 class _PageButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback? onPressed;
@@ -79,7 +89,6 @@ class _PageButton extends StatelessWidget {
         onPressed: onPressed,
         icon: Icon(icon, size: 14),
         style: IconButton.styleFrom(
-          // Viacej "square" s oblými hranami
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           backgroundColor: cs.surfaceContainerHighest,
         ),

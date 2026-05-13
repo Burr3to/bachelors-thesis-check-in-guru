@@ -1,14 +1,13 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/models/enums/task_enums.dart';
 import '../../../../core/models/task/query/task_list_query.dart';
 import '../../../../core/providers/task_providers.dart';
 import '../../../../core/utils/l10n_extensions.dart';
-// PRIDAJ IMPORT PRE RESPONSIVE
 import '../../../../core/utils/responsive.dart';
 
+/// A sidebar drawer providing filtering and sorting options for the task dashboard.
 class TaskFiltersDrawer extends ConsumerWidget {
   const TaskFiltersDrawer({super.key});
 
@@ -20,20 +19,20 @@ class TaskFiltersDrawer extends ConsumerWidget {
     final isMobile = context.isMobile;
 
     return Drawer(
-      // NA MOBILE: Ošetríme šírku tak, aby nezobrala viac ako 85% obrazovky (zabezpečí, že sa nezlomí na extrémne úzkych displejoch)
+      // Responsive width: cap at 85% of screen on mobile to prevent full coverage
       width: isMobile ? MediaQuery.of(context).size.width * 0.85 : 350,
       backgroundColor: cs.surface,
       surfaceTintColor: cs.surface,
       child: Column(
-        children:[
-          // HEADER
+        children: [
+          // Header section with icon and title
           Container(
-            height: isMobile ? 150 : 180, // Trochu nižší na mobile
+            height: isMobile ? 150 : 180,
             width: double.infinity,
             color: cs.surfaceContainerLow,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
-              children:[
+              children: [
                 Icon(Icons.filter_alt_rounded, size: isMobile ? 32 : 40, color: cs.primary),
                 SizedBox(height: isMobile ? 8 : 12),
                 Text(
@@ -51,14 +50,14 @@ class TaskFiltersDrawer extends ConsumerWidget {
           Expanded(
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-              children:[
-                // 1. SORTING
+              children: [
+                // --- 1. SORTING ---
                 _buildSectionTitle(cs, context.l10n.tasks_filter_sort_by),
                 DropdownButtonFormField<String>(
                   value: query.sortBy,
                   dropdownColor: cs.surfaceContainerHigh,
                   decoration: _inputDecoration(cs),
-                  items:[
+                  items: [
                     DropdownMenuItem(
                       value: "createdat",
                       child: Text(context.l10n.tasks_filter_created_at),
@@ -83,17 +82,17 @@ class TaskFiltersDrawer extends ConsumerWidget {
                   value: query.sortDesc,
                   activeColor: cs.primary,
                   onChanged: (val) => notifier.setSort(query.sortBy, val),
-                  contentPadding: EdgeInsets.zero, // Ušetrí miesto na úzkom displeji
+                  contentPadding: EdgeInsets.zero,
                 ),
 
                 const Padding(padding: EdgeInsets.symmetric(vertical: 8.0), child: Divider()),
 
-                // 2. COOPERATION MODE
+                // --- 2. COOPERATION MODE ---
                 _buildSectionTitle(cs, context.l10n.tasks_filter_mode),
                 Wrap(
                   spacing: 10,
-                  runSpacing: 10, // Dôležité pre Wrap, ak sa chipy na mobile zalamujú pod seba
-                  children:[
+                  runSpacing: 10,
+                  children: [
                     _FilterChip(
                       label: context.l10n.task_create_mode_collab,
                       selected: query.mode == SubtaskMode.shared,
@@ -108,12 +107,12 @@ class TaskFiltersDrawer extends ConsumerWidget {
                 ),
                 const SizedBox(height: 24),
 
-                // 3. VISIBILITY
+                // --- 3. VISIBILITY ---
                 _buildSectionTitle(cs, context.l10n.tasks_filter_visibility),
                 Wrap(
                   spacing: 10,
                   runSpacing: 10,
-                  children:[
+                  children: [
                     _FilterChip(
                       label: context.l10n.task_create_auth_public,
                       selected: query.requiresAuth == false,
@@ -128,12 +127,12 @@ class TaskFiltersDrawer extends ConsumerWidget {
                 ),
                 const SizedBox(height: 24),
 
-                // 4. STATUS SPECIAL
+                // --- 4. STATUS ---
                 _buildSectionTitle(cs, context.l10n.tasks_filter_status),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children:[
+                  children: [
                     _FilterChip(
                       label: "In Progress",
                       selected: query.status == TaskState.inProgress,
@@ -154,6 +153,7 @@ class TaskFiltersDrawer extends ConsumerWidget {
 
                 const SizedBox(height: 24),
 
+                // --- 5. RESPONDENT SEARCH ---
                 _buildSectionTitle(cs, "Respondent / Assignee"),
                 _RespondentEmailFilter(
                   initialValue: query.respondentEmail,
@@ -165,7 +165,7 @@ class TaskFiltersDrawer extends ConsumerWidget {
             ),
           ),
 
-          // FOOTER
+          // Footer section with reset action
           Container(
             padding: EdgeInsets.all(isMobile ? 16 : 24),
             decoration: BoxDecoration(
@@ -190,6 +190,7 @@ class TaskFiltersDrawer extends ConsumerWidget {
     );
   }
 
+  /// Helper to build standardized uppercase section titles.
   Widget _buildSectionTitle(ColorScheme cs, String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -205,6 +206,7 @@ class TaskFiltersDrawer extends ConsumerWidget {
     );
   }
 
+  /// Standard input styling for dropdowns and fields in the drawer.
   InputDecoration _inputDecoration(ColorScheme cs) {
     return InputDecoration(
       filled: true,
@@ -218,7 +220,7 @@ class TaskFiltersDrawer extends ConsumerWidget {
   }
 }
 
-// ..._FilterChip a _RespondentEmailFilter môžu ostať úplne rovnaké ako doteraz
+/// A customized ChoiceChip for filter selections.
 class _FilterChip extends StatelessWidget {
   final String label;
   final bool selected;
@@ -250,6 +252,7 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
+/// A debounced text field for searching participants by email.
 class _RespondentEmailFilter extends ConsumerStatefulWidget {
   final String? initialValue;
   final Function(String?) onChanged;
@@ -273,6 +276,7 @@ class _RespondentEmailFilterState extends ConsumerState<_RespondentEmailFilter> 
   @override
   void didUpdateWidget(_RespondentEmailFilter oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // Clear controller text if the external state is reset
     if (widget.initialValue == null && _controller.text.isNotEmpty) {
       _controller.clear();
     }
@@ -285,6 +289,7 @@ class _RespondentEmailFilterState extends ConsumerState<_RespondentEmailFilter> 
     super.dispose();
   }
 
+  /// Triggers the search callback after a short delay to prevent frequent API calls.
   void _onSearchChanged(String value) {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), () {

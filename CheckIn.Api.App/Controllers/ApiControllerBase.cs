@@ -10,6 +10,9 @@ using Microsoft.AspNetCore.Http;
 
 namespace CheckIn.Api.App.Controllers;
 
+/// <summary>
+/// Generic base controller providing standard CRUD operations.
+/// </summary>
 public abstract class ApiControllerBase<TEntity, TListModel, TDetailModel, TCreateModel, TUpdateModel, TQueryModel>(
     IFacade<TEntity, TListModel, TDetailModel, TCreateModel, TUpdateModel, TQueryModel> facade)
     : ControllerBase
@@ -21,7 +24,9 @@ public abstract class ApiControllerBase<TEntity, TListModel, TDetailModel, TCrea
     protected readonly IFacade<TEntity, TListModel, TDetailModel, TCreateModel, TUpdateModel, TQueryModel> Facade =
         facade;
 
-
+    /// <summary>
+    /// Retrieves a paginated and filtered list of entities.
+    /// </summary>
     [HttpGet]
     public virtual async Task<ActionResult<QueryResult<TListModel>>> GetList([FromQuery] TQueryModel query)
     {
@@ -35,7 +40,9 @@ public abstract class ApiControllerBase<TEntity, TListModel, TDetailModel, TCrea
         return HandleResultFailure(result);
     }
 
-
+    /// <summary>
+    /// Retrieves a specific entity detail by its unique identifier.
+    /// </summary>
     [HttpGet("{id}")]
     public virtual async Task<ActionResult<TDetailModel>> GetById(Guid id)
     {
@@ -49,10 +56,13 @@ public abstract class ApiControllerBase<TEntity, TListModel, TDetailModel, TCrea
         return HandleResultFailure(result);
     }
 
-
+    /// <summary>
+    /// Updates an existing entity.
+    /// </summary>
     [HttpPut("{id}")]
     public virtual async Task<IActionResult> Put(Guid id, [FromBody] TUpdateModel model)
     {
+        // Ensure the ID in the route matches the ID in the payload
         if (id != model.Id)
         {
             return BadRequest("ID mismatch: Route ID must match Model ID.");
@@ -66,7 +76,9 @@ public abstract class ApiControllerBase<TEntity, TListModel, TDetailModel, TCrea
         return HandleResultFailure(result);
     }
 
-
+    /// <summary>
+    /// Creates a new entity.
+    /// </summary>
     [HttpPost]
     public virtual async Task<ActionResult<TDetailModel>> Post([FromBody] TCreateModel model)
     {
@@ -74,14 +86,16 @@ public abstract class ApiControllerBase<TEntity, TListModel, TDetailModel, TCrea
 
         if (result.IsSuccess)
         {
-            // Post by mal vrátiť 201 Created a URL na novú entitu
+            // Return 201 Created with the location of the new resource
             return CreatedAtAction(nameof(GetById), new { id = result.Value!.Id }, result.Value);
         }
 
         return HandleResultFailure(result);
     }
 
-
+    /// <summary>
+    /// Deletes an entity by its identifier.
+    /// </summary>
     [HttpDelete("{id}")]
     public virtual async Task<IActionResult> Delete(Guid id)
     {
@@ -95,7 +109,9 @@ public abstract class ApiControllerBase<TEntity, TListModel, TDetailModel, TCrea
         return HandleResultFailure(result);
     }
 
-
+    /// <summary>
+    /// Maps internal result errors to standard HTTP responses.
+    /// </summary>
     protected ActionResult HandleResultFailure<T>(Result<T> result)
     {
         if (result.IsSuccess)
@@ -105,11 +121,11 @@ public abstract class ApiControllerBase<TEntity, TListModel, TDetailModel, TCrea
 
         return result.ErrorType switch
         {
-            ErrorType.NotFound => NotFound(result.ErrorMessage), // 404
+            ErrorType.NotFound => NotFound(result.ErrorMessage),
             ErrorType.Forbidden => StatusCode(StatusCodes.Status403Forbidden, new { message = result.ErrorMessage }),
-            ErrorType.Unauthorized => Unauthorized(result.ErrorMessage), // 401
-            ErrorType.Validation => BadRequest(result.ErrorMessage), // 400
-            ErrorType.Conflict => Conflict(result.ErrorMessage), // 409
+            ErrorType.Unauthorized => Unauthorized(result.ErrorMessage),
+            ErrorType.Validation => BadRequest(result.ErrorMessage),
+            ErrorType.Conflict => Conflict(result.ErrorMessage),
             _ => StatusCode(StatusCodes.Status500InternalServerError,
                 new { Error = "Internal Server Error", Details = result.ErrorMessage })
         };

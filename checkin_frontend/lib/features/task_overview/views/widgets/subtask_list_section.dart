@@ -6,10 +6,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/models/subtask_template/subtask_template_create_model.dart';
 import '../../../../core/models/subtask_template/subtask_template_update_model.dart';
 import '../../../../core/models/subtask_instance/subtask_combined_list_model.dart';
-
-// --- IMPORT PRE RESPONSIVE ---
 import '../../../../core/utils/responsive.dart';
 
+/// Section widget for managing subtask blueprints (templates).
+/// Allows the author to add, edit, or delete the "master" subtasks of a task.
 class SubtaskListSection extends ConsumerStatefulWidget {
   final String title;
   final String taskId;
@@ -27,6 +27,7 @@ class SubtaskListSection extends ConsumerStatefulWidget {
 }
 
 class _SubtaskListSectionState extends ConsumerState<SubtaskListSection> {
+  // Local UI state for edit modes and expansion
   bool _isEditMode = false;
   bool _isExpanded = false;
   bool _isAddingNew = false;
@@ -41,7 +42,7 @@ class _SubtaskListSectionState extends ConsumerState<SubtaskListSection> {
     super.dispose();
   }
 
-  // --- API ACTIONS ---
+  /// Sends a request to create a new subtask blueprint.
   Future<void> _addTemplate() async {
     if (_newTitleController.text.trim().isEmpty) return;
     try {
@@ -51,17 +52,20 @@ class _SubtaskListSectionState extends ConsumerState<SubtaskListSection> {
         parentTaskId: widget.taskId,
       );
       await ref.read(subtaskTemplateApiServiceProvider).createTemplate(model);
+
       setState(() {
         _isAddingNew = false;
         _newTitleController.clear();
         _newDescController.clear();
       });
+      // Invalidate templates to trigger a refresh
       ref.invalidate(taskTemplatesProvider(widget.taskId));
     } catch (e) {
       AppSnackBar.showError(context, "Failed to add subtask");
     }
   }
 
+  /// Removes a specific subtask blueprint and its associated instances.
   Future<void> _deleteTemplate(String id) async {
     try {
       await ref.read(subtaskTemplateApiServiceProvider).deleteTemplate(id);
@@ -71,6 +75,7 @@ class _SubtaskListSectionState extends ConsumerState<SubtaskListSection> {
     }
   }
 
+  /// Updates title or description for an existing subtask blueprint.
   Future<void> _updateTemplate(String id, {String? title, String? desc}) async {
     try {
       final existing = widget.subtasks.firstWhere((s) => s.templateSubtaskId == id);
@@ -94,6 +99,7 @@ class _SubtaskListSectionState extends ConsumerState<SubtaskListSection> {
     final cs = theme.colorScheme;
     final isMobile = context.isMobile;
 
+    // Logic for collapsing long lists
     final int totalItems = widget.subtasks.length;
     final int itemsToShow = _isEditMode || _isExpanded ? totalItems : min(3, totalItems);
     final bool hasMore = totalItems > 3 && !_isEditMode;
@@ -105,7 +111,6 @@ class _SubtaskListSectionState extends ConsumerState<SubtaskListSection> {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: cs.primary, width: 0.8),
         ),
-        // Zmenšený padding pre mobil
         padding: EdgeInsets.all(isMobile ? 12 : 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -113,7 +118,7 @@ class _SubtaskListSectionState extends ConsumerState<SubtaskListSection> {
             _buildHeader(theme, cs, totalItems, isMobile),
             const SizedBox(height: 12),
 
-            // --- LIST ---
+            // Checklist of subtask templates
             ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -127,11 +132,12 @@ class _SubtaskListSectionState extends ConsumerState<SubtaskListSection> {
                   isEditMode: _isEditMode,
                   onUpdate: _updateTemplate,
                   onDelete: _deleteTemplate,
-                  isMobile: isMobile, // Posielame isMobile nadol
+                  isMobile: isMobile,
                 );
               },
             ),
 
+            // Expansion toggle for long checklists
             if (hasMore)
               _TextLinkButton(
                 label: _isExpanded ? "Show less" : "Show ${totalItems - 3} more subtasks",
@@ -139,6 +145,7 @@ class _SubtaskListSectionState extends ConsumerState<SubtaskListSection> {
                 onPressed: () => setState(() => _isExpanded = !_isExpanded),
               ),
 
+            // Form to add new subtasks, visible only in Edit Mode
             if (_isEditMode) _buildAddSection(cs, isMobile),
           ],
         ),
@@ -146,12 +153,12 @@ class _SubtaskListSectionState extends ConsumerState<SubtaskListSection> {
     );
   }
 
+  /// Builds the section header with the title and Edit toggle.
   Widget _buildHeader(ThemeData theme, ColorScheme cs, int totalItems, bool isMobile) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.center, // Zarovná prvky pekne na stred riadku
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Flexible(
-          // Zmenené z Expanded na Flexible
           child: Text(
             widget.title,
             style: theme.textTheme.titleLarge?.copyWith(
@@ -163,7 +170,6 @@ class _SubtaskListSectionState extends ConsumerState<SubtaskListSection> {
         ),
         const SizedBox(width: 8),
 
-        // Edit tlačidlo je teraz priamo vedľa titulu
         _HeaderEditButton(
           isEditMode: _isEditMode,
           onPressed: () => setState(() {
@@ -172,7 +178,6 @@ class _SubtaskListSectionState extends ConsumerState<SubtaskListSection> {
           }),
         ),
 
-        // Counter je hneď za tlačidlom, čiže tiež zarovnaný doľava
         if (!isMobile) ...[
           const SizedBox(width: 12),
           Text(
@@ -184,6 +189,7 @@ class _SubtaskListSectionState extends ConsumerState<SubtaskListSection> {
     );
   }
 
+  /// Builds the inline form for adding a new subtask blueprint.
   Widget _buildAddSection(ColorScheme cs, bool isMobile) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -217,7 +223,7 @@ class _SubtaskListSectionState extends ConsumerState<SubtaskListSection> {
                 ),
                 const SizedBox(height: 12),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.end, // Zarovnáme tlačidlá napravo
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
                       onPressed: () => setState(() {
@@ -248,6 +254,7 @@ class _SubtaskListSectionState extends ConsumerState<SubtaskListSection> {
     );
   }
 
+  /// Standard decoration for subtask text inputs.
   InputDecoration _inputDeco(BuildContext context, String hint) {
     final cs = Theme.of(context).colorScheme;
     return InputDecoration(
@@ -275,6 +282,7 @@ class _SubtaskListSectionState extends ConsumerState<SubtaskListSection> {
 
 // --- HELPER WIDGETS ---
 
+/// Toggle button used in the section header to switch management mode.
 class _HeaderEditButton extends StatelessWidget {
   final bool isEditMode;
   final VoidCallback onPressed;
@@ -295,18 +303,18 @@ class _HeaderEditButton extends StatelessWidget {
         foregroundColor: cs.primary,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        // Menší padding pre mobil
         padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 16, vertical: 8),
       ),
     );
   }
 }
 
+/// A row displaying a single subtask template with inline editing support.
 class _SubtaskRow extends StatefulWidget {
   final int index;
   final SubtaskCombinedListModel subtask;
   final bool isEditMode;
-  final bool isMobile; // Pridané
+  final bool isMobile;
   final Function(String, {String? title, String? desc}) onUpdate;
   final Function(String) onDelete;
 
@@ -366,7 +374,7 @@ class _SubtaskRowState extends State<_SubtaskRow> {
                       initialValue: widget.subtask.title,
                       isEditMode: widget.isEditMode,
                       placeholder: "Enter title...",
-                      isMobile: widget.isMobile, // Posielame dole
+                      isMobile: widget.isMobile,
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
@@ -380,7 +388,7 @@ class _SubtaskRowState extends State<_SubtaskRow> {
                       placeholder: "Add description...",
                       isEditMode: widget.isEditMode,
                       isDescription: true,
-                      isMobile: widget.isMobile, // Posielame dole
+                      isMobile: widget.isMobile,
                       style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant.withAlpha(200)),
                       onSave: (val) => widget.onUpdate(widget.subtask.templateSubtaskId, desc: val),
                     ),
@@ -397,12 +405,13 @@ class _SubtaskRowState extends State<_SubtaskRow> {
   }
 }
 
+/// A specialized widget that acts as text when viewed and a TextField when tapped (in Edit Mode).
 class _InlineInput extends StatefulWidget {
   final String initialValue;
   final String? placeholder;
   final bool isEditMode;
   final bool isDescription;
-  final bool isMobile; // Pridané
+  final bool isMobile;
   final TextStyle style;
   final Function(String) onSave;
 
@@ -439,6 +448,7 @@ class _InlineInputState extends State<_InlineInput> {
     }
   }
 
+  /// Finalizes the edit and propagates the change.
   void _handleSave() {
     if (!_isEditing) return;
     setState(() => _isEditing = false);
@@ -488,8 +498,7 @@ class _InlineInputState extends State<_InlineInput> {
       );
     }
 
-    // NA MOBILE NENI HOVER - AK JE EDIT MÓD A JE TO PRÁZDNE, MUSÍME TO ZOBRAZIŤ JEMNE VIDITEĽNE,
-    // ABY POUŽÍVATEĽ VEDEL, ŽE TAM MÔŽE ŤUKNÚŤ.
+    // Displays placeholder or value with visual cues for interactivity
     final bool isEmpty = widget.initialValue.isEmpty;
     final bool isHighlighted = _isHovered || (widget.isMobile && isEmpty);
 
@@ -511,7 +520,6 @@ class _InlineInputState extends State<_InlineInput> {
                   : (isHighlighted ? cs.primary : widget.style.color),
               fontWeight: isEmpty ? FontWeight.w300 : widget.style.fontWeight,
               fontStyle: isEmpty ? FontStyle.italic : null,
-              // Na mobile podčiarkneme placeholder, ak nie je hover, aby sa dal identifikovať ako input
               decoration: (widget.isMobile && isEmpty)
                   ? TextDecoration.underline
                   : TextDecoration.none,
@@ -524,6 +532,7 @@ class _InlineInputState extends State<_InlineInput> {
   }
 }
 
+/// Simple delete icon button for subtask rows.
 class _DeleteIcon extends StatelessWidget {
   final VoidCallback onPressed;
   const _DeleteIcon({required this.onPressed});
@@ -542,6 +551,7 @@ class _DeleteIcon extends StatelessWidget {
   }
 }
 
+/// Centered text button used for expanding/collapsing the subtask list.
 class _TextLinkButton extends StatelessWidget {
   final String label;
   final VoidCallback onPressed;
@@ -576,6 +586,7 @@ class _TextLinkButton extends StatelessWidget {
   }
 }
 
+/// Trigger widget that opens the "Add New Subtask" input form.
 class _AddSubtaskTrigger extends StatelessWidget {
   final VoidCallback onPressed;
   const _AddSubtaskTrigger({required this.onPressed});

@@ -5,9 +5,11 @@ import '../../../../core/providers/task_create/task_create_provider.dart';
 import '../../../../core/utils/l10n_extensions.dart';
 import '../../../../core/utils/responsive.dart';
 
-
+/// Defines the strategy for sending invitations.
 enum InviteTiming { immediately, later }
 
+/// A UI section within the task creation flow that manages participant invitations.
+/// Handles email parsing from raw text and configuration of invitation dispatch timing.
 class TaskInviteSection extends ConsumerStatefulWidget {
   final Function(List<String>) onEmailsChanged;
   final bool isExpanded;
@@ -27,9 +29,10 @@ class TaskInviteSection extends ConsumerStatefulWidget {
 class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
   final _emailInputController = TextEditingController();
   bool _isChecking = false;
-  List<String> _detectedEmails =[];
+  List<String> _detectedEmails = [];
   InviteTiming _selectedTiming = InviteTiming.later;
 
+  /// Sends the raw input text to the API to extract and validate email addresses.
   Future<void> _handleParse() async {
     final rawText = _emailInputController.text.trim();
     if (rawText.isEmpty) return;
@@ -37,6 +40,7 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
     setState(() => _isChecking = true);
     try {
       final api = ref.read(invitationApiServiceProvider);
+      // Backend parses raw text (even with delimiters or accidental characters) into a clean list
       final List<String> result = await api.parseEmails('"$rawText"');
 
       setState(() {
@@ -46,18 +50,22 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
       widget.onEmailsChanged(_detectedEmails);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Failed to parse emails.")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Failed to parse emails.")),
+        );
       }
     } finally {
       if (mounted) setState(() => _isChecking = false);
     }
   }
 
+  /// Removes a specific email from the invitation list.
   void _removeEmail(String email) {
     setState(() => _detectedEmails.remove(email));
     widget.onEmailsChanged(_detectedEmails);
   }
 
+  /// Clears the entire list of detected emails.
   void _removeAll() {
     setState(() => _detectedEmails.clear());
     widget.onEmailsChanged(_detectedEmails);
@@ -69,7 +77,6 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
     final isMobile = context.isMobile;
 
     return Container(
-      // Na mobile menší padding
       padding: EdgeInsets.all(isMobile ? 12 : 16),
       decoration: BoxDecoration(
         color: cs.surface,
@@ -78,10 +85,11 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children:[
+        children: [
+          // Section header with close button
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children:[
+            children: [
               Expanded(
                 child: Text(
                   context.l10n.task_create_invite_title,
@@ -99,17 +107,17 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
           ),
           const SizedBox(height: 8),
 
+          // Email input field and 'Add' button
           IntrinsicHeight(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children:[
+              children: [
                 Expanded(
                   child: TextField(
                     controller: _emailInputController,
                     maxLines: 1,
                     onSubmitted: (_) => _isChecking ? null : _handleParse(),
                     decoration: InputDecoration(
-                      // Na mobile skrátime hint, aby nespôsoboval pretekanie
                       hintText: isMobile
                           ? "test@gmail.com; test2..."
                           : "Emails in any format test@gmail.com; test2@vutbr.com - test3...",
@@ -134,13 +142,18 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
                     padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 20),
                   ),
                   child: _isChecking
-                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  )
                       : const Text("ADD", style: TextStyle(fontWeight: FontWeight.normal)),
                 ),
               ],
             ),
           ),
 
+          // Display list of added emails as chips
           if (_detectedEmails.isNotEmpty) ...[
             const SizedBox(height: 8),
             TextButton.icon(
@@ -154,7 +167,10 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
               spacing: 8,
               runSpacing: 4,
               children: _detectedEmails.map((email) => InputChip(
-                label: Text(email, style: TextStyle(fontSize: 13, color: cs.onSurface, fontWeight: FontWeight.w500)),
+                label: Text(
+                  email,
+                  style: TextStyle(fontSize: 13, color: cs.onSurface, fontWeight: FontWeight.w500),
+                ),
                 onDeleted: () => _removeEmail(email),
                 deleteIcon: const Icon(Icons.remove_circle_outline, size: 16),
                 deleteIconColor: cs.error,
@@ -172,11 +188,11 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
           ),
           const SizedBox(height: 10),
 
-          // TOTO JE HLAVNÁ MÁGIA PRE MOBIL
+          // Responsive layout for timing options
           if (isMobile)
             Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children:[
+              children: [
                 _buildTimingOption(
                   timing: InviteTiming.immediately,
                   label: "Immediately when created",
@@ -194,7 +210,7 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
             )
           else
             Row(
-              children:[
+              children: [
                 Expanded(
                   child: _buildTimingOption(
                     timing: InviteTiming.immediately,
@@ -219,9 +235,7 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
     );
   }
 
-  // Odstránil som "Expanded" wrapper priamo z tejto metódy,
-  // pretože v Columne (na mobile) by to spadlo.
-  // Expanded je teraz pridané až hore v konštrukcii Row (pre Desktop).
+  /// Helper widget to build a selectable card for invitation timing options.
   Widget _buildTimingOption({
     required InviteTiming timing,
     required String label,
@@ -249,7 +263,7 @@ class _TaskInviteSectionState extends ConsumerState<TaskInviteSection> {
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children:[
+          children: [
             Icon(
               icon,
               size: 18,

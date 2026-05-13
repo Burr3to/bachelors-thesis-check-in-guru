@@ -9,7 +9,6 @@ part 'task_detail_model.g.dart';
 @freezed
 sealed class TaskDetailModel with _$TaskDetailModel {
   const factory TaskDetailModel({
-    // --- Polia z List Modelu ---
     required String id,
     required String title,
     String? notes,

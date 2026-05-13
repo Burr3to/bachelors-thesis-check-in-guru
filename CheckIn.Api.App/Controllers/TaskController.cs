@@ -14,6 +14,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CheckIn.Api.App.Controllers;
 
+/// <summary>
+/// Controller for managing task entities, including their lifecycle, invitations, and related subtasks.
+/// </summary>
 [Route("api/[controller]")]
 [ApiController]
 [Authorize(AuthenticationSchemes = "Bearer")]
@@ -21,6 +24,11 @@ public class TaskController(ITaskFacade taskFacade)
     : ApiControllerBase<TaskEntity, TaskListModel, TaskDetailModel, TaskCreateModel, TaskUpdateModel, TaskListQuery>
         (taskFacade)
 {
+    /// <summary>
+    /// Retrieves a paginated and filtered list of tasks.
+    /// </summary>
+    /// <param name="query">Filtering and pagination parameters.</param>
+    /// <returns>A result containing the list of tasks.</returns>
     [HttpGet]
     public override async Task<ActionResult<QueryResult<TaskListModel>>> GetList([FromQuery] TaskListQuery query)
     {
@@ -34,6 +42,10 @@ public class TaskController(ITaskFacade taskFacade)
         return Ok(result.Value);
     }
 
+    /// <summary>
+    /// Creates a new task and returns its detailed view.
+    /// </summary>
+    /// <param name="model">Task creation data.</param>
     [HttpPost]
     public override async Task<ActionResult<TaskDetailModel>> Post([FromBody] TaskCreateModel model)
     {
@@ -47,9 +59,15 @@ public class TaskController(ITaskFacade taskFacade)
         return HandleResultFailure(result);
     }
 
+    /// <summary>
+    /// Updates an existing task.
+    /// </summary>
+    /// <param name="id">Task identifier.</param>
+    /// <param name="model">Updated task data.</param>
     [HttpPut("{id}")]
     public override async Task<IActionResult> Put(Guid id, [FromBody] TaskUpdateModel model)
     {
+        // Validate that the ID in the route matches the ID in the body
         if (id != model.Id)
             return BadRequest("ID mismatch.");
 
@@ -63,6 +81,10 @@ public class TaskController(ITaskFacade taskFacade)
         return HandleResultFailure(result);
     }
 
+    /// <summary>
+    /// Retrieves all subtask instances (execution rows) associated with a specific task.
+    /// </summary>
+    /// <param name="taskId">The ID of the parent task.</param>
     [HttpGet("{taskId}/instances")]
     public async Task<ActionResult<List<SubtaskCombinedListModel>>> GetInstances([FromRoute] Guid taskId)
     {
@@ -74,6 +96,11 @@ public class TaskController(ITaskFacade taskFacade)
         return HandleResultFailure(result);
     }
 
+    /// <summary>
+    /// Removes multiple invitations from a task based on provided emails.
+    /// </summary>
+    /// <param name="id">Task identifier.</param>
+    /// <param name="emails">List of emails to be removed.</param>
     [HttpDelete("{id}/invitations")]
     public async Task<ActionResult<Result<bool>>> RemoveInvitations(Guid id, [FromBody] List<string> emails)
     {
@@ -85,6 +112,10 @@ public class TaskController(ITaskFacade taskFacade)
         return HandleResultFailure(result);
     }
 
+    /// <summary>
+    /// Retrieves the subtask templates (blueprints) defined for a specific task.
+    /// </summary>
+    /// <param name="taskId">The ID of the parent task.</param>
     [HttpGet("{taskId}/templates")]
     public async Task<ActionResult<List<SubtaskCombinedListModel>>> GetTemplates([FromRoute] Guid taskId)
     {
@@ -96,6 +127,10 @@ public class TaskController(ITaskFacade taskFacade)
         return HandleResultFailure(result);
     }
 
+    /// <summary>
+    /// Calculates summary statistics for a given set of tasks.
+    /// </summary>
+    /// <param name="taskIds">List of task IDs to include in statistics.</param>
     [HttpPost("summary-stats")]
     public async Task<ActionResult<List<TaskSummaryStats>>> GetTaskSummaryStats([FromBody] List<Guid> taskIds)
     {
@@ -108,6 +143,11 @@ public class TaskController(ITaskFacade taskFacade)
     }
 
 
+    /// <summary>
+    /// Retrieves public details of a task using a unique access hash.
+    /// Handles authentication and domain restriction logic.
+    /// </summary>
+    /// <param name="hash">The unique public access hash.</param>
     [HttpGet("public/{hash}")]
     [AllowAnonymous]
     public async Task<ActionResult<TaskPublicDetailModel>> GetPublicSubtasksByHash([FromRoute] string hash)
@@ -117,10 +157,11 @@ public class TaskController(ITaskFacade taskFacade)
         if (result.IsSuccess)
             return Ok(result.Value);
 
-        // Not the best way to handle this, but for now we want to return 200 OK even when the user
-        // is not authenticated or has forbidden domain, because the FE needs to know that the task
-        // exists and what is the reason of failure (401 vs 403).
-        // Ak chýba login (401)
+        // Special handling for public access:
+        // We return 200 OK even for restricted access so the frontend can display specific 
+        // messages (e.g., login required or domain forbidden) instead of a generic error.
+
+        // Case: User is not authenticated
         if (result.ErrorType == ErrorType.Unauthorized)
             return Ok(new TaskPublicDetailModel
             {
@@ -128,7 +169,7 @@ public class TaskController(ITaskFacade taskFacade)
                 Title = "null"
             });
 
-        // NOVÉ: Ak má zlú doménu (403) -> vrátime 200 OK, ale s info o zákaze
+        // Case: User email domain is not allowed for this task
         if (result.ErrorType == ErrorType.Forbidden)
             return Ok(new TaskPublicDetailModel
             {

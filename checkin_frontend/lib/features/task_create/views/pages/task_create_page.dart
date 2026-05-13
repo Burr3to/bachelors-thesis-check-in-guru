@@ -13,8 +13,6 @@ import '../../../../core/shared_widgets/primary_button.dart';
 import '../../../../core/shared_widgets/app_snack_bar.dart';
 import '../../../../core/utils/l10n_extensions.dart';
 import '../../../../core/utils/quill_utils.dart';
-
-// SPRÁVNY IMPORT PRE RESPONSIVE
 import '../../../../core/utils/responsive.dart';
 
 import '../widgets/subtask_input_section.dart';
@@ -22,6 +20,8 @@ import '../widgets/task_basic_info.dart';
 import '../widgets/task_invite_section.dart';
 import '../widgets/task_settings_section.dart';
 
+/// Page responsible for creating a new task, managing its basic info,
+/// invitations, subtasks, and settings.
 class TaskCreatePage extends ConsumerStatefulWidget {
   const TaskCreatePage({super.key});
 
@@ -44,10 +44,13 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
     _titleCtrl = TextEditingController();
     _quillCtrl = QuillController.basic();
     _signalRService = ref.read(signalRProvider);
+
+    // Initialize SignalR listeners and room joining after the first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _setupSignalR();
     });
 
+    // Sync UI controllers with the underlying Riverpod state
     _titleCtrl.addListener(() {
       ref.read(taskCreateProvider.notifier).updateTitle(_titleCtrl.text);
     });
@@ -56,28 +59,23 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
       final isEditorEmpty =
           _quillCtrl.document.isEmpty() || _quillCtrl.document.toPlainText().trim().isEmpty;
 
+      // Convert Delta to JSON string only if content exists
       final notes = !isEditorEmpty ? QuillUtils.controllerToString(_quillCtrl) : null;
       ref.read(taskCreateProvider.notifier).updateDescription(notes);
     });
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final signalR = ref.read(signalRProvider);
-      final userId = ref.read(authProvider).user?.userId;
-
-      if (userId != null) {
-        signalR.joinUserRoom(userId);
-        signalR.connection?.on("InvalidEmailsFound", _handleInvalidEmails);
-      }
-    });
   }
 
+  /// Sets up real-time communication to receive notifications about invalid emails
+  /// or background processing results.
   void _setupSignalR() async {
     final user = ref.read(authProvider).user;
     if (user == null) return;
+
     await _signalRService.joinUserRoom(user.userId);
     _signalRService.connection?.on("InvalidEmailsFound", _handleInvalidEmails);
   }
 
+  /// Displays a dialog if the backend identifies malformed or invalid email addresses.
   void _handleInvalidEmails(List<Object?>? arguments) {
     final rawList = arguments?[0] as List?;
     if (rawList == null) return;
@@ -92,6 +90,7 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
     }
   }
 
+  /// Utility to set the time of a given date to the very end of that day.
   DateTime _normalizeToEndOfDay(DateTime date) {
     return DateTime(date.year, date.month, date.day, 23, 59, 59, 999);
   }
@@ -104,14 +103,17 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
     super.dispose();
   }
 
+  /// Validates input and submits the task creation request to the API.
   Future<void> _handleCreateTask() async {
     final taskData = ref.read(taskCreateProvider);
 
+    // Basic client-side validation
     if (taskData.title.isEmpty || taskData.deadLine == null) {
       AppSnackBar.showInfo(context, context.l10n.task_create_err_required);
       return;
     }
 
+    // Handle domain validation warnings for restricted tasks
     if (taskData.requiresAuthenticationToComplete &&
         taskData.allowedDomain != null &&
         taskData.isDomainValid == false) {
@@ -123,7 +125,7 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
             "We couldn't verify that '${taskData.allowedDomain}' is a valid mail domain."
                 " If it's incorrect, invited respondents won't be able to access the task. Do you want to proceed anyway?",
           ),
-          actions:[
+          actions: [
             TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("CANCEL")),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
@@ -143,6 +145,7 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
       final createdTask = await ref.read(taskApiServiceProvider).createTask(taskData);
 
       if (mounted) {
+        // Refresh the task list and navigate to the newly created task overview
         ref.invalidate(taskListProvider);
         context.go('/tasks/${createdTask.id}');
       }
@@ -161,6 +164,7 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = context.isMobile;
 
+    // Responsive width calculation for the main form container
     double contentWidth;
     if (screenWidth < 600) {
       contentWidth = screenWidth;
@@ -178,7 +182,6 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
     return Scaffold(
       backgroundColor: cs.surface,
       body: SingleChildScrollView(
-        // Zmenšený padding pre lepšie zarovnanie breadcrumbu na mobile
         padding: EdgeInsets.only(
           top: isMobile ? 16 : 40,
           bottom: 20,
@@ -190,7 +193,7 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
             constraints: BoxConstraints(maxWidth: contentWidth),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children:[
+              children: [
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 0),
                   child: _buildHeader(cs, isMobile),
@@ -202,7 +205,6 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
                   decoration: BoxDecoration(
                     color: cs.surfaceContainerLow,
                     borderRadius: BorderRadius.circular(isMobile ? 0 : 16),
-                    // TOTO JE OPRAVA SKOKU: Na mobile pridáme border hore a dole
                     border: isMobile
                         ? Border.symmetric(
                       horizontal: BorderSide(color: cs.outlineVariant.withAlpha(100), width: 1),
@@ -211,13 +213,15 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children:[
+                    children: [
+                      // Section for Title and Rich Text description
                       TaskBasicInfo(titleController: _titleCtrl, quillController: _quillCtrl),
 
                       const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Divider()),
 
                       Column(
-                        children:[
+                        children: [
+                          // Section for adding participants/emails
                           if (!_inviteExpanded)
                             _CollapsedButton(
                               icon: Icons.person_add_alt_1,
@@ -233,6 +237,7 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
 
                           const SizedBox(height: 12),
 
+                          // Section for defining subtasks
                           if (!_subtasksExpanded)
                             _CollapsedButton(
                               icon: Icons.list_alt,
@@ -249,6 +254,7 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
 
                       const Padding(padding: EdgeInsets.symmetric(vertical: 10)),
 
+                      // Global task configuration (Deadline, Auth, Mode)
                       TaskSettingsSection(
                         selectedDeadline: deadline,
                         requiresAuth: requiresAuth,
@@ -257,25 +263,23 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
                           ref.read(taskCreateProvider.notifier).updateAllowedDomain(domain);
                         },
                         onDateTap: () async {
-                          // 1. Výber dátumu
+                          // Date selection
                           final pickedDate = await showDatePicker(
                             context: context,
-                            initialDate: deadline.toLocal(), // Lepšie UX: nastaví sa na už vybratý dátum
-                            firstDate: DateTime.now().subtract(const Duration(days: 1)), // Pre istotu, ak by vyberal dnešok
+                            initialDate: deadline.toLocal(),
+                            firstDate: DateTime.now().subtract(const Duration(days: 1)),
                             lastDate: DateTime(2100),
                           );
 
                           if (pickedDate != null) {
-                            // 2. Overenie kontextu (dobrá prax vo Flutteri po async volaní)
                             if (!context.mounted) return;
 
-                            // 3. Výber času
+                            // Time selection with 24h format support
                             final pickedTime = await showTimePicker(
                               context: context,
-                              initialTime: TimeOfDay.fromDateTime(deadline.toLocal()), // Nastaví sa na už vybratý čas
+                              initialTime: TimeOfDay.fromDateTime(deadline.toLocal()),
                               builder: (BuildContext context, Widget? child) {
                                 return MediaQuery(
-                                  // Tento blok zabezpečí, že čas sa bude vyberať v 24-hodinovom formáte (nepovinné, ale u nás bežné)
                                   data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
                                   child: child!,
                                 );
@@ -283,7 +287,7 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
                             );
 
                             if (pickedTime != null) {
-                              // 4. Spojenie dátumu a času do jedného DateTime objektu
+                              // Combine and store in UTC
                               final finalDateTime = DateTime(
                                 pickedDate.year,
                                 pickedDate.month,
@@ -291,8 +295,6 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
                                 pickedTime.hour,
                                 pickedTime.minute,
                               );
-
-                              // 5. Uloženie
                               notifier.setDeadline(finalDateTime.toUtc());
                             }
                           }
@@ -325,13 +327,12 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
     );
   }
 
-  // --- UPRAVENÁ HLAVIČKA ---
+  /// Builds a responsive header with breadcrumbs for mobile and a full title for desktop.
   Widget _buildHeader(ColorScheme cs, bool isMobile) {
     if (isMobile) {
-      // BREADCRUMB PRE MOBIL
       return Row(
         crossAxisAlignment: CrossAxisAlignment.center,
-        children:[
+        children: [
           InkWell(
             onTap: () {
               if (context.canPop()) context.pop();
@@ -340,11 +341,11 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
               child: Row(
-                children:[
+                children: [
                   Icon(Icons.arrow_back_ios_new, size: 14, color: cs.primary),
                   const SizedBox(width: 6),
                   Text(
-                    "Back", // Môžeš upraviť na context.l10n... ak máš preklad
+                    "Back",
                     style: TextStyle(color: cs.primary, fontSize: 14, fontWeight: FontWeight.w600),
                   ),
                 ],
@@ -369,10 +370,9 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
       );
     }
 
-    // PÔVODNÁ HLAVIČKA PRE DESKTOP
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children:[
+      children: [
         Container(
           height: 4,
           width: 60,
@@ -393,6 +393,7 @@ class _TaskCreatePageState extends ConsumerState<TaskCreatePage> {
   }
 }
 
+/// A simplified button widget for optional expandable sections.
 class _CollapsedButton extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -416,13 +417,13 @@ class _CollapsedButton extends StatelessWidget {
           border: Border.all(color: cs.outlineVariant, width: 1),
         ),
         child: Row(
-          children:[
+          children: [
             Icon(icon, color: cs.primary, size: 24),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children:[
+                children: [
                   Text(
                     label,
                     style: TextStyle(

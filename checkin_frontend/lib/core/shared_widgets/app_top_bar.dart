@@ -7,6 +7,9 @@ import '../providers/locale_provider.dart';
 import '../theme/app_theme.dart';
 import '../utils/l10n_extensions.dart';
 
+/// The main application navigation bar.
+/// Handles responsive layout by switching between a simplified mobile view
+/// and a full-featured desktop/web navigation layout.
 class AppTopBar extends ConsumerWidget implements PreferredSizeWidget {
   const AppTopBar({super.key});
 
@@ -25,14 +28,14 @@ class AppTopBar extends ConsumerWidget implements PreferredSizeWidget {
       elevation: 0,
       scrolledUnderElevation: 3,
       automaticallyImplyLeading: isMobile,
-      // Vynulujeme defaultný padding na mobile, aby sme získali viac miesta
+      // Reset default padding on mobile to maximize available space
       titleSpacing: isMobile ? 0 : NavigationToolbar.kMiddleSpacing,
 
-      // 1. TITLE: Obsahuje len Logo na mobile, alebo Logo + Navigáciu na webe
+      // Title section: Logo only on mobile, Logo + Nav links on desktop
       title: isMobile
           ? _LogoSection(isMobile: true)
           : Row(
-        children:[
+        children: [
           const _LogoSection(isMobile: false),
           const Spacer(),
           const _NavigationSection(),
@@ -40,9 +43,9 @@ class AppTopBar extends ConsumerWidget implements PreferredSizeWidget {
         ],
       ),
 
-      // 2. ACTIONS: Ikonky, ktoré sa automaticky pricapnú úplne napravo
-      actions:[
-        if (!isMobile) const _LanguageSwitch(),
+      // Actions section: Theme toggle, Language switcher, and Profile
+      actions: [
+        //if (!isMobile) const _LanguageSwitch(),
 
         IconButton(
           icon: Icon(
@@ -51,7 +54,7 @@ class AppTopBar extends ConsumerWidget implements PreferredSizeWidget {
             size: isMobile ? 22 : 24,
           ),
           padding: EdgeInsets.all(isMobile ? 8 : 12),
-          constraints: const BoxConstraints(), // Zruší defaultné obrovské okraje
+          constraints: const BoxConstraints(), // Removes default excessive padding
           onPressed: () {
             final platformBrightness = MediaQuery.of(context).platformBrightness;
             ref.read(themeProvider.notifier).toggleTheme(platformBrightness);
@@ -68,7 +71,8 @@ class AppTopBar extends ConsumerWidget implements PreferredSizeWidget {
   }
 }
 
-// --- LOGO (S opraveným orezávaním) ---
+/// Logo and brand name component.
+/// Clicking this navigates the user to the main task dashboard.
 class _LogoSection extends StatelessWidget {
   final bool isMobile;
   const _LogoSection({required this.isMobile});
@@ -85,21 +89,20 @@ class _LogoSection extends StatelessWidget {
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
-          children:[
+          children: [
             Icon(
                 Icons.check_circle_outline_rounded,
                 size: isMobile ? 24 : 32,
                 color: Colors.blueAccent
             ),
             SizedBox(width: isMobile ? 6 : 10),
-            // FLEXIBLE ZAISTÍ, ŽE SA TEXT ODREŽE IBA AK UŽ NAOZAJ NIE JE KAM UHnúŤ
+            // Flexible ensures text is elided gracefully if space is restricted
             Flexible(
               child: Text(
                 'CheckInGuru',
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onSurface,
                   fontWeight: FontWeight.bold,
-                  // Vrátil som 18px pre mobil, pretože teraz tam máme vďaka správnemu layoutu miesto!
                   fontSize: isMobile ? 18 : 20,
                 ),
                 overflow: TextOverflow.ellipsis,
@@ -112,7 +115,7 @@ class _LogoSection extends StatelessWidget {
   }
 }
 
-// --- NAVIGÁCIA (Nezmenené) ---
+/// Horizontal navigation links used in the desktop/web version of the TopBar.
 class _NavigationSection extends StatelessWidget {
   const _NavigationSection();
 
@@ -122,7 +125,7 @@ class _NavigationSection extends StatelessWidget {
 
     return Row(
       mainAxisSize: MainAxisSize.min,
-      children:[
+      children: [
         _navButton(
             context,
             context.l10n.nav_introduction,
@@ -146,6 +149,7 @@ class _NavigationSection extends StatelessWidget {
     );
   }
 
+  /// Helper widget for rendering navigation buttons with active state highlighting.
   Widget _navButton(BuildContext context, String title, String path, {required bool isActive}) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
@@ -179,7 +183,7 @@ class _NavigationSection extends StatelessWidget {
   }
 }
 
-// --- PROFIL PRIHLÁSENÉHO POUŽÍVATEĽA (Nezmenené z predošlej úpravy) ---
+/// Displays information about the authenticated user and a logout trigger.
 class _UserAccountSection extends ConsumerWidget {
   final bool isMobile;
   const _UserAccountSection({required this.isMobile});
@@ -188,19 +192,20 @@ class _UserAccountSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authProvider).user;
 
+    // Show login CTA if the user is not authenticated
     if (user == null) {
       return _LoginButtonSection(isMobile: isMobile);
     }
 
     return Row(
       mainAxisSize: MainAxisSize.min,
-      children:[
+      children: [
         if (!isMobile)
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
-            children:[
+            children: [
               Text(user.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
               Text(user.email, style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant)),
             ],
@@ -230,7 +235,7 @@ class _UserAccountSection extends ConsumerWidget {
   }
 }
 
-// --- LOGIN (Nezmenené z predošlej úpravy) ---
+/// A button to initiate the authentication process.
 class _LoginButtonSection extends ConsumerWidget {
   final bool isMobile;
   const _LoginButtonSection({required this.isMobile});
@@ -260,7 +265,7 @@ class _LoginButtonSection extends ConsumerWidget {
   }
 }
 
-// --- PREPÍNAČ JAZYKA (Nezmenené) ---
+/// Popup menu allowing users to switch between supported languages.
 class _LanguageSwitch extends ConsumerWidget {
   const _LanguageSwitch();
 
@@ -269,7 +274,7 @@ class _LanguageSwitch extends ConsumerWidget {
     return PopupMenuButton<Locale>(
       icon: const Icon(Icons.language, color: Colors.blueAccent),
       onSelected: (locale) => ref.read(localeProvider.notifier).setLocale(locale),
-      itemBuilder: (context) =>[
+      itemBuilder: (context) => [
         const PopupMenuItem(value: Locale('sk', 'SK'), child: Text("Slovenčina")),
         const PopupMenuItem(value: Locale('en', 'US'), child: Text("English")),
       ],

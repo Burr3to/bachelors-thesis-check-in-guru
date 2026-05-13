@@ -12,8 +12,7 @@ import '../services/subtask_instance_api_service.dart';
 import '../services/subtask_template_api_service.dart';
 import '../services/task_api_service.dart';
 
-// --- PAGINÁCIA (STAV A NOTIFIER) ---
-
+/// Simple container for pagination state.
 class TaskPagination {
   final int page;
   final int pageSize;
@@ -24,11 +23,12 @@ class TaskPagination {
   }
 }
 
+/// Notifier handling the state of the task list query (filtering, sorting, and pagination).
 class TaskQueryNotifier extends StateNotifier<TaskListQuery> {
   TaskQueryNotifier() : super(const TaskListQuery());
 
+  /// Updates the search text and resets the page to 1.
   void updateSearch(String? text) {
-    // Pri hľadaní sa vždy vraciame na stranu 1
     state = state.copyWith(nameContains: text, pageNumber: 1);
   }
 
@@ -44,6 +44,7 @@ class TaskQueryNotifier extends StateNotifier<TaskListQuery> {
   void setSort(String field, bool desc) =>
       state = state.copyWith(sortBy: field, sortDesc: desc, pageNumber: 1);
 
+  /// Resets all filters and sorting to default values.
   void reset() => state = const TaskListQuery();
 
   void setRespondentEmail(String? email) {
@@ -51,29 +52,31 @@ class TaskQueryNotifier extends StateNotifier<TaskListQuery> {
   }
 }
 
+/// Global provider for task query state.
 final taskQueryProvider = StateNotifierProvider<TaskQueryNotifier, TaskListQuery>((ref) {
   return TaskQueryNotifier();
 });
 
-// Provider pre stav paginácie
+/// Fetches a paginated and filtered list of tasks based on the current query state.
 final taskListProvider = FutureProvider.autoDispose<QueryResult<TaskListModel>>((ref) async {
   final api = ref.watch(taskApiServiceProvider);
   final query = ref.watch(taskQueryProvider);
 
+  // Request tasks with all active filter parameters
   return api.getTasks(
-    pageNumber: query.pageNumber,
-    pageSize: query.pageSize,
-    sortBy: query.sortBy,
-    sortDesc: query.sortDesc,
-    nameContains: query.nameContains,
-    mode: query.mode?.index,
-    status: query.status?.index,
-    requiresAuth: query.requiresAuth,
+      pageNumber: query.pageNumber,
+      pageSize: query.pageSize,
+      sortBy: query.sortBy,
+      sortDesc: query.sortDesc,
+      nameContains: query.nameContains,
+      mode: query.mode?.index,
+      status: query.status?.index,
+      requiresAuth: query.requiresAuth,
       respondentEmail: query.respondentEmail
   );
 });
 
-// --- API SERVICE PROVIDERY ---
+// --- API SERVICE PROVIDERS ---
 
 final taskApiServiceProvider = Provider<TaskApiService>((ref) {
   final dio = ref.watch(dioProvider);
@@ -90,32 +93,36 @@ final subtaskInstanceApiServiceProvider = Provider<SubtaskInstanceApiService>((r
   return SubtaskInstanceApiService(dio);
 });
 
-// --- DATA PROVIDERY ---
+// --- DATA PROVIDERS ---
 
+/// Fetches full details for a specific task.
 final taskDetailProvider = FutureProvider.autoDispose.family<TaskDetailModel, String>((
-  ref,
-  taskId,
-) async {
+    ref,
+    taskId,
+    ) async {
   final apiService = ref.watch(taskApiServiceProvider);
   return apiService.getTask(taskId);
 });
 
+/// Fetches all subtask templates for a specific task.
 final taskTemplatesProvider = FutureProvider.autoDispose
     .family<List<SubtaskCombinedListModel>, String>((ref, taskId) async {
-      final apiService = ref.watch(taskApiServiceProvider);
-      return apiService.getTemplates(taskId);
-    });
+  final apiService = ref.watch(taskApiServiceProvider);
+  return apiService.getTemplates(taskId);
+});
 
+/// Fetches all subtask execution instances for a specific task.
 final taskInstancesProvider = FutureProvider.autoDispose
     .family<List<SubtaskCombinedListModel>, String>((ref, taskId) async {
-      final apiService = ref.watch(taskApiServiceProvider);
-      return apiService.getInstances(taskId);
-    });
+  final apiService = ref.watch(taskApiServiceProvider);
+  return apiService.getInstances(taskId);
+});
 
-// --- ŠTATISTIKY ---
+// --- STATISTICS ---
 
+/// Batch fetches progress statistics for all tasks currently visible in the list.
 final allTaskStatsProvider = FutureProvider<Map<String, TaskSummaryStats>>((ref) async {
-  // Počkáme na načítanie aktuálneho zoznamu úloh
+  // Obtain the IDs of tasks currently loaded on the page
   final tasksResult = await ref.watch(taskListProvider.future);
   final ids = tasksResult.items.map((t) => t.id).toList();
 
@@ -124,5 +131,6 @@ final allTaskStatsProvider = FutureProvider<Map<String, TaskSummaryStats>>((ref)
   final api = ref.watch(taskApiServiceProvider);
   final statsList = await api.getTaskSummaryStats(ids);
 
+  // Map results by TaskId for easy lookups in the UI components
   return {for (var s in statsList) s.taskId: s};
 });

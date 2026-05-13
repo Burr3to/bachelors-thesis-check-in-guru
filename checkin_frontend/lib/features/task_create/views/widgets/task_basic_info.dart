@@ -4,6 +4,8 @@ import 'package:flutter_quill/flutter_quill.dart';
 import '../../../../core/utils/l10n_extensions.dart';
 import '../../../../core/utils/responsive.dart';
 
+/// A widget providing input fields for a task's primary information.
+/// Includes a standard TextField for the title and a Quill rich text editor for notes.
 class TaskBasicInfo extends StatefulWidget {
   final TextEditingController titleController;
   final QuillController quillController;
@@ -27,13 +29,13 @@ class _TaskBasicInfoState extends State<TaskBasicInfo> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final isMobile = context.isMobile; // Zistenie mobilu
+    final isMobile = context.isMobile;
 
     return FocusTraversalGroup(
       policy: OrderedTraversalPolicy(),
       child: Column(
-        children:[
-          // TITLE TEXTFIELD
+        children: [
+          // --- Task Title Input ---
           FocusTraversalOrder(
             order: const NumericFocusOrder(1),
             child: TextField(
@@ -64,7 +66,7 @@ class _TaskBasicInfoState extends State<TaskBasicInfo> {
 
           const SizedBox(height: 16),
 
-          // QUILL TOOLBAR
+          // --- Rich Text Formatting Toolbar ---
           ExcludeFocus(
             excluding: true,
             child: Container(
@@ -74,11 +76,9 @@ class _TaskBasicInfoState extends State<TaskBasicInfo> {
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
                 border: Border.all(color: cs.outline),
               ),
-              // Ak je to mobil, Toolbar bude scrolovatelný doľava/doprava
-              // Ak desktop, bude to zalomené do viacerých riadkov.
               child: QuillSimpleToolbar(
                 controller: widget.quillController,
-                config: QuillSimpleToolbarConfig( // Odstránený const
+                config: QuillSimpleToolbarConfig(
                   toolbarIconAlignment: WrapAlignment.center,
                   showSearchButton: false,
                   showFontFamily: false,
@@ -90,18 +90,18 @@ class _TaskBasicInfoState extends State<TaskBasicInfo> {
                   showHeaderStyle: false,
                   showQuote: false,
                   showBackgroundColorButton: false,
-                  // NAJDÔLEŽITEJŠIA ZMENA PRE MOBIL:
+                  // Mobile Optimization: Use a scrollable single-row on mobile, multiple rows on desktop
                   multiRowsDisplay: !isMobile,
                 ),
               ),
             ),
           ),
 
-          // QUILL EDITOR
+          // --- Rich Text Content Editor ---
           FocusTraversalOrder(
             order: const NumericFocusOrder(2),
             child: Container(
-              // Menšia výška na mobile, aby klávesnica všetko neprekryla
+              // Constrain height on mobile to ensure the software keyboard doesn't cover the entire view
               constraints: BoxConstraints(
                 minHeight: isMobile ? 100 : 140,
                 maxHeight: isMobile ? 250 : 400,
@@ -118,7 +118,6 @@ class _TaskBasicInfoState extends State<TaskBasicInfo> {
                 config: QuillEditorConfig(
                   placeholder: context.l10n.task_create_basic_desc_placeholder,
                   customStyles: DefaultStyles(
-                    // Paragraph
                     paragraph: DefaultTextBlockStyle(
                       TextStyle(fontSize: 17, color: Theme.of(context).colorScheme.onSurface),
                       const HorizontalSpacing(0, 0),
@@ -126,7 +125,6 @@ class _TaskBasicInfoState extends State<TaskBasicInfo> {
                       const VerticalSpacing(0, 0),
                       const BoxDecoration(),
                     ),
-                    // Placeholder
                     placeHolder: DefaultTextBlockStyle(
                       TextStyle(
                         fontSize: 17,

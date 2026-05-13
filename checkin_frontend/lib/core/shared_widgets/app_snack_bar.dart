@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 
+/// Utility class for displaying customized SnackBars with a progress timer bar.
 class AppSnackBar {
+
+  /// The core method to display a styled SnackBar.
+  /// Includes an animated progress bar at the bottom matching the duration.
   static void show(
       BuildContext context, {
         required String message,
@@ -10,8 +14,10 @@ class AppSnackBar {
       }) {
     if (!context.mounted) return;
 
+    // Remove any currently visible snackbars to prevent overlapping
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
+    // Handle responsive width for desktop/web vs mobile
     double screenWidth = MediaQuery.of(context).size.width;
     double? customWidth = screenWidth > 600 ? 400 : screenWidth * 0.9;
 
@@ -22,12 +28,12 @@ class AppSnackBar {
         behavior: SnackBarBehavior.floating,
         backgroundColor: backgroundColor,
         width: customWidth,
-        padding: EdgeInsets.zero, // Nulový padding, aby sme timer dali úplne na spodok
+        padding: EdgeInsets.zero, // Zero padding allows the timer to sit flush at the bottom
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Hlavný obsah (Text a Ikona) s vlastným paddingom
+            // Main content area containing the Icon and Text
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
@@ -46,14 +52,15 @@ class AppSnackBar {
                 ],
               ),
             ),
-            // Timer Bar
+
+            // Animated Progress Indicator (Timer Bar)
             TweenAnimationBuilder<double>(
               duration: duration,
               tween: Tween<double>(begin: 1.0, end: 0.0),
               builder: (context, value, child) {
                 return LinearProgressIndicator(
                   value: value,
-                  minHeight: 4, // Hrúbka čiary
+                  minHeight: 4,
                   backgroundColor: Colors.white.withAlpha(70),
                   valueColor: const AlwaysStoppedAnimation<Color>(Colors.white70),
                 );
@@ -65,7 +72,7 @@ class AppSnackBar {
     );
   }
 
-  // Pomocné metódy zostávajú rovnaké, len duration sa preposiela
+  /// Displays a green success SnackBar.
   static void showSuccess(BuildContext context, String message, {Duration duration = const Duration(seconds: 2)}) {
     show(
       context,
@@ -76,6 +83,7 @@ class AppSnackBar {
     );
   }
 
+  /// Displays a red error SnackBar.
   static void showError(BuildContext context, String message, {Duration duration = const Duration(seconds: 3)}) {
     show(
       context,
@@ -86,6 +94,7 @@ class AppSnackBar {
     );
   }
 
+  /// Displays a blue information SnackBar.
   static void showInfo(BuildContext context, String message, {Duration duration = const Duration(seconds: 2)}) {
     show(
       context,

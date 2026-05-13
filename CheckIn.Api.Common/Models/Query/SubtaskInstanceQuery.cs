@@ -2,18 +2,20 @@ using CheckIn.Api.Common.Models.Interfaces;
 
 namespace CheckIn.Api.Common.Models.Query;
 
-// CheckIn.Api.Common.Models.Query.SubtaskInstanceQuery.cs
+/// <summary>
+/// Query parameters for filtering and paginating subtask execution instances.
+/// </summary>
 public record SubtaskInstanceQuery : IPageableQuery
 {
-	public int PageNumber { get; set; } = 1;
-	public int PageSize { get; set; } = 10;
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 10;
 
-	// Filter: Inštancie pre konkrétnu šablónu
-	public Guid? TemplateSubtaskId { get; init; }
+    // Filter: Instances derived from a specific blueprint template
+    public Guid? TemplateSubtaskId { get; init; }
 
-	// Filter: Inštancie priradené k tomuto užívateľovi (pre zobrazenie "Moje subtasky")
-	public Guid? AssignedToUserId { get; init; }
+    // Filter: Instances assigned to a specific user (useful for "My Subtasks" views)
+    public Guid? AssignedToUserId { get; init; }
 
-	// Filter: Stav splnenia
-	public bool? IsCompleted { get; init; }
+    // Filter: Filter by completion state
+    public bool? IsCompleted { get; init; }
 }

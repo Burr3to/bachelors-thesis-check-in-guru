@@ -7,10 +7,11 @@ import 'package:intl/intl.dart';
 import '../../../../core/models/enums/task_enums.dart';
 import '../../../../core/providers/invitation_providers.dart';
 import '../../../../core/utils/l10n_extensions.dart';
+import '../../../../core/utils/responsive.dart';
 
-// --- IMPORT PRE RESPONSIVE ---
-import '../../../../core/utils/responsive.dart'; // Uprav cestu ak treba
-
+/// Header component for the Task Overview page.
+/// Displays essential metadata (deadline, access, domain) and provides primary
+/// management actions like editing, copying links, and deleting.
 class TaskOverviewHeader extends ConsumerStatefulWidget {
   final String taskId;
   final String taskLink;
@@ -49,24 +50,28 @@ class TaskOverviewHeader extends ConsumerStatefulWidget {
 }
 
 class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
+  // UI logic timers and state flags
   bool _isCopied = false;
   Timer? _copyTimer;
   bool _isConfirmingDelete = false;
   Timer? _deleteTimer;
 
-  // --- OPTIMISTIC UI STATES ---
+  // Local state for optimistic UI updates
   late bool _requiresAuth;
   late TaskState _currentState;
   late DateTime _deadlineDate;
 
+  // Domain restriction management
   late bool _domainRestrictionActive;
   late TextEditingController _domainController;
   Timer? _debounce;
   bool? _isDomainValid;
   bool _isValidating = false;
 
-  // POMOCNÉ FUNKCIE PRE BEZPEČNÚ PRÁCU S DOMÉNOU
+  /// Helper to check if a domain string is provided.
   bool _hasDomain(String? domain) => domain != null && domain.trim().isNotEmpty;
+
+  /// Sanitizes the domain string by removing the '@' symbol.
   String _cleanDomain(String? domain) => (domain ?? '').replaceAll('@', '').trim();
 
   @override
@@ -76,7 +81,6 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
     _currentState = widget.currentState;
     _deadlineDate = widget.deadlineDate;
 
-    // Inicializácia pomocou bezpečných funkcií
     _domainRestrictionActive = _hasDomain(widget.allowedDomain);
     _domainController = TextEditingController(text: _cleanDomain(widget.allowedDomain));
 
@@ -89,6 +93,7 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
   void didUpdateWidget(TaskOverviewHeader oldWidget) {
     super.didUpdateWidget(oldWidget);
 
+    // Synchronize local optimistic state if parent props change
     if (oldWidget.requiresAuth != widget.requiresAuth) {
       _requiresAuth = widget.requiresAuth;
     }
@@ -99,12 +104,11 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
       _deadlineDate = widget.deadlineDate;
     }
 
-    // Vylepšená detekcia zmien domény (napr. keď dáta prídu z API neskôr)
+    // Refresh domain state if updated externally
     if (oldWidget.allowedDomain != widget.allowedDomain && !_isValidating) {
       final newActive = _hasDomain(widget.allowedDomain);
       final newClean = _cleanDomain(widget.allowedDomain);
 
-      // Aktualizujeme text iba ak je iný, aby sme neresetovali kurzor pri písaní
       if (_domainController.text != newClean) {
         _domainController.text = newClean;
       }
@@ -125,13 +129,14 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
     super.dispose();
   }
 
+  /// Validates the domain input with debouncing and notifies the parent of changes.
   void _validateDomain(String value) {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
 
     final cleanValue = value.trim();
     if (cleanValue.isEmpty) {
       setState(() => _isDomainValid = null);
-      widget.onDomainChanged(null); // Ak zmaže input, pošleme null (zrušenie reštrikcie)
+      widget.onDomainChanged(null);
       return;
     }
 
@@ -145,10 +150,10 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
             _isDomainValid = isValid;
             _isValidating = false;
           });
-          // VŽDY pošleme rodičovi doménu so zavináčom, aby sa to na BE uložilo ako "@vutbr.cz"
+          // Notify parent using standard notation for consistency
           if (isValid) widget.onDomainChanged('@$cleanValue');
         }
-      } catch (e) {
+      } catch (_) {
         if (mounted) setState(() => _isValidating = false);
       }
     });
@@ -160,7 +165,7 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
     final isMobile = context.isMobile;
 
     if (isMobile) {
-      // --- MOBILE LAYOUT ---
+      // --- MOBILE LAYOUT: Vertically stacked sections ---
       return Container(
         decoration: BoxDecoration(
           color: cs.surface,
@@ -169,13 +174,12 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children:[
-            // RIADOK 1: ACCESS MODE -> DOMAIN SELECT
+          children: [
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
-                children:[
+                children: [
                   _buildAccessCell(cs),
                   if (_requiresAuth) ...[
                     const SizedBox(height: 16),
@@ -185,15 +189,14 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
               ),
             ),
             Divider(height: 1, color: cs.outlineVariant.withAlpha(80)),
-            // RIADOK 2: DEADLINE -> ACTION BUTTONS
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
-                children:[
+                children: [
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children:[
+                    children: [
                       Expanded(child: _buildDeadlineCell(cs)),
                       const SizedBox(width: 12),
                       Expanded(
@@ -201,7 +204,7 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
                           alignment: WrapAlignment.end,
                           spacing: 4,
                           runSpacing: 4,
-                          children:[
+                          children: [
                             _buildStateToggleButton(cs),
                             _buildCopyButton(cs),
                             _buildDeleteButton(cs),
@@ -220,7 +223,7 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
       );
     }
 
-    // --- DESKTOP LAYOUT ---
+    // --- DESKTOP LAYOUT: Horizontal row based arrangement ---
     return IntrinsicHeight(
       child: Container(
         decoration: BoxDecoration(
@@ -230,13 +233,13 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children:[
+          children: [
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children:[
+                  children: [
                     Expanded(child: _buildDeadlineCell(cs)),
                     _buildDivider(cs),
                     Expanded(child: _buildAccessCell(cs)),
@@ -255,15 +258,15 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.end,
-                children:[
+                children: [
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     mainAxisSize: MainAxisSize.min,
-                    children:[
+                    children: [
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         mainAxisSize: MainAxisSize.min,
-                        children:[
+                        children: [
                           _buildCopyButton(cs),
                           const SizedBox(width: 8),
                           _buildDeleteButton(cs),
@@ -283,9 +286,7 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
     );
   }
 
-  // --- CELL BUILDERS (Ostatné nechávame nezmenené, upravujeme len _buildDomainCell) ---
-
-  // ... _buildDeadlineCell a _buildAccessCell ostávajú rovnaké ...
+  /// Builds the deadline display cell.
   Widget _buildDeadlineCell(ColorScheme cs) {
     return _BaseCell(
       label: "DEADLINE",
@@ -293,10 +294,10 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
       onTap: widget.onDeadlineTap,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children:[
+        children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
-            children:[
+            children: [
               Flexible(
                 child: Text(
                   DateFormat('MMMM d HH:mm').format(_deadlineDate.toLocal()),
@@ -316,6 +317,7 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
     );
   }
 
+  /// Builds the access mode (Public vs Authenticated) cell.
   Widget _buildAccessCell(ColorScheme cs) {
     return _BaseCell(
       label: "ACCESS",
@@ -326,7 +328,7 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
       },
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
-        children:[
+        children: [
           Flexible(
             child: Text(
               _requiresAuth ? "Google sign-in only" : "Anyone with link",
@@ -340,6 +342,7 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
     );
   }
 
+  /// Builds the domain restriction configuration cell.
   Widget _buildDomainCell(ColorScheme cs) {
     return _BaseCell(
       label: "DOMAIN",
@@ -347,10 +350,10 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
       onTap: null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children:[
+        children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
-            children:[
+            children: [
               Flexible(
                 child: Text(
                   "Restriction",
@@ -372,9 +375,8 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
                     onChanged: (val) {
                       setState(() => _domainRestrictionActive = val);
                       if (!val) {
-                        widget.onDomainChanged(null); // Vypnutie zruší doménu
+                        widget.onDomainChanged(null);
                       } else {
-                        // Ak to zapne a text tam už je, znovu ho odošleme/zvalidujeme
                         if (_domainController.text.isNotEmpty) {
                           _validateDomain(_domainController.text);
                         }
@@ -384,12 +386,12 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
                 ),
               ),
               const SizedBox(width: 4),
-              Tooltip(
+              const Tooltip(
                 message: "Restrict responses to a specific email domain",
                 child: Icon(
                   Icons.info_outline,
                   size: 16,
-                  color: cs.onSurfaceVariant.withAlpha(150),
+                  color: Color.fromRGBO(0, 0, 0, 0.4),
                 ),
               ),
             ],
@@ -402,7 +404,7 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
                 onChanged: _validateDomain,
                 style: const TextStyle(fontSize: 15),
                 decoration: InputDecoration(
-                  prefixText: '@ ', // TOTO ROBÍ PRESNE TO ČO CHCEŠ - VIZUÁLNY ZAVINÁČ
+                  prefixText: '@ ', // Visual indicator for domain prefix
                   prefixStyle: TextStyle(
                     color: cs.onSurface,
                     fontSize: 15,
@@ -437,7 +439,7 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
     );
   }
 
-  // Zvyšné metódy ostávajú bezo zmeny
+  /// Builds the copy-to-clipboard button.
   Widget _buildCopyButton(ColorScheme cs) {
     return TextButton.icon(
       onPressed: _handleCopy,
@@ -450,6 +452,7 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
     );
   }
 
+  /// Builds the button to toggle task completion state.
   Widget _buildStateToggleButton(ColorScheme cs) {
     final isCompleted = _currentState == TaskState.completed;
     return TextButton.icon(
@@ -470,10 +473,11 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
     );
   }
 
+  /// Builds the delete button with a double-click confirmation step.
   Widget _buildDeleteButton(ColorScheme cs) {
     return Row(
       mainAxisSize: MainAxisSize.min,
-      children:[
+      children: [
         if (_isConfirmingDelete)
           IconButton(
             icon: const Icon(Icons.close, size: 18),
@@ -493,6 +497,7 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
     );
   }
 
+  /// Builds the metadata footer containing creation and modification timestamps.
   Widget _buildMetadataFooter(ColorScheme cs) {
     final created = widget.createdDate;
     final modified = widget.lastModified;
@@ -501,6 +506,7 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
     String createdStr;
     String modifiedStr;
 
+    // Formatting logic to omit year if it's the current year
     if (created.year == modified.year) {
       if (created.year == currentYear) {
         createdStr = DateFormat('MMM d').format(created);
@@ -521,6 +527,7 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
     );
   }
 
+  /// Copies the task sharing link to the system clipboard.
   void _handleCopy() async {
     await Clipboard.setData(ClipboardData(text: widget.taskLink));
     setState(() => _isCopied = true);
@@ -530,6 +537,7 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
     });
   }
 
+  /// Manages the two-step deletion confirmation flow.
   void _handleDeleteClick() {
     if (!_isConfirmingDelete) {
       setState(() => _isConfirmingDelete = true);
@@ -542,10 +550,12 @@ class _TaskOverviewHeaderState extends ConsumerState<TaskOverviewHeader> {
     }
   }
 
+  /// UI helper for consistent vertical dividers.
   Widget _buildDivider(ColorScheme cs) =>
       VerticalDivider(width: 32, color: cs.outlineVariant.withAlpha(80), thickness: 1);
 }
 
+/// Generic container for header cells with hover effects and icons.
 class _BaseCell extends StatefulWidget {
   final String label;
   final IconData icon;
@@ -589,10 +599,10 @@ class _BaseCellState extends State<_BaseCell> {
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children:[
+            children: [
               Row(
                 mainAxisSize: MainAxisSize.min,
-                children:[
+                children: [
                   Icon(widget.icon, size: 14, color: cs.onSurfaceVariant.withAlpha(120)),
                   const SizedBox(width: 6),
                   Text(

@@ -6,7 +6,7 @@ part 'subtask_combined_list_model.g.dart';
 @freezed
 sealed class SubtaskCombinedListModel with _$SubtaskCombinedListModel {
   const factory SubtaskCombinedListModel({
-    required String id,               // ID Inštancie
+    required String id,
     @Default(false) bool isCompleted,
     required String responseGroupId,
     String? respondentName,
@@ -18,7 +18,7 @@ sealed class SubtaskCombinedListModel with _$SubtaskCombinedListModel {
     String? assignedToEmail,
     required DateTime deadline,
     DateTime? createdAt,
-    String? description,              // Popis zo šablóny
+    String? description,
     required String templateSubtaskId,
     @Default(false) bool isGeneratedFromTask,
   }) = _SubtaskCombinedListModel;

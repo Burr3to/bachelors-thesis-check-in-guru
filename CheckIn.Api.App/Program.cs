@@ -21,6 +21,7 @@ using Newtonsoft.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// --- Configuration Retrieval ---
 var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key not configured.");
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "https://localhost:7084";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "https://localhost:7084";
@@ -29,34 +30,32 @@ var firebaseConfigJson = builder.Configuration["FirebaseAdmin:ServiceAccountJson
 
 if (string.IsNullOrEmpty(firebaseConfigJson))
 {
-    // Ak sa to nenašlo, hádžeme výnimku.
     throw new InvalidOperationException(
         "Firebase service account key (FirebaseAdmin:ServiceAccountJson) not found in configuration. Check secrets.json or environment variables.");
 }
 
-// Inicializácia Firebase Admin SDK
+// --- External Services Initialization ---
+
+// Initialize Firebase Admin SDK using service account credentials
 FirebaseApp.Create(new AppOptions()
 {
-    // GoogleCredential.FromJson spracuje JSON string, ktorý si vytiahol
     Credential = GoogleCredential.FromJson(firebaseConfigJson)
 });
 
-// Zaregistruj Singleton
 builder.Services.AddSingleton(FirebaseAuth.DefaultInstance);
 
-
+// --- Authentication Configuration ---
 builder.Services.AddAuthentication(options =>
     {
-        // Nastavujeme JWT ako predvolenú schému pre autentifikáciu a Challenge
-        options.DefaultAuthenticateScheme = "Bearer";
-        options.DefaultChallengeScheme = "Bearer";
-        options.DefaultForbidScheme = "Bearer";
-        options.DefaultScheme = "Bearer";
+        // Set JWT Bearer as the default scheme for all authentication actions
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultForbidScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
     })
-    // Odstránená Google OAuth schéma, pretože prechádzame na Firebase klientskú autentifikáciu.
-    .AddJwtBearer("Bearer", jwtOptions =>
+    .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, jwtOptions =>
     {
-        // Kľúčová konfigurácia pre validáciu prichádzajúcich JWT tokenov
+        // Define validation parameters for incoming JWT tokens
         jwtOptions.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -68,10 +67,12 @@ builder.Services.AddAuthentication(options =>
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
             ClockSkew = TimeSpan.Zero
         };
+
         jwtOptions.Events = new JwtBearerEvents
         {
             OnMessageReceived = context =>
             {
+                // SignalR sends the access token via a query string parameter named 'access_token'
                 var accessToken = context.Request.Query["access_token"];
                 var path = context.HttpContext.Request.Path;
                 if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
@@ -83,35 +84,34 @@ builder.Services.AddAuthentication(options =>
             },
             OnChallenge = context =>
             {
-                // Vypneme predvolené správanie (presmerovanie)
+                // Suppress default redirect and return a custom 401 JSON response
                 context.HandleResponse();
-
-                // Vrátime 401 Unauthorized a JSON telo
-                context.Response.StatusCode = 401;
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                 context.Response.ContentType = "application/json";
 
                 var result = System.Text.Json.JsonSerializer.Serialize(new
                 {
                     error = "Unauthorized",
-                    message = "Autorizácia zlyhala. Token je neplatný alebo chýba."
+                    message = "Authorization failed. Token is invalid or missing."
                 });
 
                 return context.Response.WriteAsync(result);
             },
             OnForbidden = context =>
             {
-                // Spracovanie 403 Forbidden
-                context.Response.StatusCode = 403;
+                // Return a custom 403 JSON response for insufficient permissions
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
                 context.Response.ContentType = "application/json";
                 return context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(new
                 {
                     error = "Forbidden",
-                    message = "Nemáte dostatočné oprávnenia pre tento prístup."
+                    message = "You do not have sufficient permissions to access this resource."
                 }));
             }
         };
     });
 
+// --- Identity & Core Services ---
 builder.Services.AddIdentity<IdentityUser, IdentityRole>(options => { options.SignIn.RequireConfirmedAccount = false; })
     .AddEntityFrameworkStores<CheckInDbContext>()
     .AddDefaultTokenProviders();
@@ -120,10 +120,12 @@ builder.Services.AddAutoMapper(
     cfg => cfg.LicenseKey = builder.Configuration.GetSection("Licenses")["Automapper"],
     typeof(TaskMapperProfile));
 
+// --- Swagger Configuration ---
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo { Title = "CheckIn API", Version = "v1" });
 
+    // Enable JWT Authorize button in Swagger UI
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -131,7 +133,7 @@ builder.Services.AddSwaggerGen(options =>
         Scheme = "bearer",
         BearerFormat = "JWT",
         In = ParameterLocation.Header,
-        Description = "Zadajte JWT Bearer token pre autorizáciu."
+        Description = "Enter JWT Bearer token for authorization."
     });
 
     options.AddSecurityRequirement(new OpenApiSecurityRequirement
@@ -152,9 +154,10 @@ builder.Services.AddSwaggerGen(options =>
 
 builder.Services.AddSignalR();
 
-// --- Registrácia Fasád/BL služieb 
+// Registration of Business Logic Facades and Services
 ApiBlInstaller.Install(builder.Services);
 
+// --- CORS Configuration ---
 var allowedOrigins = new[]
 {
     "https://bp-checkin-473517.web.app",
@@ -171,40 +174,36 @@ builder.Services.AddCors(options =>
         policy.WithOrigins(allowedOrigins)
             .AllowAnyHeader()
             .AllowAnyMethod()
-            .AllowCredentials();
+            .AllowCredentials(); // Required for SignalR and Cookies
     });
 });
 
-
-// Dependency Injection - Registruj DAL a BL služby
+// Database Connection String
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
                        ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
+// Registration of Data Access Layer
 ApiDalInstaller.Install(builder.Services, connectionString);
 
-// Add services to the container.
-
-builder.Services.AddSwaggerGen();
 builder.Services.AddControllers()
     .AddNewtonsoftJson();
 builder.Services.AddOpenApi();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IUserContext, UserContext>();
 
+// --- Migration Support ---
 if (args.Contains("migrate"))
 {
     var host = builder.Build();
 
-    // Spustí migráciu a ukončí aplikáciu
+    // Run database migrations and exit the application
     MigrateDatabase(host);
-
-    // Ak prebehne len migrácia, aplikácia sa skončí
     return;
 }
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// --- HTTP Request Pipeline ---
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -224,13 +223,15 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-//deploy
+// SignalR Hub Mappings (Support for both direct and prefixed paths)
 app.MapHub<TaskHub>("/hubs/tasks");
-//localhost
 app.MapHub<TaskHub>("/api/hubs/tasks");
 
 app.Run();
 
+/// <summary>
+/// Scoped helper method to apply pending EF Core migrations to the database.
+/// </summary>
 void MigrateDatabase(IHost host)
 {
     using (var scope = host.Services.CreateScope())
@@ -240,7 +241,6 @@ void MigrateDatabase(IHost host)
         {
             var dbContext = services.GetRequiredService<CheckInDbContext>();
             dbContext.Database.Migrate();
-            Console.WriteLine("Database migration successful.");
         }
         catch (Exception ex)
         {

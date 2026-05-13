@@ -1,20 +1,23 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-// Tieto názvy musia sedieť s názvom súboru
+// These parts are required for the code generation (Freezed and JsonSerializable)
 part 'auth_dtos.freezed.dart';
 part 'auth_dtos.g.dart';
 
-// 1. Čo posielame na Backend
+/// Data Transfer Object representing the request sent to the backend
+/// to verify a Firebase ID token.
 @freezed
 sealed class FirebaseTokenRequest with _$FirebaseTokenRequest {
   const factory FirebaseTokenRequest({
     required String idToken,
   }) = _FirebaseTokenRequest;
 
+  /// Creates a FirebaseTokenRequest instance from a JSON map.
   factory FirebaseTokenRequest.fromJson(Map<String, dynamic> json) => _$FirebaseTokenRequestFromJson(json);
 }
 
-// 2. Čo dostaneme z Backendu
+/// Data Transfer Object representing the authentication response received
+/// from the backend after a successful login or token verification.
 @freezed
 sealed class AuthResponse with _$AuthResponse {
   const factory AuthResponse({
@@ -23,5 +26,6 @@ sealed class AuthResponse with _$AuthResponse {
     required String email,
   }) = _AuthResponse;
 
+  /// Creates an AuthResponse instance from a JSON map.
   factory AuthResponse.fromJson(Map<String, dynamic> json) => _$AuthResponseFromJson(json);
 }

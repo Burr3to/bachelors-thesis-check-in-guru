@@ -4,11 +4,14 @@ import '../models/auth/auth_dtos.dart';
 
 part 'auth_api_service.g.dart';
 
+/// API service interface for authentication-related requests.
+/// This service is used to communicate with the backend auth controllers.
 @RestApi()
 sealed class AuthApiService {
   factory AuthApiService(Dio dio) = _AuthApiService;
 
-  // Volanie na tvoj C# endpoint
+  /// Sends the Firebase ID token to the C# backend for verification.
+  /// If successful, the backend returns a custom JWT and user profile information.
   @POST('api/Auth/verify-firebase-token')
   Future<AuthResponse> verifyFirebaseToken(@Body() FirebaseTokenRequest body);
 }

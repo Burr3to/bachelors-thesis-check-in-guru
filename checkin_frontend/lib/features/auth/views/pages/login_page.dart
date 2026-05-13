@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/shared_widgets/app_top_bar.dart';
 import '../../../../core/utils/l10n_extensions.dart';
 import '../providers/auth_provider.dart';
 
+/// The entry point for unauthenticated users.
+/// Provides a focused interface for logging in via Google.
 class LoginPage extends ConsumerWidget {
   const LoginPage({super.key});
 
@@ -23,7 +26,7 @@ class LoginPage extends ConsumerWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Minimalistický symbol zámku
+                // Minimalist lock symbol indicating a secure area
                 Container(
                   height: 80,
                   width: 80,
@@ -39,7 +42,7 @@ class LoginPage extends ConsumerWidget {
                 ),
                 const SizedBox(height: 32),
 
-                // Hlavný nadpis
+                // Primary headline
                 Text(
                   context.l10n.auth_askforlogin,
                   textAlign: TextAlign.center,
@@ -51,9 +54,9 @@ class LoginPage extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
 
-                // Podnadpis vysvetľujúci nutnosť prihlásenia
+                // Explanatory subtext
                 Text(
-                  "Pre pokračovanie do aplikácie sa, prosím, prihláste svojím Google účtom.",
+                  "Please sign in with your Google account to continue using the application.",
                   textAlign: TextAlign.center,
                   style: theme.textTheme.bodyLarge?.copyWith(
                     color: cs.onSurfaceVariant,
@@ -61,7 +64,7 @@ class LoginPage extends ConsumerWidget {
                 ),
                 const SizedBox(height: 48),
 
-                // Biely/Tmavý box s prihlasovacím tlačidlom
+                // Centered login container with shadow and border
                 Container(
                   padding: const EdgeInsets.all(32),
                   decoration: BoxDecoration(
@@ -85,14 +88,14 @@ class LoginPage extends ConsumerWidget {
                       ),
                       const SizedBox(height: 24),
 
-                      // Bezpečnostná poznámka
+                      // Security assurance indicator
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(Icons.verified_user_outlined, size: 14, color: cs.primary),
                           const SizedBox(width: 8),
                           Text(
-                            "Bezpečné prihlásenie cez Google",
+                            "Secured Google Login",
                             style: TextStyle(
                               fontSize: 12,
                               color: cs.onSurfaceVariant,
@@ -105,7 +108,7 @@ class LoginPage extends ConsumerWidget {
                   ),
                 ),
 
-                const SizedBox(height: 60), // Spodný priestor pre vyváženie
+                const SizedBox(height: 60),
               ],
             ),
           ),
@@ -115,6 +118,7 @@ class LoginPage extends ConsumerWidget {
   }
 }
 
+/// Custom button styled specifically for Google authentication.
 class _GoogleSignInButton extends StatelessWidget {
   final VoidCallback onPressed;
   final String label;
@@ -138,7 +142,7 @@ class _GoogleSignInButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
           ),
         ).copyWith(
-          // Animácia zmeny farby pri hoveri na webe
+          // Interaction feedback for web/desktop users
           overlayColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.hovered)) return Colors.white.withAlpha(30);
             return null;
@@ -147,7 +151,7 @@ class _GoogleSignInButton extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Kontajner pre ikonu (predpríprava na Google farebné logo)
+            // Icon container for visual clarity
             Container(
               padding: const EdgeInsets.all(6),
               decoration: const BoxDecoration(

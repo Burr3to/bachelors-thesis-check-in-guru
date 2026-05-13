@@ -2,10 +2,13 @@ import 'package:flutter/foundation.dart';
 import 'package:signalr_netcore/signalr_client.dart';
 import 'package:logging/logging.dart';
 
+/// Service managing real-time WebSocket communication via SignalR.
+/// Handles task-specific updates and user-wide notifications.
 class SignalRService {
   HubConnection? _hubConnection;
   final String _baseUrl;
-  // ZMENA: Návratový typ musí byť Future<String>, nie String?
+
+  /// Factory function to retrieve the latest JWT token for the connection.
   final Future<String> Function() _accessTokenFactory;
 
   SignalRService({
@@ -16,6 +19,7 @@ class SignalRService {
 
   HubConnection? get connection => _hubConnection;
 
+  /// Initializes the connection to the SignalR Hub.
   Future<void> init() async {
     Logger.root.level = Level.ALL;
 
@@ -26,28 +30,25 @@ class SignalRService {
       hubUrl,
       options: HttpConnectionOptions(
         accessTokenFactory: _accessTokenFactory,
-        // logging: transportProtLogger, // voliteľné
       ),
     )
         .withAutomaticReconnect()
         .build();
 
-    // CHYBA 1 FIX: Parameter 'error' musí byť typu Exception?
+    // Setup connection close handler
     _hubConnection!.onclose(({error}) {
-      if (kDebugMode) print("SignalR Connection Closed: $error");
     });
 
     try {
       await _hubConnection!.start();
-      if (kDebugMode) print("SignalR Connection Started");
     } catch (e) {
-      if (kDebugMode) print("SignalR Start Error: $e");
+      // Silently handle startup errors; automatic reconnect will take over if configured
     }
   }
 
-
+  /// Joins a specific task's room to receive updates about subtask changes.
   Future<void> joinTaskRoom(String taskId) async {
-    // Ak sa práve pripája, počkáme chvíľu (max 5 sekúnd)
+    // Wait for the connection to be established if it's currently connecting
     int attempts = 0;
     while (_hubConnection?.state != HubConnectionState.Connected && attempts < 10) {
       await Future.delayed(const Duration(milliseconds: 500));
@@ -56,20 +57,19 @@ class SignalRService {
 
     if (_hubConnection?.state == HubConnectionState.Connected) {
       final roomName = taskId.toLowerCase().trim();
+      // Invoke the server-side method to join the group
       await _hubConnection!.invoke("JoinTaskRoom", args: [roomName]);
-      print("SIGNALR: Úspešne vyvolané JoinTaskRoom pre $roomName");
-    } else {
-      print("SIGNALR: CHYBA - Nepodarilo sa pripojiť k serveru, JoinTaskRoom zlyhalo.");
     }
   }
 
+  /// Leaves a specific task's room to stop receiving updates.
   Future<void> leaveTaskRoom(String taskId) async {
     if (_hubConnection?.state == HubConnectionState.Connected) {
       await _hubConnection!.invoke("LeaveTaskRoom", args: [taskId]);
     }
   }
 
-
+  /// Joins a private user room to receive dashboard-level notifications (e.g., task status updates).
   Future<void> joinUserRoom(String userId) async {
     int attempts = 0;
     while (_hubConnection?.state != HubConnectionState.Connected && attempts < 10) {
@@ -78,13 +78,12 @@ class SignalRService {
     }
 
     if (_hubConnection?.state == HubConnectionState.Connected) {
-      // POSIELAME IBA ID! (Prefix "User_" pridá až Backend)
       final cleanId = userId.toLowerCase().trim();
       await _hubConnection!.invoke("JoinUserRoom", args: [cleanId]);
-      print("SIGNALR: Úspešne vyvolané JoinUserRoom pre ID: $cleanId");
     }
   }
 
+  /// Closes the active SignalR connection.
   void stop() {
     _hubConnection?.stop();
   }

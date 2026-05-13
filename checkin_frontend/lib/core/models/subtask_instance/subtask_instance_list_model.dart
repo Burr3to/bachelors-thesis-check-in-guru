@@ -7,7 +7,7 @@ part 'subtask_instance_list_model.g.dart';
 sealed class SubtaskInstanceListModel with _$SubtaskInstanceListModel {
   const factory SubtaskInstanceListModel({
     required String id,
-    required String responseGroupId, // <--- PRIDAŤ SEM
+    required String responseGroupId,
     required String templateSubtaskId,
     String? assignedToUserId,
     @Default(false) bool isCompleted,

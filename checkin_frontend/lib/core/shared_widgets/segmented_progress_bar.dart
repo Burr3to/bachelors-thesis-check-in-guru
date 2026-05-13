@@ -1,9 +1,11 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+/// A custom progress bar that displays completion status using color-coded segments.
+/// It visualizes on-time completions (green), late completions/issues (red),
+/// and pending tasks (gray).
 class SegmentedProgressBar extends StatelessWidget {
   final int green;
-  final int red; // Zmenené z orange na red
+  final int red;
   final int grey;
   final double height;
 
@@ -32,14 +34,22 @@ class SegmentedProgressBar extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: Row(
-        children:[
-          // VČAS: Zelená
+        children: [
+          // ON TIME: Represented by green
           if (green > 0)
-            Expanded(flex: green, child: Container(color: Colors.green.shade400)),
-          // PO TERMÍNE (LATE): Červená
+            Expanded(
+              flex: green,
+              child: Container(color: Colors.green.shade400),
+            ),
+
+          // LATE OR OVERDUE: Represented by red
           if (red > 0)
-            Expanded(flex: red, child: Container(color: Colors.red.shade400)),
-          // NEDOKONČENÉ: Sivá
+            Expanded(
+              flex: red,
+              child: Container(color: Colors.red.shade400),
+            ),
+
+          // INCOMPLETE OR NOT STARTED: Represented by gray
           if (grey > 0 || total == 0)
             Expanded(
               flex: (total == 0) ? 1 : grey,

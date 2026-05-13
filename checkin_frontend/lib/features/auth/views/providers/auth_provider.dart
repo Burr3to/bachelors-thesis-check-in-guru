@@ -4,12 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:checkin_frontend/core/models/user/user_profile.dart';
 import '../../../../core/services/auth_api_service.dart';
-import '../../../../core/providers/auth_providers.dart'; // Import providera pre service
+import '../../../../core/providers/auth_providers.dart';
 import '../../../../core/models/auth/auth_dtos.dart';
 
-// Provider pre Storage (aby sme mohli ukladať token)
+/// Provider for persistent secure storage.
 final storageProvider = Provider((ref) => const FlutterSecureStorage());
 
+/// Encapsulates the global authentication state.
 class AuthState {
   final UserProfile? user;
   final bool isInitializing;
@@ -17,11 +18,12 @@ class AuthState {
   AuthState({this.user, this.isInitializing = true});
 }
 
-// ZMENA: NotifierProvider teraz spravuje <AuthNotifier, AuthState> namiesto UserProfile?
+/// Provides the authentication notifier to the rest of the application.
 final authProvider = NotifierProvider<AuthNotifier, AuthState>(() {
   return AuthNotifier();
 });
 
+/// Manages authentication logic, syncing Firebase state with the custom backend.
 class AuthNotifier extends Notifier<AuthState> {
   late final AuthApiService _authApiService;
   late final FlutterSecureStorage _storage;
@@ -32,30 +34,35 @@ class AuthNotifier extends Notifier<AuthState> {
     _authApiService = ref.read(authApiServiceProvider);
     _storage = ref.read(storageProvider);
 
+    // Listen to Firebase auth state changes
     _authStateSubscription = FirebaseAuth.instance.authStateChanges().listen(
           (User? firebaseUser) async {
         if (firebaseUser != null) {
+          // If Firebase is authenticated, sync with our custom API
           await _authenticateWithBackend(firebaseUser);
         } else {
+          // No user found, end initialization and set user to null
           state = AuthState(user: null, isInitializing: false);
         }
       },
     );
 
+    // Clean up subscription when the provider is disposed
     ref.onDispose(() {
       _authStateSubscription?.cancel();
-      print("AuthNotifier bol zrušený a subscription uzavretý.");
     });
 
-    return AuthState(isInitializing: true); // Štartujeme v stave loading
+    return AuthState(isInitializing: true);
   }
 
+  /// Exchanges a Firebase ID token for a custom backend JWT and user profile.
   Future<void> _authenticateWithBackend(User firebaseUser) async {
     try {
       final token = await firebaseUser.getIdToken();
       final response = await _authApiService.verifyFirebaseToken(
           FirebaseTokenRequest(idToken: token!));
 
+      // Persist the custom JWT token for the Dio interceptor
       await _storage.write(key: 'jwt_token', value: response.token);
 
       state = AuthState(
@@ -68,10 +75,12 @@ class AuthNotifier extends Notifier<AuthState> {
         ),
       );
     } catch (e) {
+      // In case of sync failure, fall back to unauthenticated state
       state = AuthState(user: null, isInitializing: false);
     }
   }
 
+  /// Manually updates the locally stored JWT token (used during silent refreshes).
   void updateToken(String newToken) {
     if (state.user != null) {
       state = AuthState(
@@ -80,25 +89,23 @@ class AuthNotifier extends Notifier<AuthState> {
           userId: state.user!.userId,
           email: state.user!.email,
           name: state.user!.name,
-          jwtToken: newToken, // Tu priradíme nový token
+          jwtToken: newToken,
         ),
       );
     }
   }
 
-
-  /// Google Sign In (Trigger z UI)
+  /// Initiates the Google Sign-In process via a popup (Standard for Flutter Web).
   Future<void> signInWithGoogle() async {
     try {
-      // Pre WEB stačí toto, otvorí to Popup okno
       await FirebaseAuth.instance.signInWithPopup(GoogleAuthProvider());
-      // Zvyšok rieši listener v build() metóde
-    } catch (e) {
-      print("Google Sign In Error: $e");
+      // The authStateChanges listener handles the subsequent backend sync
+    } catch (_) {
+      // Error handling is handled by the UI or general error interceptors
     }
   }
 
-
+  /// Logs the user out from Firebase and cleans up local session data.
   Future<void> signOut() async {
     await FirebaseAuth.instance.signOut();
     await _storage.delete(key: 'jwt_token');

@@ -7,6 +7,8 @@ import '../../../../core/models/enums/task_enums.dart';
 import '../../../../core/providers/task_create/task_create_provider.dart';
 import '../../../../core/utils/responsive.dart';
 
+/// Section providing configuration for task execution mode, deadlines,
+/// and access restrictions.
 class TaskSettingsSection extends ConsumerStatefulWidget {
   final DateTime? selectedDeadline;
   final bool requiresAuth;
@@ -42,6 +44,7 @@ class _TaskSettingsSectionState extends ConsumerState<TaskSettingsSection> {
   bool? _isDomainValid;
   bool _isValidating = false;
 
+  /// Handles domain input with debouncing and verifies existence via API.
   void _onDomainChanged(String value) {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
 
@@ -97,10 +100,10 @@ class _TaskSettingsSectionState extends ConsumerState<TaskSettingsSection> {
     final cs = Theme.of(context).colorScheme;
     final isMobile = context.isMobile;
 
-    // VYŇATIE ĽAVÉHO STĹPCA DO PREMENNEJ PRE LEPŠIU ČITATEĽNOSŤ
+    // Configuration for task distribution (Shared vs Individual) and Deadline selection
     final leftColumn = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children:[
+      children: [
         _buildLabel(cs, "Subtask Mode"),
         const SizedBox(height: 8),
         _OptionButton(
@@ -127,10 +130,10 @@ class _TaskSettingsSectionState extends ConsumerState<TaskSettingsSection> {
       ],
     );
 
-    // VYŇATIE PRAVÉHO STĹPCA DO PREMENNEJ
+    // Configuration for authentication and domain-based restrictions
     final rightColumn = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children:[
+      children: [
         _buildLabel(cs, "Visibility & Access"),
         const SizedBox(height: 8),
         _OptionButton(
@@ -156,26 +159,25 @@ class _TaskSettingsSectionState extends ConsumerState<TaskSettingsSection> {
     );
 
     return Container(
-      // Na mobile mierne menší padding
       padding: EdgeInsets.all(isMobile ? 16 : 20),
       decoration: BoxDecoration(
         color: cs.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: cs.outlineVariant.withAlpha(100)),
       ),
-      // --- TOTO JE HLAVNÁ ZMENA ROZLOŽENIA ---
+      // Responsive layout: Stack sections vertically on mobile, horizontally on desktop
       child: isMobile
           ? Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children:[
+        children: [
           leftColumn,
-          const SizedBox(height: 24), // Medzera medzi sekciami na mobile
+          const SizedBox(height: 24),
           rightColumn,
         ],
       )
           : Row(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children:[
+        children: [
           Expanded(child: leftColumn),
           const SizedBox(width: 24),
           Expanded(child: rightColumn),
@@ -184,6 +186,7 @@ class _TaskSettingsSectionState extends ConsumerState<TaskSettingsSection> {
     );
   }
 
+  /// Helper to build consistent uppercase labels for sections.
   Widget _buildLabel(ColorScheme cs, String text) {
     return Text(
       text.toUpperCase(),
@@ -196,6 +199,7 @@ class _TaskSettingsSectionState extends ConsumerState<TaskSettingsSection> {
     );
   }
 
+  /// Builds the main interactive button to open date/time pickers.
   Widget _buildDeadlineTrigger(ColorScheme cs) {
     return InkWell(
       onTap: widget.onDateTap,
@@ -207,7 +211,7 @@ class _TaskSettingsSectionState extends ConsumerState<TaskSettingsSection> {
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
-          children:[
+          children: [
             Icon(Icons.calendar_today_outlined, size: 18, color: cs.primary),
             const SizedBox(width: 12),
             Expanded(
@@ -225,9 +229,10 @@ class _TaskSettingsSectionState extends ConsumerState<TaskSettingsSection> {
     );
   }
 
+  /// Builds quick selection chips for common deadline durations.
   Widget _buildQuickChips(ColorScheme cs) {
     return Row(
-      children:[
+      children: [
         _buildChip("1 Day", 1, cs),
         const SizedBox(width: 4),
         _buildChip("1 Week", 7, cs),
@@ -258,6 +263,7 @@ class _TaskSettingsSectionState extends ConsumerState<TaskSettingsSection> {
     );
   }
 
+  /// Builds the domain restriction input field, visible only if auth is required.
   Widget _buildDomainSubPanel(ColorScheme cs) {
     return Container(
       padding: const EdgeInsets.all(12),
@@ -267,11 +273,10 @@ class _TaskSettingsSectionState extends ConsumerState<TaskSettingsSection> {
         border: Border.all(color: _isDomainValid == false ? cs.error : cs.primary.withAlpha(50)),
       ),
       child: Column(
-        children:[
+        children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children:[
-              // ZMENA: Obalené do Expanded, aby dlhý text nespôsobil pretekanie vedľa prepínača
+            children: [
               const Expanded(
                 child: Text("Domain restriction", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
               ),
@@ -338,6 +343,7 @@ class _TaskSettingsSectionState extends ConsumerState<TaskSettingsSection> {
   }
 }
 
+/// A specialized radio-style button for selection among multiple logic modes.
 class _OptionButton extends StatelessWidget {
   final String title;
   final String subtitle;
@@ -372,7 +378,7 @@ class _OptionButton extends StatelessWidget {
           ),
         ),
         child: Row(
-          children:[
+          children: [
             Icon(
               icon,
               size: 24,
@@ -382,7 +388,7 @@ class _OptionButton extends StatelessWidget {
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children:[
+                children: [
                   Text(
                     title,
                     style: TextStyle(

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+/// A customized toggle button that switches visual states based on the [isActive] property.
+/// Designed for high-visibility actions like switching task modes or categories.
 class AppToggleButton extends StatelessWidget {
   final bool isActive;
   final VoidCallback onTap;
@@ -31,6 +33,7 @@ class AppToggleButton extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
+    // Determine visual properties based on the current state
     final Color color = isActive
         ? (activeColor ?? theme.colorScheme.primary)
         : (inactiveColor ?? theme.colorScheme.onSurfaceVariant);
@@ -39,8 +42,10 @@ class AppToggleButton extends StatelessWidget {
     final currentLabel = isActive ? activeLabel : inactiveLabel;
     final tooltip = isActive ? activeTooltip : inactiveTooltip;
 
+    // Calculate a subtle background tint based on the theme brightness
     final backgroundColor = color.withAlpha(isDark ? 38 : 20);
 
+    // Build the core button with conditional styling
     Widget button = OutlinedButton.icon(
       onPressed: onTap,
       icon: Icon(currentIcon, color: color),
@@ -64,6 +69,7 @@ class AppToggleButton extends StatelessWidget {
       ),
     );
 
+    // Wrap in a Tooltip only if a message is provided for the current state
     if (tooltip != null) {
       return Tooltip(
         message: tooltip,

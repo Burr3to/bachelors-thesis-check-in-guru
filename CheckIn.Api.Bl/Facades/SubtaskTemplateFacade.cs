@@ -16,6 +16,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CheckIn.Api.Bl.Facades;
 
+/// <summary>
+/// Facade handling the lifecycle of subtask templates, including automatic 
+/// synchronization with subtask instances and real-time updates via SignalR.
+/// </summary>
 public class SubtaskTemplateFacade(
     CheckInDbContext dbContext,
     IMapper mapper,
@@ -25,52 +29,57 @@ public class SubtaskTemplateFacade(
             SubtaskTemplateCreateModel, SubtaskTemplateUpdateModel, SubtaskTemplateQuery>
         (dbContext, mapper, userContext), ISubtaskTemplateFacade
 {
-    private ISubtaskTemplateFacade _subtaskTemplateFacadeImplementation;
-    // Pretože Subtasky sú často len listované podľa ParentTaskId,
-    // musíte zabezpečiť, že base.CreateFilter vie spracovať ParentTaskId
-
+    /// <summary>
+    /// Configures filtering for subtask templates.
+    /// </summary>
     protected override Expression<Func<SubtaskTemplateEntity, bool>> CreateFilter(SubtaskTemplateQuery query)
     {
         Expression<Func<SubtaskTemplateEntity, bool>> filter = entity => true;
-        // Ak SubtaskTemplateQuery obsahuje ParentTaskId:
-        // if (query.ParentTaskId.HasValue) 
-        //     filter = filter.And(e => e.ParentTaskId == query.ParentTaskId.Value);
+
+        // Add specific filtering logic here if needed (e.g., by ParentTaskId)
 
         return filter;
     }
 
+    /// <summary>
+    /// Defines the default ordering for subtask templates (chronological).
+    /// </summary>
     protected override Func<IQueryable<SubtaskTemplateEntity>, IOrderedQueryable<SubtaskTemplateEntity>> CreateOrderBy(
         SubtaskTemplateQuery query)
     {
         return q => q.OrderBy(e => e.CreatedAt).ThenBy(e => e.Id);
     }
 
-    // 1. CREATE - Pridanie novej podúlohy
+    /// <summary>
+    /// Creates a new subtask template and automatically generates instances 
+    /// for all existing participants or groups assigned to the parent task.
+    /// </summary>
     public override async Task<Result<SubtaskTemplateDetailModel>> SaveCreateModelAsync(
         SubtaskTemplateCreateModel model)
     {
-        // Najprv overíme, či má používateľ právo meniť tento task
+        // Permission check: Verify the parent task exists and belongs to the current user
         var parentTask = await dbContext.Tasks.FindAsync(model.ParentTaskId);
         if (parentTask == null)
             return Result<SubtaskTemplateDetailModel>.NotFound("Parent Task not found.");
+
         if (parentTask.CreatedById != CurrentUserId)
             return Result<SubtaskTemplateDetailModel>.Forbidden();
 
-        // A. Vytvoríme samotnú šablónu (cez bázu)
+        // Create the blueprint template
         var result = await base.SaveCreateModelAsync(model);
         if (!result.IsSuccess) return result;
 
         var newTemplateId = result.Value!.Id;
 
-        // B. SYNC: Nájdeme všetky existujúce ResponseGroups, ktoré už k tomuto tasku existujú
-        // (To sú unikátne sety podúloh pre jednotlivých ľudí v Independent móde, 
-        // alebo jeden spoločný set v Collaborative móde)
+        // Synchronization logic: 
+        // Find all existing response groups for this task (unique sets for users/shared mode)
         var existingResponseGroups = await dbContext.SubtaskInstances
             .Where(i => i.TemplateSubtask.ParentTaskId == model.ParentTaskId)
             .Select(i => i.ResponseGroupId)
             .Distinct()
             .ToListAsync();
 
+        // Create an executable instance of this new template for every existing group
         if (existingResponseGroups.Any())
         {
             foreach (var groupId in existingResponseGroups)
@@ -88,41 +97,48 @@ public class SubtaskTemplateFacade(
             await dbContext.SaveChangesAsync();
         }
 
-        // C. Notifikácia cez SignalR - povieme všetkým, že sa zmenila štruktúra aj inštancie
+        // Notify all connected clients about the structure change
         await NotifyChanges(model.ParentTaskId);
 
         return result;
     }
 
-    // 3. Override Update - pridáme SignalR notifikáciu
+    /// <summary>
+    /// Updates an existing subtask template and notifies relevant clients via SignalR.
+    /// </summary>
     public override async Task<Result<SubtaskTemplateDetailModel>> SaveUpdateModelAsync(
         SubtaskTemplateUpdateModel model)
     {
         var result = await base.SaveUpdateModelAsync(model);
+
         if (result.IsSuccess)
         {
-            // Musíme zistiť ParentTaskId, aby sme vedeli kam poslať signál
+            // Retrieve parent ID to identify the SignalR room
             var template = await dbContext.Subtasks.FindAsync(model.Id);
-            if (template != null) await NotifyChanges(template.ParentTaskId);
+            if (template != null)
+                await NotifyChanges(template.ParentTaskId);
         }
 
         return result;
     }
 
-    // 4. Override Delete - odstránime inštancie a notifikujeme
+    /// <summary>
+    /// Deletes a subtask template and triggers a UI refresh for all participants.
+    /// </summary>
     public new async Task<Result<bool>> DeleteAsync(Guid entityId)
     {
         var template = await dbContext.Subtasks
             .AsNoTracking()
             .FirstOrDefaultAsync(t => t.Id == entityId);
-        if (template == null) return Result<bool>.NotFound();
+
+        if (template == null)
+            return Result<bool>.NotFound();
 
         var parentTaskId = template.ParentTaskId;
 
-        // EF Core by mal mať nastavené Cascade Delete na SubtaskInstances, 
-        // ale ak nie, musíme ich zmazať ručne tu.
-
+        // Note: Related SubtaskInstances should be handled via Cascade Delete in the database
         var result = await base.DeleteAsync(entityId);
+
         if (result.IsSuccess)
         {
             await NotifyChanges(parentTaskId);
@@ -131,12 +147,18 @@ public class SubtaskTemplateFacade(
         return result;
     }
 
+    /// <summary>
+    /// Helper method to send SignalR notifications to both the author and the respondents.
+    /// </summary>
+    /// <param name="taskId">The ID of the task room to notify.</param>
     private async Task NotifyChanges(Guid taskId)
     {
         var roomName = taskId.ToString().ToLower().Trim();
-        // Informujeme respondentov, aby si refreshli checklist
+
+        // Notify respondents to refresh their checklists
         await hubContext.Clients.Group(roomName).SendAsync("TaskInstancesChanged");
-        // Informujeme autora (teba), aby si videl nové riadky v progress liste
+
+        // Notify the author to update the progress management view
         await hubContext.Clients.Group(roomName).SendAsync("TaskTemplatesChanged");
     }
 }

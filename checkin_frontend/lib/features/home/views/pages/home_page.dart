@@ -4,6 +4,8 @@ import '../../../../core/shared_widgets/autoplay_video.dart';
 import '../../../../core/utils/l10n_extensions.dart';
 import '../../../../core/utils/responsive.dart';
 
+/// The landing page of the CheckIn application.
+/// Displays a marketing overview of the product features with a responsive layout.
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
@@ -12,17 +14,17 @@ class HomePage extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final secondaryBg = colorScheme.surfaceContainer;
-    const double maxContentWidth = 1150; // Pôvodná šírka
+    const double maxContentWidth = 1150;
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
       body: SingleChildScrollView(
         child: Column(
-          children:[
-            // 1. HERO SEKCIA (Vrátený modrý gradient a Chip)
+          children: [
+            // Hero section with the primary value proposition
             const _HeroSection(maxContentWidth: maxContentWidth),
 
-            // 2. SEKCIA 1
+            // Feature 1: Main authoring process
             _FeatureSection(
               maxWidth: maxContentWidth,
               title: context.l10n.home_sec1_title,
@@ -31,7 +33,7 @@ class HomePage extends StatelessWidget {
               isReversed: false,
             ),
 
-            // 3. SEKCIA 2 (Šedé/tmavé pozadie)
+            // Feature 2: Respondent interaction (with alternate background)
             _FeatureSection(
               maxWidth: maxContentWidth,
               backgroundColor: secondaryBg,
@@ -41,7 +43,7 @@ class HomePage extends StatelessWidget {
               isReversed: true,
             ),
 
-            // 4. SEKCIA 3
+            // Feature 3: Task overview and tracking
             _FeatureSection(
               maxWidth: maxContentWidth,
               title: context.l10n.home_sec3_title,
@@ -50,7 +52,7 @@ class HomePage extends StatelessWidget {
               isReversed: false,
             ),
 
-            // 5. FOOTER (Vrátený tmavý dizajn)
+            // Footer with branding and links
             const _FooterSection(),
           ],
         ),
@@ -59,7 +61,7 @@ class HomePage extends StatelessWidget {
   }
 }
 
-// --- HERO SECTION ---
+/// The top-most section of the home page containing the main CTA and branding.
 class _HeroSection extends StatelessWidget {
   final double maxContentWidth;
 
@@ -78,7 +80,7 @@ class _HeroSection extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors:[
+          colors: [
             primaryBlue.withAlpha(theme.brightness == Brightness.light ? 12 : 30),
             colorScheme.surface,
           ],
@@ -93,8 +95,8 @@ class _HeroSection extends StatelessWidget {
               horizontal: isMobile ? 20 : 40,
             ),
             child: Column(
-              children:[
-                // Vrátený malý "Chip" hore
+              children: [
+                // Top badge/chip for secondary branding
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
@@ -111,11 +113,13 @@ class _HeroSection extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: isMobile ? 24 : 32),
+
+                // Main headline
                 Text(
                   context.l10n.home_hero_title,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: isMobile ? 42 : 62, // Stále veľké, ale prispôsobené mobilu
+                    fontSize: isMobile ? 42 : 62,
                     fontWeight: FontWeight.bold,
                     height: 1.05,
                     letterSpacing: -1.5,
@@ -123,6 +127,8 @@ class _HeroSection extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: isMobile ? 20 : 32),
+
+                // Subtitle text
                 Text(
                   context.l10n.home_hero_subtitle,
                   textAlign: TextAlign.center,
@@ -133,7 +139,8 @@ class _HeroSection extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: isMobile ? 32 : 48),
-                // Vrátený pôvodný veľký "šťavnatý" button
+
+                // Primary Call-to-Action button
                 ElevatedButton(
                   onPressed: () => context.go('/tasks/create'),
                   style: ElevatedButton.styleFrom(
@@ -161,7 +168,7 @@ class _HeroSection extends StatelessWidget {
   }
 }
 
-// --- FEATURE SECTION ---
+/// A generic section for showcasing a feature with text and an associated video.
 class _FeatureSection extends StatelessWidget {
   final double maxWidth;
   final String title;
@@ -186,10 +193,10 @@ class _FeatureSection extends StatelessWidget {
     final primaryBlue = colorScheme.primary;
     final isMobile = context.isMobile;
 
-    // TEXTOVÁ ČASŤ (odstránená fajka pre skrátenie, ale farby zachované)
+    // Feature text block construction
     Widget textContent = Column(
       crossAxisAlignment: isMobile ? CrossAxisAlignment.center : CrossAxisAlignment.start,
-      children:[
+      children: [
         SelectionArea(
           child: Text(
             title,
@@ -209,12 +216,12 @@ class _FeatureSection extends StatelessWidget {
       ],
     );
 
-    // VIDEO ČASŤ (vrátený Transform.scale a veľký farebný tieň)
+    // Feature video container with hover effects and shadows
     Widget videoContent = Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: primaryBlue.withAlpha(25), width: 1),
-        boxShadow:[
+        boxShadow: [
           BoxShadow(
             color: primaryBlue.withAlpha(theme.brightness == Brightness.light ? 32 : 10),
             blurRadius: 50,
@@ -224,7 +231,7 @@ class _FeatureSection extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: Transform.scale(
-        scale: 1.03, // Vrátený pop-out efekt
+        scale: 1.03,
         child: HoverVideoPlayer(assetPath: videoAsset),
       ),
     );
@@ -242,14 +249,14 @@ class _FeatureSection extends StatelessWidget {
             ),
             child: isMobile
                 ? Column(
-              children:[
+              children: [
                 textContent,
                 const SizedBox(height: 40),
                 videoContent,
               ],
             )
                 : Row(
-              children:[
+              children: [
                 if (isReversed) Expanded(flex: 6, child: videoContent) else Expanded(flex: 4, child: textContent),
                 const SizedBox(width: 80),
                 if (isReversed) Expanded(flex: 4, child: textContent) else Expanded(flex: 6, child: videoContent),
@@ -261,6 +268,7 @@ class _FeatureSection extends StatelessWidget {
     );
   }
 
+  /// Parses description text for markdown-style bold patterns (**) and applies accent colors.
   Widget _buildStyledDescription(BuildContext context, String text, Color accentColor, bool isMobile) {
     final parts = text.split('**');
     final colorScheme = Theme.of(context).colorScheme;
@@ -277,7 +285,6 @@ class _FeatureSection extends StatelessWidget {
           final isBold = entry.key % 2 != 0;
           return TextSpan(
             text: entry.value,
-            // Vrátená modrá farba pre bold text (marketingový zvýraznený efekt)
             style: isBold ? TextStyle(color: accentColor, fontWeight: FontWeight.bold) : null,
           );
         }).toList(),
@@ -286,7 +293,7 @@ class _FeatureSection extends StatelessWidget {
   }
 }
 
-// --- FOOTER ---
+/// The footer section containing copyright info and application branding.
 class _FooterSection extends StatelessWidget {
   const _FooterSection();
 
@@ -296,13 +303,12 @@ class _FooterSection extends StatelessWidget {
     final primaryBlue = theme.colorScheme.primary;
 
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 80), // Vrátený veľký padding
+      padding: const EdgeInsets.symmetric(vertical: 80),
       width: double.infinity,
-      // Vrátená pôvodná "midnight blue" z tvojho kódu
       color: theme.brightness == Brightness.light ? const Color(0xFF1A1F36) : Colors.black,
       child: Center(
         child: Column(
-          children:[
+          children: [
             const Text(
               "CheckIn",
               style: TextStyle(

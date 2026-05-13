@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-// --- IMPORT PRE RESPONSIVE ---
 import '../../../../core/utils/responsive.dart';
 import 'hover_editable_wrapper.dart';
 
+/// A widget that displays the task title and allows for inline editing.
+/// It switches between a standard text view and a text input field.
 class EditableTaskTitle extends StatefulWidget {
   final String initialTitle;
   final Function(String) onSave;
@@ -20,12 +21,14 @@ class _EditableTaskTitleState extends State<EditableTaskTitle> {
   @override
   void initState() {
     super.initState();
+    // Initialize the controller with the current task title
     _controller = TextEditingController(text: widget.initialTitle);
   }
 
   @override
   void didUpdateWidget(EditableTaskTitle oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // Sync the local controller if the external title changes while not editing
     if (oldWidget.initialTitle != widget.initialTitle && !_isEditing) {
       _controller.text = widget.initialTitle;
     }
@@ -42,7 +45,7 @@ class _EditableTaskTitleState extends State<EditableTaskTitle> {
     final theme = Theme.of(context);
     final isMobile = context.isMobile;
 
-    // Na mobile použijeme headlineSmall (menšie) namiesto headlineMedium
+    // Adjust typography based on the device form factor
     final titleStyle = isMobile
         ? theme.textTheme.headlineSmall?.copyWith(
       fontWeight: FontWeight.bold,
@@ -63,6 +66,7 @@ class _EditableTaskTitleState extends State<EditableTaskTitle> {
         _controller.text = widget.initialTitle;
       }),
       onSave: () {
+        // Only save if the title is not empty
         if (_controller.text.trim().isNotEmpty) {
           widget.onSave(_controller.text.trim());
           setState(() => _isEditing = false);
@@ -77,9 +81,9 @@ class _EditableTaskTitleState extends State<EditableTaskTitle> {
         autofocus: true,
         selectAllOnFocus: false,
         style: titleStyle,
-        decoration: InputDecoration(
-          border: const OutlineInputBorder(),
-          contentPadding: const EdgeInsets.all(12),
+        decoration: const InputDecoration(
+          border: OutlineInputBorder(),
+          contentPadding: EdgeInsets.all(12),
           counterText: "",
         ),
         maxLength: 255,

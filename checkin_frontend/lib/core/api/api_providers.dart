@@ -3,10 +3,11 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/auth/views/providers/auth_provider.dart';
 
-// Premenná mimo providera zabezpečí, že ak prebieha refresh,
-// ostatné 401-ky naň počkajú a nebudú búchať do servera naraz.
+/// Global future to track the token refresh process.
+/// Prevents multiple simultaneous 401 errors from triggering multiple refresh requests.
 Future<String?>? _refreshFuture;
 
+/// Provides a configured Dio instance with automatic JWT injection and token refresh logic.
 final dioProvider = Provider<Dio>((ref) {
   final dio = DioClient.createDio();
 
@@ -16,34 +17,34 @@ final dioProvider = Provider<Dio>((ref) {
         final storage = ref.read(storageProvider);
         final token = await storage.read(key: 'jwt_token');
 
+        // Inject the JWT token into the Authorization header if available
         if (token != null) {
           options.headers['Authorization'] = 'Bearer $token';
         }
 
-        // KĽÚČOVÉ PRE WEB: Pribalenie Cookies k requestu
+        // Essential for web: allows the browser to include HttpOnly cookies (refresh token)
         options.extra['withCredentials'] = true;
 
         return handler.next(options);
       },
       onError: (DioException e, handler) async {
-        // Ak dostaneme 401 a nie je to chyba samotného refreshu
+        // Handle 401 Unauthorized errors, unless the error came from the refresh endpoint itself
         if (e.response?.statusCode == 401 && !e.requestOptions.path.contains('refresh')) {
 
-          // 1. AK UŽ REFRESH PREBIEHA (z iného requestu), POČKAJ NAŇ
+          // If a refresh is already in progress, wait for it to complete
           if (_refreshFuture != null) {
             final newToken = await _refreshFuture;
 
             if (newToken != null) {
-              // Počkali sme, máme nový token, skúsime pôvodný request znova
+              // Retry the original request with the newly acquired token
               e.requestOptions.headers['Authorization'] = 'Bearer $newToken';
               final response = await dio.fetch(e.requestOptions);
               return handler.resolve(response);
             }
           }
 
-
           try {
-            // Vytvoríme Future pre refresh a uložíme ho do globálnej premennej
+            // Initialize the refresh process and store the future globally
             _refreshFuture = () async {
               final refreshDio = Dio(BaseOptions(baseUrl: e.requestOptions.baseUrl));
               final response = await refreshDio.post(
@@ -54,21 +55,21 @@ final dioProvider = Provider<Dio>((ref) {
             }();
 
             final newToken = await _refreshFuture;
-            _refreshFuture = null; // Po úspechu vynulujeme premennú
+            _refreshFuture = null;
 
             if (newToken != null) {
-              // Uložíme nový token všade, kde treba
+              // Update local storage and auth state with the new token
               await ref.read(storageProvider).write(key: 'jwt_token', value: newToken);
               ref.read(authProvider.notifier).updateToken(newToken);
 
-              // Zopakujeme pôvodný request s novým tokenom
+              // Retry the original request with the new token
               e.requestOptions.headers['Authorization'] = 'Bearer $newToken';
               final response = await dio.fetch(e.requestOptions);
               return handler.resolve(response);
             }
           } catch (refreshError) {
-            _refreshFuture = null; // Aj pri chybe musíme vynulovať premennú
-            print("Refresh zlyhal definitívne, odhlasujem... $refreshError");
+            _refreshFuture = null;
+            // If refresh fails, log the user out to ensure security
             ref.read(authProvider.notifier).signOut();
           }
         }

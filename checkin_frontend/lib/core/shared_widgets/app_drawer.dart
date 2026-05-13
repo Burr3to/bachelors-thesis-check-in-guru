@@ -5,6 +5,8 @@ import '../../../../core/utils/l10n_extensions.dart';
 import '../../features/auth/views/providers/auth_provider.dart';
 import '../providers/locale_provider.dart';
 
+/// The main navigation drawer for the application.
+/// Provides links to core features, language settings, and user account management.
 class AppDrawer extends ConsumerWidget {
   const AppDrawer({super.key});
 
@@ -15,7 +17,7 @@ class AppDrawer extends ConsumerWidget {
     final String location = GoRouterState.of(context).uri.path;
 
     return Drawer(
-      // Kľúčové: Nastavenie farby a nulový elevation pre čistý M3 vzhľad
+      // Set background color and shape for a modern Material 3 look
       backgroundColor: cs.surface,
       surfaceTintColor: cs.surfaceTint,
       shape: const RoundedRectangleBorder(
@@ -26,12 +28,12 @@ class AppDrawer extends ConsumerWidget {
       ),
       child: Column(
         children: [
-          // 1. VLASTNÝ HEADER (Nahrádza starý UserAccountsDrawerHeader)
+          // User profile header section
           _buildCustomHeader(context, cs, user),
 
           const SizedBox(height: 12),
 
-          // 2. NAVIGAČNÉ POLOŽKY
+          // Primary navigation links
           _DrawerItem(
             icon: Icons.home_outlined,
             activeIcon: Icons.home,
@@ -59,12 +61,12 @@ class AppDrawer extends ConsumerWidget {
             child: Divider(),
           ),
 
-          // 3. NASTAVENIA JAZYKA PRIAMO V MENU
+          // Localization / Language switching section
           _buildLanguageSection(context, ref, cs),
 
           const Spacer(),
 
-          // 4. LOGOUT SEKCIA
+          // Authentication / Logout section
           if (user != null) _buildLogoutSection(context, ref, cs),
 
           const SizedBox(height: 16),
@@ -73,6 +75,7 @@ class AppDrawer extends ConsumerWidget {
     );
   }
 
+  /// Builds a custom header displaying the user's avatar, name, and email.
   Widget _buildCustomHeader(BuildContext context, ColorScheme cs, dynamic user) {
     return Container(
       width: double.infinity,
@@ -83,7 +86,7 @@ class AppDrawer extends ConsumerWidget {
         right: 24,
       ),
       decoration: BoxDecoration(
-        color: cs.primaryContainer.withAlpha(40), // Jemný modrý nádych
+        color: cs.primaryContainer.withAlpha(40),
         border: Border(bottom: BorderSide(color: cs.outlineVariant.withAlpha(100))),
       ),
       child: Column(
@@ -111,6 +114,7 @@ class AppDrawer extends ConsumerWidget {
     );
   }
 
+  /// Builds the language selection portion of the drawer.
   Widget _buildLanguageSection(BuildContext context, WidgetRef ref, ColorScheme cs) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -135,6 +139,7 @@ class AppDrawer extends ConsumerWidget {
     );
   }
 
+  /// Builds the logout tile at the bottom of the drawer.
   Widget _buildLogoutSection(BuildContext context, WidgetRef ref, ColorScheme cs) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -144,7 +149,7 @@ class AppDrawer extends ConsumerWidget {
         leading: Icon(Icons.logout, color: cs.error),
         title: Text("Logout", style: TextStyle(color: cs.error, fontWeight: FontWeight.bold)),
         onTap: () {
-          Navigator.pop(context); // Zatvoriť drawer
+          Navigator.pop(context); // Close the drawer before logging out
           ref.read(authProvider.notifier).signOut();
         },
       ),
@@ -152,7 +157,7 @@ class AppDrawer extends ConsumerWidget {
   }
 }
 
-// --- POMOCNÝ WIDGET PRE POLOŽKU V MENU ---
+/// A private helper widget for consistent drawer navigation items.
 class _DrawerItem extends StatelessWidget {
   final IconData icon;
   final IconData activeIcon;
@@ -187,7 +192,7 @@ class _DrawerItem extends StatelessWidget {
             fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
           ),
         ),
-        // Aktívny podmaz
+        // Visual indicator for the active route
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         tileColor: isActive ? cs.primaryContainer.withAlpha(60) : Colors.transparent,
       ),

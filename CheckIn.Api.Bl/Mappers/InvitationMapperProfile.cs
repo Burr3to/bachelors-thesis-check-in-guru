@@ -7,11 +7,18 @@ using AutoMapper;
 
 namespace CheckIn.Api.Bl.Mappers;
 
+/// <summary>
+/// AutoMapper profile for InvitationEntity transformations.
+/// </summary>
 public class InvitationMapperProfile : Profile
 {
+    /// <summary>
+    /// Configures mapping rules for invitations.
+    /// </summary>
     public InvitationMapperProfile()
     {
         CreateMap<InvitationEntity, InvitationListModel>();
+
         CreateMap<InvitationEntity, InvitationDetailModel>()
             .ForMember(dest => dest.TaskTitle,
                 opt => opt.MapFrom(src => src.Task != null ? src.Task.Title : string.Empty));

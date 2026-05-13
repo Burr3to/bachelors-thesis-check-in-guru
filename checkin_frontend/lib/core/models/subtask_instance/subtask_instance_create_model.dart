@@ -7,7 +7,7 @@ part 'subtask_instance_create_model.g.dart';
 sealed class SubtaskInstanceCreateModel with _$SubtaskInstanceCreateModel {
   const factory SubtaskInstanceCreateModel({
     required String templateSubtaskId,
-    String? assignedToUserId, // Nullable Guid
+    String? assignedToUserId,
   }) = _SubtaskInstanceCreateModel;
 
 

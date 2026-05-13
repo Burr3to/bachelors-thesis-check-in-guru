@@ -1,15 +1,17 @@
-// features/task_list/data/models/query_result.dart
-
 import 'package:json_annotation/json_annotation.dart';
 
 part 'query_result.g.dart';
 
+/// A generic container for paginated API responses.
+/// This matches the C# back-end QueryResult<T> structure.
 @JsonSerializable(genericArgumentFactories: true)
 class QueryResult<T> {
-  // 'items' zodpovedá poľu 'Items' v C#
+  /// The collection of items for the current page.
   final List<T> items;
-  // 'totalCount' zodpovedá 'TotalCount' v C#
+
+  /// Total number of items across all pages.
   final int totalCount;
+
   final int pageNumber;
   final int pageSize;
 
@@ -20,7 +22,7 @@ class QueryResult<T> {
     required this.pageSize,
   });
 
-  // Custom Factory pre generické triedy, ktorý zabezpečí správnu deserializáciu
+  /// Generic factory for JSON deserialization of nested types.
   factory QueryResult.fromJson(
       Map<String, dynamic> json,
       T Function(Object? json) fromJsonT,

@@ -1,6 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+/// A button representing an optional section in a form or setup screen.
+/// Displays an icon, a primary label, and a secondary "Optional" indicator.
 class OptionalSectionButton extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -16,6 +18,7 @@ class OptionalSectionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+
     return Expanded(
       child: InkWell(
         onTap: onTap,
@@ -26,6 +29,7 @@ class OptionalSectionButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: cs.outlineVariant),
           ),
+          // Horizontal layout with icon and text column
           child: Row(
             children: [
               Icon(icon, color: cs.primary, size: 22),
@@ -33,10 +37,21 @@ class OptionalSectionButton extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label,
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: cs.onSurface)),
-                  Text("Optional",
-                      style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant)),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: cs.onSurface,
+                    ),
+                  ),
+                  Text(
+                    "Optional",
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: cs.onSurfaceVariant,
+                    ),
+                  ),
                 ],
               ),
             ],

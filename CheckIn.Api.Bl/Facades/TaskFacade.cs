@@ -21,6 +21,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CheckIn.Api.Bl.Facades;
 
+/// <summary>
+/// Facade handling complex task logic, including invitations, subtask instance generation, 
+/// and statistical aggregation.
+/// </summary>
 public class TaskFacade(
     CheckInDbContext dbContext,
     IMapper mapper,
@@ -31,13 +35,18 @@ public class TaskFacade(
             TaskUpdateModel, TaskListQuery>
         (dbContext, mapper, userContext), ITaskFacade
 {
+    /// <summary>
+    /// Builds a filter expression based on the provided query parameters for searching tasks.
+    /// </summary>
     protected override Expression<Func<TaskEntity, bool>> CreateFilter(TaskListQuery query)
     {
         Expression<Func<TaskEntity, bool>> filter = entity => true;
 
+        // Filter by title using case-insensitive ILike
         if (!string.IsNullOrEmpty(query.NameContains))
             filter = filter.And(entity => EF.Functions.ILike(entity.Title, $"%{query.NameContains}%"));
 
+        // Filter by calculated task state (InProgress, Completed, Missed)
         if (query.Status.HasValue)
         {
             filter = query.Status.Value switch
@@ -50,6 +59,7 @@ public class TaskFacade(
             };
         }
 
+        // Search for tasks associated with a specific participant email
         if (!string.IsNullOrEmpty(query.RespondentEmail))
         {
             var email = query.RespondentEmail.Trim().ToLower();
@@ -62,6 +72,7 @@ public class TaskFacade(
             );
         }
 
+        // Filtering by various date ranges and task modes
         if (query.DeadLineBefore.HasValue)
             filter = filter.And(entity => entity.DeadLine <= query.DeadLineBefore.Value);
 
@@ -77,12 +88,16 @@ public class TaskFacade(
         if (query.RequiresAuth.HasValue)
             filter = filter.And(entity => entity.RequiresAuthenticationToComplete == query.RequiresAuth.Value);
 
+        // Security: only show tasks created by the current user
         Guid currentUserId = CurrentUserId;
         filter = filter.And(entity => entity.CreatedById == currentUserId);
 
         return filter;
     }
 
+    /// <summary>
+    /// Configures the ordering for the task list query.
+    /// </summary>
     protected override Func<IQueryable<TaskEntity>, IOrderedQueryable<TaskEntity>> CreateOrderBy(TaskListQuery query)
     {
         if (string.IsNullOrWhiteSpace(query.SortBy))
@@ -102,6 +117,9 @@ public class TaskFacade(
         };
     }
 
+    /// <summary>
+    /// Injects owner ID and ensures at least one subtask exists for every task.
+    /// </summary>
     protected override void AddContextualData(TaskEntity entity, TaskCreateModel? createModel,
         TaskUpdateModel? updateModel)
     {
@@ -109,6 +127,7 @@ public class TaskFacade(
         {
             entity.CreatedById = CurrentUserId;
 
+            // If no subtasks provided, create a default template from the task title
             if (entity.Subtasks is null || entity.Subtasks.Count == 0)
             {
                 entity.Subtasks.Add(new SubtaskTemplateEntity
@@ -124,12 +143,16 @@ public class TaskFacade(
             entity.LastModifiedAt = DateTime.UtcNow;
     }
 
+    /// <summary>
+    /// Handles task creation, initializes shared instances, and processes initial invitations.
+    /// </summary>
     public override async Task<Result<TaskDetailModel>> SaveCreateModelAsync(TaskCreateModel model)
     {
         var task = mapper.Map<TaskEntity>(model);
         AddContextualData(task, model, default);
         if (task.Id == Guid.Empty) task.Id = Guid.NewGuid();
 
+        // In Shared mode, we create one global instance per template immediately
         if (task.SubtaskMode == SubtaskMode.Shared)
         {
             CreateInstancesForTemplates(task.Subtasks, Guid.NewGuid(), null, null, addToContext: false);
@@ -140,10 +163,11 @@ public class TaskFacade(
         await dbContext.Tasks.AddAsync(task);
         await dbContext.SaveChangesAsync();
 
+        // Handle background email dispatching if requested
         if (model.SendInvitesImmediately && model.InvitedEmails.Count != 0)
         {
             var author = await dbContext.Users.FindAsync(CurrentUserId);
-            var authorName = author?.Name ?? "Váš kolega";
+            var authorName = author?.Name ?? "Your colleague";
 
             invitationFacade.StartEmailSendingBackground(
                 model.InvitedEmails, task.Hash, authorName, task.Title, task.Notes, task.CreatedById, task.Id
@@ -153,6 +177,9 @@ public class TaskFacade(
         return await GetByIdAsync(task.Id);
     }
 
+    /// <summary>
+    /// Updates an existing task and refreshes UI components via SignalR.
+    /// </summary>
     public override async Task<Result<TaskDetailModel>> SaveUpdateModelAsync(TaskUpdateModel model)
     {
         var task = await dbContext.Tasks.FirstOrDefaultAsync(t => t.Id == model.Id);
@@ -162,6 +189,7 @@ public class TaskFacade(
 
         mapper.Map(model, task);
 
+        // Reset state if deadline was moved to the future
         if (task.State == TaskState.Completed && model.DeadLine > DateTime.UtcNow)
             task.State = TaskState.InProgress;
 
@@ -174,6 +202,7 @@ public class TaskFacade(
 
         await dbContext.SaveChangesAsync();
 
+        // Broadcast changes to active detail rooms
         var roomName = task.Id.ToString().ToLower();
         await hubContext.Clients.Group(roomName).SendAsync("TaskInvitationsChanged");
         await hubContext.Clients.Group(roomName).SendAsync("TaskInstancesChanged");
@@ -181,7 +210,9 @@ public class TaskFacade(
         return await GetByIdAsync(task.Id);
     }
 
-
+    /// <summary>
+    /// Helper to create subtask execution rows from blueprint templates.
+    /// </summary>
     private void CreateInstancesForTemplates(
         IEnumerable<SubtaskTemplateEntity> templates, Guid responseGroupId, string? email, Guid? userId,
         bool addToContext)
@@ -203,6 +234,9 @@ public class TaskFacade(
         }
     }
 
+    /// <summary>
+    /// Synchronizes a user's instances, creating missing ones or adopting anonymous ones after registration.
+    /// </summary>
     private void SyncUserInstances(
         IEnumerable<SubtaskTemplateEntity> templates,
         List<SubtaskInstanceEntity> existingUserInstances,
@@ -210,10 +244,12 @@ public class TaskFacade(
     {
         if (!existingUserInstances.Any())
         {
+            // Generate full set for new participant
             CreateInstancesForTemplates(templates, Guid.NewGuid(), email, userId, addToContext);
         }
         else
         {
+            // Add instances for templates added after the participant joined
             var existingTemplateIds = existingUserInstances.Select(i => i.TemplateSubtaskId).ToHashSet();
             var missingTemplates = templates.Where(t => !existingTemplateIds.Contains(t.Id)).ToList();
 
@@ -223,7 +259,7 @@ public class TaskFacade(
                 CreateInstancesForTemplates(missingTemplates, existingGroupId, email, userId, addToContext);
             }
 
-            // Adopt anonymous instances if user has registered
+            // Link anonymous responses to the user profile if they just logged in
             if (userId != null && userId != Guid.Empty)
             {
                 foreach (var inst in existingUserInstances.Where(i => i.AssignedToUserId == null))
@@ -234,6 +270,9 @@ public class TaskFacade(
         }
     }
 
+    /// <summary>
+    /// Generates Invitation entities and corresponding Individual mode instances for new emails.
+    /// </summary>
     private async Task ProcessNewInvitations(TaskEntity task, List<string> emailsToInvite, bool isNewTask)
     {
         var existingEmails = isNewTask
@@ -261,7 +300,7 @@ public class TaskFacade(
             .Where(u => newEmails.Contains(u.Email.ToLower()))
             .ToListAsync();
 
-        // Optimized batch loading - Fetch ALL relevant instances at once instead of N+1
+        // Optimized batch loading to avoid N+1 query issues
         var allTaskInstances = isNewTask
             ? new List<SubtaskInstanceEntity>()
             : await dbContext.SubtaskInstances
@@ -299,18 +338,19 @@ public class TaskFacade(
         }
     }
 
+    /// <summary>
+    /// Removes users from task and cleans up their specific instances or resets shared progress.
+    /// </summary>
     public async Task<Result<bool>> RemoveInvitationsAsync(Guid taskId, List<string> emails)
     {
         var normalizedEmails = emails.Select(e => e.ToLower().Trim()).ToList();
 
-        // 1. Zistíme režim úlohy
         var task = await dbContext.Tasks
             .Select(t => new { t.Id, t.SubtaskMode })
             .FirstOrDefaultAsync(t => t.Id == taskId);
 
         if (task == null) return Result<bool>.NotFound();
 
-        // 2. Nájdeme pozvánky na odstránenie
         var invitationsToRemove = await dbContext.Invitations
             .Where(i => i.TaskId == taskId && normalizedEmails.Contains(i.Email.ToLower()))
             .ToListAsync();
@@ -318,7 +358,6 @@ public class TaskFacade(
         if (!invitationsToRemove.Any())
             return Result<bool>.Success(true);
 
-        // 3. Získame ID používateľov (potrebné pre oba módy na identifikáciu cez UserId)
         var userIds = await dbContext.Users
             .Where(u => normalizedEmails.Contains(u.Email.ToLower()))
             .Select(u => u.Id)
@@ -328,10 +367,7 @@ public class TaskFacade(
         {
             if (task.SubtaskMode == SubtaskMode.Individual)
             {
-                // --- INDIVIDUAL MODE (VRÁTENÁ A POSILNENÁ LOGIKA) ---
-                // Mažeme VŠETKY inštancie pridelené daným emailom/userom.
-                // Či sú splnené (3) alebo nesplnené (5), musia zmiznúť všetky, 
-                // pretože v Individual móde má každý svoju vlastnú sadu.
+                // In Individual mode, we purge all instances tied to these users
                 var instancesToRemove = await dbContext.SubtaskInstances
                     .Where(si => si.TemplateSubtask.ParentTaskId == taskId &&
                                  (
@@ -348,8 +384,7 @@ public class TaskFacade(
             }
             else
             {
-                // --- SHARED MODE (BEZPEČNÝ RESET) ---
-                // Tu inštancie nemažeme (sú spoločné), len hľadáme tie, ktoré tito ľudia reálne klikli.
+                // In Shared mode, we reset progress for subtasks completed by these users
                 var instancesToReset = await dbContext.SubtaskInstances
                     .Where(si => si.TemplateSubtask.ParentTaskId == taskId &&
                                  si.CompletedByUserId != null &&
@@ -366,25 +401,25 @@ public class TaskFacade(
                 }
             }
 
-            // Odstránime samotné pozvánky
             dbContext.Invitations.RemoveRange(invitationsToRemove);
-
             await dbContext.SaveChangesAsync();
 
-            // SignalR notifikácie
+            // Notify UI about invitation and task content changes
             var taskRoom = taskId.ToString().ToLower();
             await hubContext.Clients.Group(taskRoom).SendAsync("TaskInvitationsChanged");
             await hubContext.Clients.Group(taskRoom).SendAsync("TaskInstancesChanged");
 
             return Result<bool>.Success(true);
         }
-        catch (Exception e)
+        catch (Exception)
         {
-            Console.WriteLine($"REMOVE ERROR: {e.Message}");
-            return Result<bool>.Failure(ErrorType.InternalError, "Nepodarilo sa odstrániť používateľov.");
+            return Result<bool>.Failure(ErrorType.InternalError, "Failed to remove users from task.");
         }
     }
 
+    /// <summary>
+    /// Retrieves task blueprints for management.
+    /// </summary>
     public async Task<Result<List<SubtaskCombinedListModel>>> GetTaskTemplatesAsync(Guid taskId)
     {
         var task = await dbContext.Tasks
@@ -394,10 +429,12 @@ public class TaskFacade(
         if (task == null) return Result<List<SubtaskCombinedListModel>>.NotFound();
 
         var result = mapper.Map<List<SubtaskCombinedListModel>>(task.Subtasks);
-
         return Result<List<SubtaskCombinedListModel>>.Success(result);
     }
 
+    /// <summary>
+    /// Retrieves execution instances of subtasks for a specific task.
+    /// </summary>
     public async Task<Result<List<SubtaskCombinedListModel>>> GetTaskInstancesAsync(Guid taskId)
     {
         var instances = await dbContext.SubtaskInstances
@@ -408,10 +445,13 @@ public class TaskFacade(
             .ToListAsync();
 
         var result = mapper.Map<List<SubtaskCombinedListModel>>(instances);
-
         return Result<List<SubtaskCombinedListModel>>.Success(result);
     }
 
+    /// <summary>
+    /// Core logic for viewing a task publically. Handles domain validation, 
+    /// invitation acceptance, and participant-specific instance retrieval.
+    /// </summary>
     public async Task<Result<TaskPublicDetailModel>> GetTaskPublicDetailByHashAsync(string hash)
     {
         var currentUserId = OptionalUserId;
@@ -424,9 +464,7 @@ public class TaskFacade(
             .FirstOrDefaultAsync();
 
         if (task == null)
-        {
             return Result<TaskPublicDetailModel>.NotFound($"Task with hash '{hash}' was not found.");
-        }
 
         if (task.RequiresAuthenticationToComplete && currentUserId == null)
         {
@@ -434,32 +472,29 @@ public class TaskFacade(
                 "Authentication is required to view the details of this task.");
         }
 
-        // --- PRIDANÁ LOGIKA PRE KONTROLU DOMÉNY ---
+        // Domain validation for corporate/academic restricted tasks
         if (!string.IsNullOrEmpty(task.AllowedDomain))
         {
             var userEmail = UserContext.GetEmail()?.ToLower().Trim();
 
-            // Ak je nastavená doména, ale nemáme email (používateľ nie je prihlásený)
             if (string.IsNullOrEmpty(userEmail))
             {
                 return Result<TaskPublicDetailModel>.Failure(ErrorType.Unauthorized,
-                    "Na prístup k tejto úlohe sa musíte prihlásiť školským/firemným emailom.");
+                    "You must be logged in with a school/company email to access this task.");
             }
 
-            // Normalizujeme doménu z DB (aby sme zvládli "vutbr.cz" aj "@vutbr.cz")
             var requiredDomain = task.AllowedDomain.ToLower().Trim();
             if (!requiredDomain.StartsWith("@")) requiredDomain = "@" + requiredDomain;
 
-            // Kontrola, či email končí požadovanou doménou
             if (!userEmail.EndsWith(requiredDomain))
             {
                 return Result<TaskPublicDetailModel>.Forbidden(
-                    $"Tento check-in je vyhradený pre organizáciu {task.AllowedDomain}. " +
-                    $"Momentálne ste prihlásený ako {userEmail}. " +
-                    "Prosím, odhláste sa a použite svoj oficiálny školský alebo firemný účet.");
+                    $"This task is reserved for members of {task.AllowedDomain}. " +
+                    $"You are currently logged in as {userEmail}.");
             }
         }
 
+        // Auto-accept invitation upon first open
         if (task.Invitations.Count != 0 && task.CreatedById != currentUserId)
         {
             var email = UserContext.GetEmail();
@@ -479,6 +514,7 @@ public class TaskFacade(
 
         IEnumerable<SubtaskInstanceEntity> instancesToShow;
 
+        // Individual Mode for Anonymous participants (Show empty templates)
         if (task.SubtaskMode == SubtaskMode.Individual && !currentUserId.HasValue)
         {
             var subtasks = task.Subtasks.Select(st => new SubtaskCombinedListModel
@@ -494,6 +530,7 @@ public class TaskFacade(
             var publicModel = mapper.Map<TaskPublicDetailModel>(task);
             return Result<TaskPublicDetailModel>.Success(publicModel with { Subtasks = subtasks });
         }
+        // Individual Mode for Authenticated users
         else if (task.SubtaskMode == SubtaskMode.Individual && currentUserId.HasValue)
         {
             await EnsureIndividualInstancesExist(task, currentUserId.Value, UserContext.GetEmail());
@@ -503,7 +540,8 @@ public class TaskFacade(
                 .Where(i => i.TemplateSubtask.ParentTaskId == task.Id && i.AssignedToUserId == currentUserId.Value)
                 .ToListAsync();
         }
-        else // Shared Mode
+        // Shared Mode
+        else
         {
             instancesToShow = task.Subtasks.SelectMany(s => s.Instances);
         }
@@ -519,9 +557,11 @@ public class TaskFacade(
         return Result<TaskPublicDetailModel>.Success(finalModel);
     }
 
+    /// <summary>
+    /// Ensures participant-specific subtask instances exist for the user.
+    /// </summary>
     public async Task EnsureIndividualInstancesExist(TaskEntity task, Guid userId, string? userEmail)
     {
-        // Now extremely simplified by reusing our helper
         var existingUserInstances = await dbContext.Set<SubtaskInstanceEntity>()
             .Where(i => i.TemplateSubtask.ParentTaskId == task.Id &&
                         (i.AssignedToUserId == userId || (userEmail != null && i.AssignedToEmail == userEmail)))
@@ -532,9 +572,11 @@ public class TaskFacade(
         await dbContext.SaveChangesAsync();
     }
 
+    /// <summary>
+    /// Aggregates progress data for a list of tasks for the author's dashboard.
+    /// </summary>
     public async Task<Result<List<TaskSummaryStats>>> GetSummaryStats(List<Guid> taskIds)
     {
-        // Vytiahneme aj CompletedAt a DeadLine!
         var allInstances = await dbContext.SubtaskInstances
             .Where(i => taskIds.Contains(i.TemplateSubtask.ParentTaskId))
             .Select(i => new
@@ -544,8 +586,8 @@ public class TaskFacade(
                 i.AssignedToUserId,
                 i.IsCompleted,
                 i.ResponseGroupId,
-                i.CompletedAt, // PRIDANÉ
-                Deadline = i.TemplateSubtask.ParentTask.DeadLine // PRIDANÉ (Ak je deadline inde, uprav cestu)
+                i.CompletedAt,
+                Deadline = i.TemplateSubtask.ParentTask.DeadLine
             })
             .ToListAsync();
 
@@ -554,7 +596,6 @@ public class TaskFacade(
             .Select(t => new { t.Id, t.SubtaskMode })
             .ToDictionaryAsync(t => t.Id, t => t.SubtaskMode);
 
-        var now = DateTime.UtcNow;
         var results = new List<TaskSummaryStats>();
 
         foreach (var taskId in taskIds)
@@ -570,9 +611,9 @@ public class TaskFacade(
                     {
                         TotalCount = g.Count(),
                         CompletedCount = g.Count(x => x.IsCompleted),
-                        // Osoba je "Late", ak má všetko hotové, ale aspoň jeden subtask bol po deadline
+                        // Late: Everything done, but at least one after deadline
                         IsFinishedLate = g.All(x => x.IsCompleted) && g.Any(x => x.CompletedAt > x.Deadline),
-                        // Osoba je "OnTime", ak má všetko hotové a všetko bolo včas
+                        // OnTime: Everything done and submitted before deadline
                         IsFinishedOnTime = g.All(x => x.IsCompleted) && g.All(x => x.CompletedAt <= x.Deadline)
                     }).ToList();
 
@@ -582,11 +623,11 @@ public class TaskFacade(
                     Mode = mode,
                     TotalRespondents = userGroups.Count,
 
-                    CompletedOnTime = userGroups.Count(u => u.IsFinishedOnTime), // Zelená
-                    IssuesCount = userGroups.Count(u => u.IsFinishedLate), // Červená
+                    CompletedOnTime = userGroups.Count(u => u.IsFinishedOnTime), // Green
+                    IssuesCount = userGroups.Count(u => u.IsFinishedLate), // Red
                     InProgress =
-                        userGroups.Count(u => u.CompletedCount > 0 && u.CompletedCount < u.TotalCount), // Oranžová
-                    NotStarted = userGroups.Count(u => u.CompletedCount == 0), // Sivá
+                        userGroups.Count(u => u.CompletedCount > 0 && u.CompletedCount < u.TotalCount), // Orange
+                    NotStarted = userGroups.Count(u => u.CompletedCount == 0), // Gray
 
                     GlobalProgress = userGroups.Count == 0
                         ? 0
@@ -596,11 +637,8 @@ public class TaskFacade(
             else // Shared Mode
             {
                 int total = taskInstances.Count;
-                // Zelená: Dokončené a včas
                 int completedOnTime = taskInstances.Count(i => i.IsCompleted && i.CompletedAt <= i.Deadline);
-                // Červená: Dokončené, ale po deadline (Late)
                 int completedLate = taskInstances.Count(i => i.IsCompleted && i.CompletedAt > i.Deadline);
-                // Sivá: Všetko ostatné, čo nie je hotové (bez ohľadu na to, či už mešká alebo nie)
                 int notCompleted = total - completedOnTime - completedLate;
 
                 results.Add(new TaskSummaryStats()
@@ -608,12 +646,11 @@ public class TaskFacade(
                     TaskId = taskId,
                     Mode = mode,
                     TotalSubtasks = total,
-                    CompletedSubtasks = completedOnTime + completedLate, // Pre label X/Y (celkovo hotové)
+                    CompletedSubtasks = completedOnTime + completedLate,
 
-                    // Farby pre Progress Bar:
-                    CompletedOnTime = completedOnTime, // Zelená
-                    IssuesCount = completedLate, // Červená (iba tie, čo sú hotové neskoro)
-                    NotStarted = notCompleted // Sivá (všetko nehotové)
+                    CompletedOnTime = completedOnTime, // Green
+                    IssuesCount = completedLate, // Red
+                    NotStarted = notCompleted // Gray
                 });
             }
         }

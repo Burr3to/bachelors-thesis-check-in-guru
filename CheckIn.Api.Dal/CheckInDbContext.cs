@@ -5,6 +5,10 @@ using Microsoft.AspNetCore.Identity;
 
 namespace CheckIn.Api.Dal;
 
+/// <summary>
+/// Main database context for the CheckIn system, integrating ASP.NET Identity 
+/// and custom business entities.
+/// </summary>
 public class CheckInDbContext(DbContextOptions<CheckInDbContext> options)
     : IdentityDbContext<IdentityUser, IdentityRole, string>(options)
 {
@@ -15,69 +19,70 @@ public class CheckInDbContext(DbContextOptions<CheckInDbContext> options)
     public DbSet<RefreshToken> RefreshTokens { get; set; }
     public DbSet<InvitationEntity> Invitations { get; set; }
 
+    /// <summary>
+    /// Configures entity relationships, column types, and database indexes.
+    /// </summary>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // VŽDY volajte základnú metódu pre konfiguráciu Identity tabuliek
+        // Required for configuring ASP.NET Identity tables
         base.OnModelCreating(modelBuilder);
 
-        // 1. TaskEntity a CreatedById
+        // Configuration for TaskEntity and its Author (CreatedBy)
         modelBuilder.Entity<TaskEntity>()
-            .HasOne(t => t.CreatedBy) // Relácia k vašej entite používateľa
+            .HasOne(t => t.CreatedBy)
             .WithMany()
             .HasForeignKey(t => t.CreatedById)
             .IsRequired(true)
-            .OnDelete(DeleteBehavior.Restrict); // Zabrániť kaskádovému mazaniu taskov pri mazaní používateľa
+            .OnDelete(DeleteBehavior.Restrict); // Prevent task deletion from cascading back to users
 
-        // 2. TaskEntity a SubtaskTemplateEntity (1:N)
+        // Relationship between Task and its Subtask Blueprints
         modelBuilder.Entity<SubtaskTemplateEntity>()
             .HasOne(st => st.ParentTask)
             .WithMany(t => t.Subtasks)
             .HasForeignKey(st => st.ParentTaskId)
-            .OnDelete(DeleteBehavior.Cascade); // Ak sa zmaže Task, zmažú sa aj všetky šablóny subtaskov
+            .OnDelete(DeleteBehavior.Cascade);
 
-        // Delta JSON string for rich text flutter_quill
+        // Store Quill editor rich text as native PostgreSQL JSONB for efficient querying
         modelBuilder.Entity<TaskEntity>()
             .Property(b => b.Notes)
             .HasColumnType("jsonb");
 
-        // 3. SubtaskTemplateEntity a SubtaskInstanceEntity (1:N)
+        // Relationship between Subtask Blueprint and its Execution Instances
         modelBuilder.Entity<SubtaskInstanceEntity>()
             .HasOne(si => si.TemplateSubtask)
             .WithMany(st => st.Instances)
             .HasForeignKey(si => si.TemplateSubtaskId)
-            .OnDelete(DeleteBehavior.Cascade); // Ak sa zmaže šablóna, zmažú sa aj všetky inštancie splnenia
+            .OnDelete(DeleteBehavior.Cascade);
 
-        // 4. SubtaskInstanceEntity a UserEntity (CompletedByUserId, AssignedToUserId)
-
-        // Kto inštanciu splnil (CompletedByUserId)
+        // Relationship for the user who completed the subtask instance
         modelBuilder.Entity<SubtaskInstanceEntity>()
             .HasOne<UserEntity>()
             .WithMany()
             .HasForeignKey(si => si.CompletedByUserId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // Komu bola inštancia priradená (AssignedToUserId)
+        // Relationship for the user assigned to a specific instance (Individual mode)
         modelBuilder.Entity<SubtaskInstanceEntity>()
             .HasOne<UserEntity>()
             .WithMany()
             .HasForeignKey(si => si.AssignedToUserId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // Relationship between Task and Invitations
         modelBuilder.Entity<InvitationEntity>()
             .HasOne(i => i.Task)
             .WithMany(t => t.Invitations)
             .HasForeignKey(i => i.TaskId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // --- INDEXY PRE RÝCHLE ŠTATISTIKY ---
+        // --- PERFORMANCE INDEXES ---
 
-        // 1. Index na SubtaskTemplateEntity (vyhľadávanie šablón podľa Tasku)
+        // Index for searching templates by parent task
         modelBuilder.Entity<SubtaskTemplateEntity>()
             .HasIndex(st => st.ParentTaskId)
             .HasDatabaseName("IX_SubtaskTemplates_ParentTaskId");
 
-        // 2. Index na SubtaskInstanceEntity (vyhľadávanie inštancií podľa šablóny)
-        // Toto je kľúčové pre tvoj "Individual mode" výpočet
+        // Index for searching execution instances by their template
         modelBuilder.Entity<SubtaskInstanceEntity>()
             .HasIndex(si => si.TemplateSubtaskId)
             .HasDatabaseName("IX_SubtaskInstances_TemplateSubtaskId");

@@ -8,12 +8,13 @@ import '../../../../core/providers/invitation_providers.dart';
 import '../../../../core/providers/task_providers.dart';
 import '../../../../core/shared_widgets/app_snack_bar.dart';
 import '../../../../core/utils/l10n_extensions.dart';
+import '../../../../core/utils/responsive.dart';
 
-// --- IMPORT PRE RESPONSIVE ---
-import '../../../../core/utils/responsive.dart'; // Uprav cestu ak treba
-
+/// Defines the current visual and functional state of the invitation management toolbar.
 enum EditToolbarState { none, defaultEdit, addMode, removeMode }
 
+/// A widget that displays and manages the list of invited users for a task.
+/// It allows the author to add new emails, remove existing ones, and send reminders.
 class TaskInvitedUsersWidget extends ConsumerStatefulWidget {
   final TaskDetailModel task;
 
@@ -30,7 +31,7 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
   EditToolbarState _toolbarState = EditToolbarState.none;
   bool _isProcessing = false;
   bool _cooldownActive = false;
-  final List<String> _selectedEmails =[];
+  final List<String> _selectedEmails = [];
   final _emailInputController = TextEditingController();
 
   @override
@@ -39,12 +40,14 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
     super.dispose();
   }
 
+  /// Triggers a refresh for all task-related providers.
   void _refreshAll() {
     ref.invalidate(taskDetailProvider(widget.task.id));
     ref.invalidate(taskInvitationsProvider(widget.task.id));
     ref.invalidate(taskInstancesProvider(widget.task.id));
   }
 
+  /// Activates a temporary cooldown for email-sending buttons to prevent spam.
   void _startCooldown() {
     setState(() => _cooldownActive = true);
     Future.delayed(const Duration(seconds: 5), () {
@@ -52,6 +55,7 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
     });
   }
 
+  /// Sends invitation emails to users who haven't been notified yet.
   Future<void> _handleInviteAll() async {
     setState(() => _isProcessing = true);
     try {
@@ -65,6 +69,7 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
     }
   }
 
+  /// Sends reminder emails to invited users who haven't finished the task yet.
   Future<void> _handleNotifyPending() async {
     setState(() => _isProcessing = true);
     try {
@@ -78,35 +83,41 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
     }
   }
 
+  /// Parses raw text input for email addresses and adds them to the task.
   Future<void> _handleParseAndAdd() async {
     final rawText = _emailInputController.text.trim();
     if (rawText.isEmpty) return;
+
     setState(() => _isProcessing = true);
     try {
+      // Use the API to extract clean email addresses from free-form text
       final List<String> newEmails = await ref
           .read(invitationApiServiceProvider)
           .parseEmails('"$rawText"');
+
       if (newEmails.isEmpty) {
         AppSnackBar.showInfo(context, "No valid new emails found.");
         return;
       }
+
+      // Merge unique new emails with existing ones
       final updatedEmailList = {...widget.task.invitations.map((e) => e.email), ...newEmails}.toList();
 
-      // ===== TOTO JE TÁ ZÁSADNÁ OPRAVA =====
-      // Posielame späť VŠETKY staré dáta, aby ich backend nezmazal!
+      // CRUCIAL FIX: Re-send all existing task metadata to prevent the backend
+      // from resetting fields not included in the update model.
       final updateModel = TaskUpdateModel(
         id: widget.task.id,
         title: widget.task.title,
-        notes: widget.task.notes, // Udrží poznámky
+        notes: widget.task.notes,
         deadLine: widget.task.deadLine,
-        requiresAuthenticationToComplete: widget.task.requiresAuthenticationToComplete, // Udrží Auth status
-        allowedDomain: widget.task.allowedDomain, // Udrží doménu
-        state: widget.task.state, // Udrží stav
+        requiresAuthenticationToComplete: widget.task.requiresAuthenticationToComplete,
+        allowedDomain: widget.task.allowedDomain,
+        state: widget.task.state,
         invitedEmails: updatedEmailList,
       );
-      // ======================================
 
       await ref.read(taskApiServiceProvider).updateTask(widget.task.id, updateModel);
+
       _emailInputController.clear();
       setState(() => _toolbarState = EditToolbarState.defaultEdit);
       _refreshAll();
@@ -117,6 +128,7 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
     }
   }
 
+  /// Removes multiple selected invitations from the task.
   Future<void> _handleBulkDelete() async {
     if (_selectedEmails.isEmpty) return;
     setState(() => _isProcessing = true);
@@ -134,6 +146,7 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
     }
   }
 
+  /// Removes a single invitation by email.
   Future<void> _handleSingleDelete(String email) async {
     setState(() => _isProcessing = true);
     try {
@@ -161,7 +174,6 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
     final bool hasUnfinished = widget.task.invitations.any((i) => i.isSent && !i.isAccepted);
 
     return Container(
-      // NA MOBILE ZMENŠENÝ PADDING PRE VIAC PRIESTORU
       padding: EdgeInsets.all(isMobile ? 12 : 20),
       decoration: BoxDecoration(
         color: cs.surface,
@@ -170,14 +182,14 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children:[
-          // --- ROW 1: HEADER (RESPONZÍVNY) ---
+        children: [
+          // Section header with counts and primary actions
           _buildHeader(cs, isMobile, isEditMode, totalInvited, completed, hasUnfinished, hasUnsent),
 
           const SizedBox(height: 12),
           Divider(height: 1, color: cs.outlineVariant),
 
-          // --- ROW 2: EDIT TOOLBAR ---
+          // Contextual editing toolbar (Add/Remove modes)
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 200),
             child: _buildToolbar(cs, isMobile),
@@ -185,7 +197,7 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
 
           const SizedBox(height: 16),
 
-          // --- ROW 3: CHIPS ---
+          // Collection of invitation status chips
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -196,14 +208,14 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
     );
   }
 
-  // --- ODDELENÁ LOGIKA PRE HLAVIČKU ---
+  /// Builds a responsive header. Vertically stacked on mobile, single row on desktop.
   Widget _buildHeader(ColorScheme cs, bool isMobile, bool isEditMode, int totalInvited, int completed, bool hasUnfinished, bool hasUnsent) {
     if (isMobile) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            children:[
+            children: [
               Icon(Icons.people_outline, size: 20, color: cs.onSurfaceVariant),
               const SizedBox(width: 8),
               Text(
@@ -233,7 +245,7 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
           ),
           const SizedBox(height: 12),
           Row(
-            children:[
+            children: [
               Expanded(
                 child: Tooltip(
                   message: "Sends a reminder to everyone who received the invitation but hasn't completed the task yet.",
@@ -241,7 +253,7 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
                     label: "Remind",
                     icon: Icons.notification_important_outlined,
                     iconColor: Colors.orange,
-                    fullWidth: true, // Roztiahne na celú šírku Expanded
+                    fullWidth: true,
                     onPressed: (hasUnfinished && !_cooldownActive && !_isProcessing) ? _handleNotifyPending : null,
                     isPrimary: false,
                   ),
@@ -255,7 +267,7 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
                     label: "Invite New",
                     icon: Icons.mail_outline,
                     iconColor: Colors.white,
-                    fullWidth: true, // Roztiahne na celú šírku Expanded
+                    fullWidth: true,
                     onPressed: (hasUnsent && !_cooldownActive && !_isProcessing) ? _handleInviteAll : null,
                     isPrimary: true,
                   ),
@@ -266,9 +278,9 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
         ],
       );
     } else {
-      // DESKTOP VERZIA
+      // Desktop Header Layout
       return Row(
-        children:[
+        children: [
           Icon(Icons.people_outline, size: 20, color: cs.onSurfaceVariant),
           const SizedBox(width: 8),
           Text(
@@ -297,7 +309,7 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
           ),
           const Spacer(),
           Tooltip(
-            message: "Sends a reminder to everyone who received the invitation but hasn't completed the task yet.",
+            message: "Sends a reminder to those who haven't completed the task.",
             child: _ActionBtn(
               label: "Remind Unfinished",
               icon: Icons.notification_important_outlined,
@@ -308,7 +320,7 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
           ),
           const SizedBox(width: 8),
           Tooltip(
-            message: "Sends invitations to people who haven't been invited yet.",
+            message: "Sends invitations to new emails.",
             child: _ActionBtn(
               label: "Invite New",
               icon: Icons.mail_outline,
@@ -322,6 +334,7 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
     }
   }
 
+  /// Builds the toolbar based on the current EditToolbarState.
   Widget _buildToolbar(ColorScheme cs, bool isMobile) {
     switch (_toolbarState) {
       case EditToolbarState.defaultEdit:
@@ -329,7 +342,7 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
           padding: const EdgeInsets.only(top: 12),
           key: const ValueKey('defaultEdit'),
           child: Row(
-            children:[
+            children: [
               _ToolbarBtn(
                 label: "Add Emails",
                 icon: Icons.add,
@@ -345,18 +358,19 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
           ),
         );
       case EditToolbarState.addMode:
+      // Add Mode: Input field and submission buttons
         return Padding(
           padding: const EdgeInsets.only(top: 12),
           key: const ValueKey('addMode'),
           child: isMobile
               ? Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children:[
+            children: [
               _buildEmailInput(cs),
               const SizedBox(height: 8),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
-                children:[
+                children: [
                   TextButton(
                     onPressed: () => setState(() => _toolbarState = EditToolbarState.defaultEdit),
                     child: Text("Cancel", style: TextStyle(color: cs.onSurfaceVariant)),
@@ -364,11 +378,7 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
                   const SizedBox(width: 8),
                   ElevatedButton(
                     onPressed: _isProcessing ? null : _handleParseAndAdd,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: cs.primary,
-                      foregroundColor: cs.onPrimary,
-                      elevation: 0,
-                    ),
+                    style: ElevatedButton.styleFrom(backgroundColor: cs.primary, foregroundColor: cs.onPrimary, elevation: 0),
                     child: const Text("Add"),
                   ),
                 ],
@@ -376,16 +386,12 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
             ],
           )
               : Row(
-            children:[
+            children: [
               Expanded(child: _buildEmailInput(cs)),
               const SizedBox(width: 8),
               ElevatedButton(
                 onPressed: _isProcessing ? null : _handleParseAndAdd,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: cs.primary,
-                  foregroundColor: cs.onPrimary,
-                  elevation: 0,
-                ),
+                style: ElevatedButton.styleFrom(backgroundColor: cs.primary, foregroundColor: cs.onPrimary, elevation: 0),
                 child: const Text("Add"),
               ),
               TextButton(
@@ -396,27 +402,22 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
           ),
         );
       case EditToolbarState.removeMode:
+      // Remove Mode: Multi-select count and confirmation
         return Padding(
           padding: const EdgeInsets.only(top: 12),
           key: const ValueKey('removeMode'),
           child: isMobile
               ? Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children:[
+            children: [
               Text(
-                _selectedEmails.isEmpty
-                    ? "Click chips to select for deletion"
-                    : "${_selectedEmails.length} selected",
-                style: TextStyle(
-                  fontSize: 14,
-                  color: _selectedEmails.isEmpty ? cs.onSurfaceVariant : cs.error,
-                  fontWeight: FontWeight.bold,
-                ),
+                _selectedEmails.isEmpty ? "Click chips to select for deletion" : "${_selectedEmails.length} selected",
+                style: TextStyle(fontSize: 14, color: _selectedEmails.isEmpty ? cs.onSurfaceVariant : cs.error, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children:[
+                children: [
                   TextButton(
                     onPressed: () {
                       setState(() {
@@ -429,11 +430,7 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
                   if (_selectedEmails.isNotEmpty)
                     ElevatedButton(
                       onPressed: _isProcessing ? null : _handleBulkDelete,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: cs.error,
-                        foregroundColor: cs.onError,
-                        elevation: 0,
-                      ),
+                      style: ElevatedButton.styleFrom(backgroundColor: cs.error, foregroundColor: cs.onError, elevation: 0),
                       child: const Text("Confirm Delete"),
                     ),
                 ],
@@ -441,26 +438,16 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
             ],
           )
               : Row(
-            children:[
+            children: [
               Text(
-                _selectedEmails.isEmpty
-                    ? "Click chips to select for deletion"
-                    : "${_selectedEmails.length} selected",
-                style: TextStyle(
-                  fontSize: 14,
-                  color: _selectedEmails.isEmpty ? cs.onSurfaceVariant : cs.error,
-                  fontWeight: FontWeight.bold,
-                ),
+                _selectedEmails.isEmpty ? "Click chips to select for deletion" : "${_selectedEmails.length} selected",
+                style: TextStyle(fontSize: 14, color: _selectedEmails.isEmpty ? cs.onSurfaceVariant : cs.error, fontWeight: FontWeight.bold),
               ),
               const Spacer(),
               if (_selectedEmails.isNotEmpty)
                 ElevatedButton(
                   onPressed: _isProcessing ? null : _handleBulkDelete,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: cs.error,
-                    foregroundColor: cs.onError,
-                    elevation: 0,
-                  ),
+                  style: ElevatedButton.styleFrom(backgroundColor: cs.error, foregroundColor: cs.onError, elevation: 0),
                   child: const Text("Confirm Delete"),
                 ),
               TextButton(
@@ -480,6 +467,7 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
     }
   }
 
+  /// Builds a standard text field for bulk email entry.
   Widget _buildEmailInput(ColorScheme cs) {
     return TextField(
       controller: _emailInputController,
@@ -499,6 +487,8 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
     );
   }
 
+  /// Builds an interactive chip representing an individual invitation.
+  /// Visual style changes based on delivery and completion status.
   Widget _buildChip(InvitationListModel inv, ColorScheme cs) {
     final bool isRemoveMode = _toolbarState == EditToolbarState.removeMode;
     final bool isDefaultEdit = _toolbarState == EditToolbarState.defaultEdit;
@@ -508,6 +498,7 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
     Color textColor = cs.onSurfaceVariant;
     IconData icon = Icons.circle_outlined;
 
+    // Progression of status colors
     if (inv.isSent) {
       bgColor = cs.primary.withAlpha(25);
       textColor = cs.primary;
@@ -524,6 +515,7 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
       icon = Icons.check_circle_outline;
     }
 
+    // Highlighting for deletion selection
     if (isRemoveMode && isSelected) {
       bgColor = cs.errorContainer;
       textColor = cs.onErrorContainer;
@@ -548,7 +540,7 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
-          children:[
+          children: [
             Icon(icon, size: 16, color: textColor),
             const SizedBox(width: 8),
             SelectionArea(
@@ -561,6 +553,7 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
                 ),
               ),
             ),
+            // Inline delete button for quick single removal
             if (isDefaultEdit) ...[
               const SizedBox(width: 4),
               Material(
@@ -583,13 +576,14 @@ class _TaskInvitedUsersWidgetState extends ConsumerState<TaskInvitedUsersWidget>
   }
 }
 
+/// A specialized button for high-level invitation actions (Remind, Invite).
 class _ActionBtn extends StatelessWidget {
   final String label;
   final IconData icon;
   final VoidCallback? onPressed;
   final bool isPrimary;
   final Color? iconColor;
-  final bool fullWidth; // Nové pole pre podporu natiahnutia do šírky na mobile
+  final bool fullWidth;
 
   const _ActionBtn({
     required this.label,
@@ -603,34 +597,19 @@ class _ActionBtn extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-
     final effectiveIconColor = onPressed == null ? null : iconColor;
 
     final style = isPrimary
-        ? ElevatedButton.styleFrom(
-      backgroundColor: cs.primary,
-      foregroundColor: cs.onPrimary,
-      elevation: 0,
-    )
-        : ElevatedButton.styleFrom(
-      backgroundColor: cs.surfaceContainerHigh,
-      foregroundColor: cs.onSurfaceVariant,
-      elevation: 0,
-    );
+        ? ElevatedButton.styleFrom(backgroundColor: cs.primary, foregroundColor: cs.onPrimary, elevation: 0)
+        : ElevatedButton.styleFrom(backgroundColor: cs.surfaceContainerHigh, foregroundColor: cs.onSurfaceVariant, elevation: 0);
 
     Widget btn = ElevatedButton.icon(
       onPressed: onPressed,
       icon: Icon(icon, size: 14, color: effectiveIconColor),
-      label: Text(
-        label,
-        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.normal),
-        maxLines: 1, // Zabráni zalomeniu, ak je telefón malý
-        overflow: TextOverflow.ellipsis,
-      ),
+      label: Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.normal), maxLines: 1, overflow: TextOverflow.ellipsis),
       style: style,
     );
 
-    // Ak je fullWidth nastavené na true, roztiahne sa naplno do šírky rodiča
     if (fullWidth) {
       btn = SizedBox(width: double.infinity, child: btn);
     }
@@ -642,6 +621,7 @@ class _ActionBtn extends StatelessWidget {
   }
 }
 
+/// A small button used within the edit toolbar.
 class _ToolbarBtn extends StatelessWidget {
   final String label;
   final IconData icon;
@@ -656,7 +636,6 @@ class _ToolbarBtn extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
       child: Container(
-        // Mierne zmenšený horizontálny padding
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
           color: cs.surfaceContainerHigh,
@@ -664,7 +643,7 @@ class _ToolbarBtn extends StatelessWidget {
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
-          children:[
+          children: [
             Icon(icon, size: 16, color: cs.onSurfaceVariant),
             const SizedBox(width: 6),
             Text(

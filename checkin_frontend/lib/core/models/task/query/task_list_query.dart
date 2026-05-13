@@ -4,6 +4,8 @@ import '../../enums/task_enums.dart';
 part 'task_list_query.freezed.dart';
 part 'task_list_query.g.dart';
 
+/// Model representing filtering, sorting, and pagination parameters
+/// sent to the task list endpoint.
 @freezed
 sealed class TaskListQuery with _$TaskListQuery {
   const factory TaskListQuery({
@@ -21,12 +23,13 @@ sealed class TaskListQuery with _$TaskListQuery {
 
   }) = _TaskListQuery;
 
-
   factory TaskListQuery.fromJson(Map<String, dynamic> json) =>
       _$TaskListQueryFromJson(json);
 }
 
+/// Extension providing utility methods to track filter activity in the UI.
 extension TaskListQueryX on TaskListQuery {
+  /// Calculates how many filters are currently applied.
   int get activeFilterCount {
     int count = 0;
     if (mode != null) count++;
@@ -37,5 +40,6 @@ extension TaskListQueryX on TaskListQuery {
     return count;
   }
 
+  /// Returns true if any filter is active.
   bool get hasFilters => activeFilterCount > 0;
 }

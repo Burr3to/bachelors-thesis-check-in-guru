@@ -4,8 +4,11 @@ import 'package:collection/collection.dart';
 import '../../../../../core/models/subtask_instance/subtask_combined_list_model.dart';
 import '../../../../../core/shared_widgets/segmented_progress_bar.dart';
 import '../../../../../core/utils/responsive.dart';
-import 'progress_list_atoms.dart'; // Import atómov
+import 'progress_list_atoms.dart';
 
+/// A card representing a respondent's progress in Individual Mode.
+/// Displays user identity, verification status, and a summarized progress bar.
+/// Can be expanded to show specific subtask details.
 class RespondentCard extends StatelessWidget {
   final String groupId;
   final List<SubtaskCombinedListModel> items;
@@ -26,26 +29,26 @@ class RespondentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     final isMobile = context.isMobile;
     final firstItem = items.first;
 
+    // Resolve respondent identity and verification
     final completedItem = items.firstWhereOrNull((s) => s.respondentName != null);
-
     final respondentName = completedItem?.respondentName ?? "";
     final respondentEmail = items.firstWhereOrNull((s) => true)?.assignedToEmail;
     final isVerified = items.any((s) => s.completedByUserId != null);
 
-    // --- VÝPOČTY PRE PROGRESS BAR A STATUSY ---
+    // Logic for calculating progress counts and specific states
     final int completedCount = items.where((s) => s.isCompleted).length;
-    // Dokončené, ale po deadline:
     final int lateCount = items.where((s) => s.isCompleted && s.completedAt != null && s.completedAt!.isAfter(s.deadline)).length;
-    // Dokončené včas:
     final int onTimeCount = completedCount - lateCount;
 
     final bool hasOverdue = items.any((s) => !s.isCompleted && s.deadline.isBefore(DateTime.now()));
     final isLate = isMainTaskOnly && firstItem.isCompleted && firstItem.completedAt != null && firstItem.completedAt!.isAfter(firstItem.deadline);
 
+    // Determine visual feedback colors and labels
     Color progressColor = cs.primary;
     String? statusLabel;
     IconData? statusIcon;
@@ -75,23 +78,24 @@ class RespondentCard extends StatelessWidget {
       statusColor = Colors.orange;
     }
 
+    // Build the header based on the current platform/screen width
     Widget headerContent;
 
     if (isMobile) {
       headerContent = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children:[
+        children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children:[
+            children: [
               AvatarCircle(name: respondentName),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children:[
+                  children: [
                     Row(
-                      children:[
+                      children: [
                         Flexible(
                           child: Text(
                             respondentName,
@@ -126,12 +130,12 @@ class RespondentCard extends StatelessWidget {
           const SizedBox(height: 8),
           if (!isMainTaskOnly)
             Row(
-              children:[
+              children: [
                 Expanded(
                   child: SegmentedProgressBar(
-                    green: onTimeCount, // Včas
-                    red: lateCount,     // Neskoro
-                    grey: totalTemplates - completedCount, // Nedokončené
+                    green: onTimeCount,
+                    red: lateCount,
+                    grey: totalTemplates - completedCount,
                     height: 8,
                   ),
                 ),
@@ -149,18 +153,18 @@ class RespondentCard extends StatelessWidget {
     } else {
       headerContent = Row(
         crossAxisAlignment: CrossAxisAlignment.center,
-        children:[
+        children: [
           AvatarCircle(name: respondentName),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children:[
+              children: [
                 Wrap(
                   crossAxisAlignment: WrapCrossAlignment.center,
                   spacing: 6,
                   runSpacing: 4,
-                  children:[
+                  children: [
                     Text(respondentName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                     if (respondentEmail != null && respondentEmail.isNotEmpty)
                       Text("($respondentEmail)", style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
@@ -204,7 +208,7 @@ class RespondentCard extends StatelessWidget {
         side: BorderSide(color: cs.outlineVariant.withAlpha(100)),
       ),
       child: Column(
-        children:[
+        children: [
           InkWell(
             onTap: isMainTaskOnly ? null : () => onToggle(!isExpanded),
             borderRadius: BorderRadius.circular(12),
@@ -217,7 +221,7 @@ class RespondentCard extends StatelessWidget {
             AnimatedCrossFade(
               firstChild: const SizedBox(width: double.infinity, height: 0),
               secondChild: Column(
-                children:[
+                children: [
                   Divider(height: 1, color: cs.outlineVariant.withAlpha(100)),
                   ...items.map((s) => TaskItemRow(subtask: s)),
                 ],
@@ -231,7 +235,8 @@ class RespondentCard extends StatelessWidget {
   }
 }
 
-// Atomický widget riadku úlohy, patrí výhradne k Individual Modu
+/// Atomic widget representing a single subtask row.
+/// Specifically used in Individual Mode to show granular task status for a respondent.
 class TaskItemRow extends StatelessWidget {
   final SubtaskCombinedListModel subtask;
   const TaskItemRow({super.key, required this.subtask});
@@ -244,6 +249,7 @@ class TaskItemRow extends StatelessWidget {
     final isOverdue = !subtask.isCompleted && subtask.deadline.isBefore(DateTime.now());
     final isLate = subtask.isCompleted && subtask.completedAt != null && subtask.completedAt!.isAfter(subtask.deadline);
 
+    // Styling based on task outcome (on-time, late, or overdue)
     Color rowColor = Colors.transparent;
     Color contentColor = cs.onSurface;
     IconData icon = Icons.circle_outlined;
@@ -258,7 +264,6 @@ class TaskItemRow extends StatelessWidget {
       icon = Icons.error_outline;
     }
 
-    // Skontrolujeme, či má subtask description (ak sa to v tvojom modeli volá inak napr. "notes", zmeň to tu)
     final hasDescription = subtask.description != null && subtask.description!.trim().isNotEmpty;
 
     return Container(
@@ -266,7 +271,7 @@ class TaskItemRow extends StatelessWidget {
       color: rowColor,
       child: Row(
         crossAxisAlignment: isMobile ? CrossAxisAlignment.start : CrossAxisAlignment.center,
-        children:[
+        children: [
           Padding(
             padding: EdgeInsets.only(top: isMobile ? 2.0 : 0.0),
             child: Icon(icon, size: 18, color: contentColor),
@@ -275,10 +280,10 @@ class TaskItemRow extends StatelessWidget {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children:[
+              children: [
                 Row(
-                  children:[
-                    // Názov úlohy s pretekaním ...
+                  children: [
+                    // Task title with ellipsis for long text
                     Flexible(
                       child: Text(
                         subtask.title,
@@ -291,7 +296,7 @@ class TaskItemRow extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    // Ak existuje popis, zobrazí sa vedľa šedou farbou a tiež preteká ...
+                    // Secondary preview of subtask description
                     if (hasDescription) ...[
                       const SizedBox(width: 8),
                       Flexible(
@@ -308,11 +313,12 @@ class TaskItemRow extends StatelessWidget {
                     ],
                   ],
                 ),
+                // Timestamp display for completed tasks
                 if (subtask.isCompleted && subtask.completedAt != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 4),
                     child: Row(
-                      children:[
+                      children: [
                         Icon(Icons.access_time, size: 12, color: contentColor.withOpacity(0.8)),
                         const SizedBox(width: 4),
                         Text(

@@ -5,6 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/models/enums/task_enums.dart';
 
+/// A segmented progress bar that visualizes completion status.
+/// Logic differs based on SubtaskMode:
+/// - Shared: Shows subtask completion (On time vs Late).
+/// - Individual: Shows respondent progress (Completed, In Progress, Pending).
 class TaskProgressBar extends ConsumerWidget {
   final String taskId;
 
@@ -19,17 +23,17 @@ class TaskProgressBar extends ConsumerWidget {
       loading: () => const LinearProgressIndicator(minHeight: 2),
       error: (err, stack) => const SizedBox.shrink(),
       data: (statsMap) {
-        // Vytiahneme štatistiku pre túto konkrétnu kartu
+        // Retrieve statistics specific to this task card
         final stats = statsMap[taskId];
 
         if (stats == null) return const SizedBox.shrink();
 
-        // Vykreslíme podľa módu
         return _buildProgressBar(context, colorScheme, stats);
       },
     );
   }
 
+  /// Builds the progress bar container and the accompanying numeric label.
   Widget _buildProgressBar(BuildContext context, ColorScheme colorScheme, TaskSummaryStats stats) {
     return Row(
       children: [
@@ -40,13 +44,13 @@ class TaskProgressBar extends ConsumerWidget {
               color: colorScheme.surface,
               borderRadius: BorderRadius.circular(6),
               border: Border.all(
-                color: colorScheme.outlineVariant, // Jemný okraj, ktorý funguje v oboch módoch
+                color: colorScheme.outlineVariant,
                 width: 1,
               ),
             ),
             clipBehavior: Clip.antiAlias,
             child: Row(
-                children: _buildSegments(colorScheme, stats),
+              children: _buildSegments(colorScheme, stats),
             ),
           ),
         ),
@@ -59,24 +63,25 @@ class TaskProgressBar extends ConsumerWidget {
     );
   }
 
+  /// Generates the colored segments for the progress bar.
+  /// Colors: Green (On time), Red (Late/Issue), Orange (In Progress), Gray (Remaining).
   List<Widget> _buildSegments(ColorScheme colorScheme, TaskSummaryStats stats) {
     final emptyColor = colorScheme.surfaceContainerHighest;
 
     if (stats.mode == SubtaskMode.shared) {
-      // SHARED MODE:
-      // Zelená (včas), Červená (hotové neskoro), Sivá (nehotové)
+      // SHARED MODE: Tracks individual subtask instances
       return [
         if (stats.completedOnTime > 0)
           Expanded(flex: stats.completedOnTime, child: Container(color: Colors.green.shade400)),
         if (stats.issuesCount > 0)
           Expanded(flex: stats.issuesCount, child: Container(color: Colors.red.shade400)),
         if (stats.notStarted > 0 || stats.totalSubtasks == 0)
-          Expanded(flex: stats.notStarted == 0 && stats.totalSubtasks == 0 ? 1 : stats.notStarted,
+          Expanded(
+              flex: stats.notStarted == 0 && stats.totalSubtasks == 0 ? 1 : stats.notStarted,
               child: Container(color: emptyColor)),
       ];
     } else {
-      // INDIVIDUAL MODE:
-      // Zelená (všetko včas), Červená (všetko hotové, ale neskoro), Oranžová (rozrobené), Sivá (nezačaté)
+      // INDIVIDUAL MODE: Tracks statuses of invited respondents
       final total = stats.totalRespondents;
       return [
         if (stats.completedOnTime > 0)
@@ -86,12 +91,14 @@ class TaskProgressBar extends ConsumerWidget {
         if (stats.inProgress > 0)
           Expanded(flex: stats.inProgress, child: Container(color: Colors.orange.shade300)),
         if (stats.notStarted > 0 || total == 0)
-          Expanded(flex: stats.notStarted == 0 && total == 0 ? 1 : stats.notStarted,
+          Expanded(
+              flex: stats.notStarted == 0 && total == 0 ? 1 : stats.notStarted,
               child: Container(color: emptyColor)),
       ];
     }
   }
 
+  /// Builds the right-side label showing either a ratio (Shared) or participant count (Individual).
   Widget _buildRightLabel(ColorScheme colorScheme, TaskSummaryStats stats) {
     final textStyle = TextStyle(
       fontSize: 13,
@@ -100,12 +107,14 @@ class TaskProgressBar extends ConsumerWidget {
     );
 
     if (stats.mode == SubtaskMode.shared) {
+      // Show completed/total ratio
       return Text(
         "${stats.completedSubtasks}/${stats.totalSubtasks}",
         textAlign: TextAlign.end,
         style: textStyle,
       );
     } else {
+      // Show total number of participants
       return Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [

@@ -1,10 +1,12 @@
-// lib/core/models/user_profile.dart
-
+/// Represents the local profile of an authenticated user.
+/// This model holds basic identification information and the active session token.
 class UserProfile {
-  // Primárne ID (Zhodné s UserEntity.Id)
+  /// The unique identifier of the user (maps to UserEntity.Id in the backend).
   final String userId;
   final String email;
   final String name;
+
+  /// The current JSON Web Token used for authenticating API requests.
   final String jwtToken;
 
   UserProfile({
@@ -14,7 +16,7 @@ class UserProfile {
     required this.jwtToken,
   });
 
-  // Metóda pre pohodlné vytvorenie z API odpovede (ak API vráti meno/email/ID)
+  /// Convenience factory to initialize a [UserProfile] from backend authentication data.
   factory UserProfile.fromApi({
     required String token,
     required String id,

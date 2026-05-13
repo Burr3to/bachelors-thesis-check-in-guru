@@ -2,17 +2,20 @@ using CheckIn.Api.Common.Models.Interfaces;
 
 namespace CheckIn.Api.Common.Models.Query;
 
+/// <summary>
+/// Base record for paginated and sortable list queries.
+/// </summary>
 public record ListQuery : IPageableQuery
 {
-	// Paginácia
-	public int PageNumber { get; set; } = 1;
-	public int PageSize { get; set; } = 10;
+    // Pagination parameters
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 10;
 
-	// Triedenie
-	public string? SortBy { get; init; }
-	public bool SortDesc { get; init; } = false;
+    // Sorting parameters
+    public string? SortBy { get; init; }
+    public bool SortDesc { get; init; } = false;
 
-	// Filtre 
-	public string? NameContains { get; init; }
-	public DateTime? CreatedAfter { get; init; }
+    // General filter parameters
+    public string? NameContains { get; init; }
+    public DateTime? CreatedAfter { get; init; }
 }

@@ -17,10 +17,8 @@ sealed class TaskSummaryStats with _$TaskSummaryStats {
     @Default(0) int notStarted,
     @Default(0) int totalSubtasks,
     @Default(0) int completedSubtasks,
-
-    // --- NOVÉ POLIA PRE FARBY ---
-    @Default(0) int completedOnTime, // Pre ZELENÚ farbu
-    @Default(0) int issuesCount,     // Pre ČERVENÚ farbu
+    @Default(0) int completedOnTime,
+    @Default(0) int issuesCount,
   }) = _TaskSummaryStats;
 
   factory TaskSummaryStats.fromJson(Map<String, dynamic> json) =>

@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:checkin_frontend/core/providers/respond_providers.dart';
 import 'package:go_router/go_router.dart';
-// Importy pre SignalR
 import '../../../../core/services/signalr_service.dart';
 import '../../../../core/providers/signalr_provider.dart';
 
@@ -15,8 +14,6 @@ import '../../../../core/shared_widgets/app_snack_bar.dart';
 import '../../../../core/utils/l10n_extensions.dart';
 import '../../../auth/views/providers/auth_provider.dart';
 import '../../../../core/models/subtask_instance/subtask_combined_list_model.dart';
-
-// Tvoj nový import pre responzivitu (cestu si prispôsob)
 import '../../../../core/utils/responsive.dart';
 
 import '../widgets/login_required_view.dart';
@@ -24,6 +21,8 @@ import '../widgets/respondent_signature_field.dart';
 import '../widgets/subtask_list_card.dart';
 import '../widgets/task_header.dart';
 
+/// Page allowing users to respond to a task, complete subtasks, and provide a signature.
+/// Supports both authenticated and anonymous responses based on task settings.
 class TaskRespondPage extends ConsumerStatefulWidget {
   final String taskHash;
   const TaskRespondPage({super.key, required this.taskHash});
@@ -47,12 +46,11 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
     _signalRService = ref.read(signalRProvider);
   }
 
-  // --- REAKTÍVNY SETUP SIGNALR ---
+  /// Establishes a SignalR connection to a specific task room for real-time updates.
   void _setupSignalRWithData(String taskId) async {
     final roomName = taskId.toLowerCase().trim();
     if (_joinedTaskIdRoom == roomName) return;
 
-    print("SignalR (Respond): Pripájam do miestnosti: $roomName");
     _joinedTaskIdRoom = roomName;
 
     await _signalRService.joinTaskRoom(roomName);
@@ -60,13 +58,15 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
     _signalRService.connection?.on("TaskUpdated", _handleDataChanged);
   }
 
+  /// Triggered when external data changes via SignalR.
+  /// Invalidates the current provider to refresh the UI.
   void _handleDataChanged(List<Object?>? arguments) {
     if (!mounted) return;
     ref.invalidate(publicTaskProvider(widget.taskHash));
     setState(() {
       if (_selectedIds.isNotEmpty) {
         _selectedIds.clear();
-        AppSnackBar.showInfo(context, "Dáta boli aktualizované iným používateľom.");
+        AppSnackBar.showInfo(context, "Data was updated by another user.");
       }
     });
   }
@@ -82,6 +82,7 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
     super.dispose();
   }
 
+  /// Submits the selected subtasks and the respondent's name to the backend.
   void _submit(UserProfile? auth) async {
     if (_isLoading) return;
 
@@ -100,6 +101,7 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
       if (mounted) {
         AppSnackBar.showSuccess(context, context.l10n.overview_msg_task_updated);
 
+        // Check if this action completed the entire set of subtasks
         final asyncData = ref.read(publicTaskProvider(widget.taskHash));
         bool isNowEverythingDone = false;
         if (asyncData.hasValue) {
@@ -125,18 +127,19 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Listen for authentication changes to refresh public data (which might depend on user email/domain)
     ref.listen(authProvider, (previous, next) {
       if (previous?.user?.userId != next.user?.userId) {
         ref.invalidate(publicTaskProvider(widget.taskHash));
       }
     });
 
+    // Automatically setup SignalR when task data becomes available
     ref.listen<AsyncValue>(publicTaskProvider(widget.taskHash), (previous, next) {
       next.whenOrNull(
         data: (data) {
           if (data.id != null) _setupSignalRWithData(data.id!);
         },
-        error: (e, s) => print("Provider skončil chybou, SignalR sa nepripája."),
       );
     });
 
@@ -148,10 +151,12 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
       loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (e, s) => _buildErrorState(ref, e),
       data: (publicTask) {
+        // Enforce authentication if the task settings require it
         if (publicTask.requiresAuthenticationToComplete && auth == null) {
           return const Scaffold(appBar: AppTopBar(), body: LoginRequiredView());
         }
 
+        // Domain restriction handling
         if (publicTask.isForbidden) {
           return Scaffold(
             appBar: const AppTopBar(),
@@ -167,21 +172,22 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
     );
   }
 
+  /// Displays a view indicating the user is not allowed to access the task.
   Widget _buildForbiddenView(String? msg) {
     return Center(
       child: Padding(
         padding: EdgeInsets.all(context.isMobile ? 16 : 32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children:[
+          children: [
             Icon(Icons.domain_disabled, size: context.isMobile ? 64 : 80, color: Colors.orange),
             SizedBox(height: context.isMobile ? 16 : 24),
-            Text("Prístup zamietnutý", style: TextStyle(fontSize: context.isMobile ? 20 : 24, fontWeight: FontWeight.bold)),
+            Text("Access Denied", style: TextStyle(fontSize: context.isMobile ? 20 : 24, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
-            Text(msg ?? "Nemáte povolený prístup k tejto úlohe.", textAlign: TextAlign.center),
+            Text(msg ?? "You do not have permission to access this task.", textAlign: TextAlign.center),
             const SizedBox(height: 32),
             PrimaryButton(
-                text: "Odhlásiť sa",
+                text: "Logout",
                 onPressed: () async {
                   await ref.read(authProvider.notifier).signOut();
                   if (mounted) context.push('/login');
@@ -193,15 +199,18 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
     );
   }
 
+  /// Main body construction for the task response interface.
   Widget _buildTaskBody(dynamic publicTask, UserProfile? auth, ColorScheme cs) {
     final List<SubtaskCombinedListModel> subtasks = List<SubtaskCombinedListModel>.from(
       publicTask.subtasks,
     );
 
+    // Determines if the task is just a signature (one automatic subtask) vs a checklist
     final bool isMainTaskOnly =
         subtasks.isNotEmpty &&
             subtasks.every((SubtaskCombinedListModel s) => s.isGeneratedFromTask);
 
+    // Auto-select the main subtask if it's a signature-only task
     if (isMainTaskOnly && subtasks.isNotEmpty && !subtasks.first.isCompleted && !_isSubmittedSuccess) {
       if (!_selectedIds.contains(subtasks.first.id)) {
         Future.microtask(() {
@@ -224,13 +233,14 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
           padding: EdgeInsets.all(context.isMobile ? 16 : 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children:[
+            children: [
               TaskHeader(
                 title: publicTask.title,
                 notes: publicTask.notes,
                 deadline: publicTask.deadLine,
               ),
 
+              // Checklist view (hidden if it's a simple signature task)
               if (!isMainTaskOnly) ...[
                 Text(
                   context.l10n.respond_tasks_label,
@@ -278,9 +288,11 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
     );
   }
 
+  /// Builds the action button for submitting the response.
   Widget _buildSubmitButton(UserProfile? auth, bool isMainTaskOnly, ColorScheme cs) {
     final bool isDisabled =
         _isLoading || _selectedIds.isEmpty || (auth == null && _nameCtrl.text.isEmpty);
+
     String buttonText = isMainTaskOnly
         ? context.l10n.respond_btn_sign_send
         : context.l10n.respond_btn_submit(_selectedIds.length);
@@ -302,6 +314,7 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
     );
   }
 
+  /// Displays a success badge when the respondent has no more pending work.
   Widget _buildAllCompletedBadge(ColorScheme cs) {
     return Card(
       color: Colors.green.withAlpha(50),
@@ -314,7 +327,7 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
         padding: const EdgeInsets.all(16.0),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children:[
+          children: [
             const Icon(Icons.check_circle, color: Colors.green),
             const SizedBox(width: 8),
             Text(
@@ -327,12 +340,13 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
     );
   }
 
+  /// Maps backend errors to user-friendly views.
   Widget _buildErrorState(WidgetRef ref, Object error) {
     final cs = Theme.of(context).colorScheme;
     final authNotifier = ref.read(authProvider.notifier);
 
     String title = context.l10n.error_access_denied;
-    String message = "Došlo k chybe pri načítaní úlohy.";
+    String message = "An error occurred while loading the task.";
     IconData icon = Icons.error_outline;
     bool showLogoutButton = false;
     bool showLoginButton = false;
@@ -341,15 +355,13 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
       final response = error.response;
       final statusCode = response?.statusCode;
 
-      print("CHYBA BACKEND: ${response?.data}");
-
       String? serverMessage;
       if (response?.data != null && response?.data is Map) {
         serverMessage = response?.data['message'];
       }
 
       if (statusCode == 403) {
-        title = "Prístup zamietnutý";
+        title = "Access Denied";
         message = serverMessage ?? context.l10n.error_not_on_list_msg;
         icon = Icons.domain_disabled;
         showLogoutButton = true;
@@ -372,7 +384,7 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
         padding: EdgeInsets.all(context.isMobile ? 16 : 32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children:[
+          children: [
             Icon(icon, size: context.isMobile ? 64 : 80, color: cs.primary),
             const SizedBox(height: 24),
             Text(title, style: TextStyle(fontSize: context.isMobile ? 20 : 24, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
@@ -381,7 +393,7 @@ class _TaskRespondPageState extends ConsumerState<TaskRespondPage> {
             const SizedBox(height: 32),
             if (showLogoutButton) ...[
               PrimaryButton(
-                  text: "Prihlásiť sa iným účtom",
+                  text: "Login with another account",
                   onPressed: () async {
                     await authNotifier.signOut();
                     if (mounted) context.push('/login');

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../../../core/utils/l10n_extensions.dart';
-
-// --- IMPORT PRE RESPONSIVE ---
 import '../../../../core/utils/responsive.dart';
 
+/// A wrapper widget that handles switching between a display ("view") state
+/// and an interactive "edit" state. It provides hover effects on desktop
+/// and constant visual cues on mobile to indicate that the content is editable.
 class HoverEditableWrapper extends StatefulWidget {
   final Widget editChild;
   final bool isEditing;
@@ -39,21 +40,22 @@ class _HoverEditableWrapperState extends State<HoverEditableWrapper> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final isMobile = context.isMobile; // Zistenie, či sme na mobile
+    final isMobile = context.isMobile;
 
-    // 1. STAV: EDITÁCIA (Otvorené textové pole)
+    // STATE 1: EDIT MODE
+    // Displays the editor widget along with Save and Cancel actions.
     if (widget.isEditing) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children:[
+        children: [
           widget.editChild,
           const SizedBox(height: 12),
-          // ZMENA PRE ISTOTU: Namiesto Row použijeme Wrap, ak by na extra úzkom mobile boli preklady tlačidiel príliš dlhé
+          // Wrap is used instead of a Row to prevent overflow if button labels are long on narrow screens
           Wrap(
             alignment: WrapAlignment.end,
             spacing: 8,
             runSpacing: 8,
-            children:[
+            children: [
               TextButton(
                 onPressed: widget.onCancel,
                 child: Text(context.l10n.common_cancel),
@@ -74,14 +76,16 @@ class _HoverEditableWrapperState extends State<HoverEditableWrapper> {
       );
     }
 
-    // 2. STAV: ČÍTANIE (Zobrazenie textu s možnosťou kliknutia)
+    // STATE 2: VIEW MODE
+    // Displays the content. On desktop, shows a hover background and edit icon.
+    // On mobile, the edit icon remains partially visible as a discovery cue.
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovering = true),
       onExit: (_) => setState(() => _isHovering = false),
       cursor: SystemMouseCursors.text,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: widget.onEditTrigger, // Na mobile funguje klasické ťuknutie
+        onTap: widget.onEditTrigger,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
@@ -95,7 +99,8 @@ class _HoverEditableWrapperState extends State<HoverEditableWrapper> {
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children:[
+            children: [
+              // Display either the custom viewChild or a simple Text with an optional hint
               Expanded(
                 child: widget.viewChild ?? Text(
                   widget.initialValue.isEmpty
@@ -110,11 +115,11 @@ class _HoverEditableWrapperState extends State<HoverEditableWrapper> {
                 ),
               ),
               const SizedBox(width: 8),
+              // The edit icon visibility logic:
+              // Mobile: Persistent low opacity (0.4) since there is no hover state.
+              // Desktop: Visible (0.4) only when hovering.
               AnimatedOpacity(
                 duration: const Duration(milliseconds: 150),
-                // NAJDÔLEŽITEJŠIA ZMENA:
-                // Na desktope ikona nabehne len na hover (_isHovering).
-                // Na mobile (kde hover nie je) ikona svieti jemne nonstop (0.4 opacity).
                 opacity: (isMobile || _isHovering) ? 0.4 : 0.0,
                 child: Icon(
                   Icons.edit_outlined,
