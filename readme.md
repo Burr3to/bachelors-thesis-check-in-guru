@@ -27,13 +27,25 @@ docker-compose up -d
 The database will be available at `localhost:5432` (User: `checkin_admin`, DB: `checkin_local_db`).
 
 ### 3. Backend Configuration (Secrets)
-Sensitive keys are managed via **.NET Secret Manager**. Navigate to `CheckIn.Api.App/` and set:
+The application requires several configuration keys to function correctly. For local development, these should be stored securely using the **.NET Secret Manager**.
+
+**Required Keys:**
+- **ConnectionStrings:DefaultConnection**: PostgreSQL connection string (points to the Docker container).
+- **ClientUrl**: Root URL of the frontend application (used for generating links, e.g., in emails).
+- **Jwt:Key**: A secret string used to sign JWT tokens (minimum 32 characters).
+- **Authentication:Google:ClientId / ClientSecret**: Credentials for Google OAuth 2.0.
+- **FirebaseAdmin:ServiceAccountJson**: The entire content of your Firebase Service Account JSON file as a single string.
+
+**Configuration Commands:**
+Navigate to the `CheckIn.Api.App/` directory and run the following commands to set up your environment:
+
 ```bash
 dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=checkin_local_db;Username=checkin_admin;Password=moje_silne_heslo123"
-dotnet user-secrets set "Jwt:Key" "YOUR_STRONG_SECRET_KEY"
-dotnet user-secrets set "Authentication:Google:ClientId" "YOUR_GOOGLE_ID"
+dotnet user-secrets set "ClientUrl" "http://localhost:5000/checkin/p/"
+dotnet user-secrets set "Jwt:Key" "YOUR_VERY_LONG_SECRET_KEY_FOR_LOCAL_DEV"
+dotnet user-secrets set "Authentication:Google:ClientId" "YOUR_GOOGLE_ID.apps.googleusercontent.com"
 dotnet user-secrets set "Authentication:Google:ClientSecret" "YOUR_GOOGLE_SECRET"
-dotnet user-secrets set "FirebaseAdmin:ServiceAccountJson" "{...content of your firebase-adminsdk.json...}"
+dotnet user-secrets set "FirebaseAdmin:ServiceAccountJson" "{ \"type\": \"service_account\", ... }"
 ```
 
 ### 4. Frontend Configuration
@@ -50,6 +62,7 @@ To use your own Firebase project, you must update `checkin_frontend/lib/firebase
 cd CheckIn.Api.App
 dotnet run -- migrate
 ```
+
 
 **Run Backend:**
 ```bash

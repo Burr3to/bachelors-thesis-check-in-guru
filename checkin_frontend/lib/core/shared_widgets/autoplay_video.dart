@@ -95,11 +95,16 @@ class _HoverVideoPlayerState extends State<HoverVideoPlayer> {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            AspectRatio(
-              aspectRatio: _controller.value.aspectRatio,
-              child: VideoPlayer(_controller),
+            ClipRect( // Crop
+              child: Align(
+                alignment: Alignment.center,
+                widthFactor: 0.96,
+                child: AspectRatio(
+                  aspectRatio: _controller.value.aspectRatio,
+                  child: VideoPlayer(_controller),
+                ),
+              ),
             ),
-
             // Play icon overlay that disappears when the video is playing
             AnimatedOpacity(
               opacity: _isPlaying ? 0.0 : 1.0,
