@@ -17,8 +17,7 @@ using Microsoft.EntityFrameworkCore;
 namespace CheckIn.Api.Bl.Facades;
 
 /// <summary>
-/// Facade handling the lifecycle of subtask templates, including automatic 
-/// synchronization with subtask instances and real-time updates via SignalR.
+/// Facade handling subtask definitions (templates) and their propagation to active instances.
 /// </summary>
 public class SubtaskTemplateFacade(
     CheckInDbContext dbContext,
@@ -29,21 +28,11 @@ public class SubtaskTemplateFacade(
             SubtaskTemplateCreateModel, SubtaskTemplateUpdateModel, SubtaskTemplateQuery>
         (dbContext, mapper, userContext), ISubtaskTemplateFacade
 {
-    /// <summary>
-    /// Configures filtering for subtask templates.
-    /// </summary>
     protected override Expression<Func<SubtaskTemplateEntity, bool>> CreateFilter(SubtaskTemplateQuery query)
     {
-        Expression<Func<SubtaskTemplateEntity, bool>> filter = entity => true;
-
-        // Add specific filtering logic here if needed (e.g., by ParentTaskId)
-
-        return filter;
+        return entity => true;
     }
 
-    /// <summary>
-    /// Defines the default ordering for subtask templates (chronological).
-    /// </summary>
     protected override Func<IQueryable<SubtaskTemplateEntity>, IOrderedQueryable<SubtaskTemplateEntity>> CreateOrderBy(
         SubtaskTemplateQuery query)
     {
@@ -51,13 +40,12 @@ public class SubtaskTemplateFacade(
     }
 
     /// <summary>
-    /// Creates a new subtask template and automatically generates instances 
-    /// for all existing participants or groups assigned to the parent task.
+    /// Creates a new subtask template and automatically propagates it as a new execution 
+    /// instance to all existing response groups for the parent task.
     /// </summary>
     public override async Task<Result<SubtaskTemplateDetailModel>> SaveCreateModelAsync(
         SubtaskTemplateCreateModel model)
     {
-        // Permission check: Verify the parent task exists and belongs to the current user
         var parentTask = await dbContext.Tasks.FindAsync(model.ParentTaskId);
         if (parentTask == null)
             return Result<SubtaskTemplateDetailModel>.NotFound("Parent Task not found.");
@@ -65,31 +53,40 @@ public class SubtaskTemplateFacade(
         if (parentTask.CreatedById != CurrentUserId)
             return Result<SubtaskTemplateDetailModel>.Forbidden();
 
-        // Create the blueprint template
+        // Create the base template entity
         var result = await base.SaveCreateModelAsync(model);
         if (!result.IsSuccess) return result;
 
         var newTemplateId = result.Value!.Id;
 
-        // Synchronization logic: 
-        // Find all existing response groups for this task (unique sets for users/shared mode)
-        var existingResponseGroups = await dbContext.SubtaskInstances
+        // Propagate changes: Find all existing participants (response groups) for this task 
+        // to ensure everyone gets this new subtask added to their checklist.
+        var existingGroupsInfo = await dbContext.SubtaskInstances
             .Where(i => i.TemplateSubtask.ParentTaskId == model.ParentTaskId)
-            .Select(i => i.ResponseGroupId)
-            .Distinct()
+            .GroupBy(i => i.ResponseGroupId)
+            .Select(g => new
+            {
+                GroupId = g.Key,
+                AssignedToUserId = g.Select(x => x.AssignedToUserId).FirstOrDefault(x => x != null),
+                AssignedToEmail = g.Select(x => x.AssignedToEmail).FirstOrDefault(x => x != null),
+                RespondentName = g.Select(x => x.RespondentName).FirstOrDefault(x => x != null)
+            })
             .ToListAsync();
 
-        // Create an executable instance of this new template for every existing group
-        if (existingResponseGroups.Any())
+        if (existingGroupsInfo.Any())
         {
-            foreach (var groupId in existingResponseGroups)
+            foreach (var groupInfo in existingGroupsInfo)
             {
                 var newInstance = new SubtaskInstanceEntity
                 {
                     Id = Guid.NewGuid(),
                     TemplateSubtaskId = newTemplateId,
-                    ResponseGroupId = groupId,
-                    IsCompleted = false
+                    ResponseGroupId = groupInfo.GroupId,
+                    IsCompleted = false,
+                    // Directly assign the new instance to the group owner
+                    AssignedToUserId = groupInfo.AssignedToUserId,
+                    AssignedToEmail = groupInfo.AssignedToEmail,
+                    RespondentName = groupInfo.RespondentName
                 };
                 await dbContext.SubtaskInstances.AddAsync(newInstance);
             }
@@ -97,14 +94,14 @@ public class SubtaskTemplateFacade(
             await dbContext.SaveChangesAsync();
         }
 
-        // Notify all connected clients about the structure change
+        // Notify active task rooms about the checklist structural change
         await NotifyChanges(model.ParentTaskId);
 
         return result;
     }
 
     /// <summary>
-    /// Updates an existing subtask template and notifies relevant clients via SignalR.
+    /// Updates an existing template and notifies clients.
     /// </summary>
     public override async Task<Result<SubtaskTemplateDetailModel>> SaveUpdateModelAsync(
         SubtaskTemplateUpdateModel model)
@@ -113,7 +110,6 @@ public class SubtaskTemplateFacade(
 
         if (result.IsSuccess)
         {
-            // Retrieve parent ID to identify the SignalR room
             var template = await dbContext.Subtasks.FindAsync(model.Id);
             if (template != null)
                 await NotifyChanges(template.ParentTaskId);
@@ -123,7 +119,7 @@ public class SubtaskTemplateFacade(
     }
 
     /// <summary>
-    /// Deletes a subtask template and triggers a UI refresh for all participants.
+    /// Deletes a template and its associated instances across all response groups.
     /// </summary>
     public new async Task<Result<bool>> DeleteAsync(Guid entityId)
     {
@@ -136,7 +132,6 @@ public class SubtaskTemplateFacade(
 
         var parentTaskId = template.ParentTaskId;
 
-        // Note: Related SubtaskInstances should be handled via Cascade Delete in the database
         var result = await base.DeleteAsync(entityId);
 
         if (result.IsSuccess)
@@ -148,17 +143,13 @@ public class SubtaskTemplateFacade(
     }
 
     /// <summary>
-    /// Helper method to send SignalR notifications to both the author and the respondents.
+    /// Broadcasts Real-time updates via SignalR.
     /// </summary>
-    /// <param name="taskId">The ID of the task room to notify.</param>
     private async Task NotifyChanges(Guid taskId)
     {
         var roomName = taskId.ToString().ToLower().Trim();
 
-        // Notify respondents to refresh their checklists
         await hubContext.Clients.Group(roomName).SendAsync("TaskInstancesChanged");
-
-        // Notify the author to update the progress management view
         await hubContext.Clients.Group(roomName).SendAsync("TaskTemplatesChanged");
     }
 }

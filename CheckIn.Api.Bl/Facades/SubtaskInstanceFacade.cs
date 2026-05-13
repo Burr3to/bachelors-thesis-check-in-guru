@@ -19,8 +19,7 @@ using Microsoft.EntityFrameworkCore;
 namespace CheckIn.Api.Bl.Facades;
 
 /// <summary>
-/// Implementation of subtask instance management logic.
-/// Handles the lifecycle of subtask execution in both Individual and Shared modes.
+/// Facade for managing subtask execution instances, handling bulk completions and state synchronization.
 /// </summary>
 public class SubtaskInstanceFacade(
     CheckInDbContext dbContext,
@@ -31,17 +30,11 @@ public class SubtaskInstanceFacade(
             SubtaskInstanceCreateModel, SubtaskInstanceUpdateModel, SubtaskInstanceQuery>
         (dbContext, mapper, userContext), ISubtaskInstanceFacade
 {
-    /// <summary>
-    /// Placeholder for entity filtering.
-    /// </summary>
     protected override Expression<Func<SubtaskInstanceEntity, bool>> CreateFilter(SubtaskInstanceQuery query)
     {
         return entity => true;
     }
 
-    /// <summary>
-    /// Orders instances by the creation date of their respective templates.
-    /// </summary>
     protected override Func<IQueryable<SubtaskInstanceEntity>, IOrderedQueryable<SubtaskInstanceEntity>> CreateOrderBy(
         SubtaskInstanceQuery query)
     {
@@ -49,11 +42,9 @@ public class SubtaskInstanceFacade(
     }
 
     /// <summary>
-    /// Completes subtasks in bulk. Handles existing instances and generates new ones 
-    /// for Individual mode if only template IDs are provided.
+    /// Processes completion for a list of subtask IDs. Handles existing instances 
+    /// and generates new ones if template IDs are provided (Individual mode).
     /// </summary>
-    /// <param name="model">The bulk completion model containing instance/template IDs.</param>
-    /// <returns>A result containing the number of successfully completed subtasks.</returns>
     public async Task<Result<int>> BulkCompleteAsync(BulkSubtaskCompleteModel model)
     {
         if (model.InstanceIds == null || !model.InstanceIds.Any())
@@ -64,19 +55,20 @@ public class SubtaskInstanceFacade(
         int completedCount = 0;
         Guid? taskId = null;
 
-        // 1. Process instances that already exist in the database
+        // Fetch instances that are already present in the database
         var existingInstances = await dbContext.Set<SubtaskInstanceEntity>()
             .Include(i => i.TemplateSubtask).ThenInclude(st => st.ParentTask)
             .Where(i => model.InstanceIds.Contains(i.Id))
             .ToListAsync();
 
+        // Process standard updates for existing instances
         var existingResult = ProcessExistingInstances(existingInstances, model, currentUserId, currentUserEmail);
         if (!existingResult.IsSuccess) return existingResult;
 
         completedCount += existingResult.Value;
         if (existingInstances.Any()) taskId = existingInstances.First().TemplateSubtask.ParentTaskId;
 
-        // 2. Process template IDs (create new instances for Individual mode)
+        // Identify which IDs refer to templates that haven't been instantiated yet (Individual Mode)
         var processedInstanceIds = existingInstances.Select(i => i.Id).ToList();
         var templateIdsForCreation = model.InstanceIds.Except(processedInstanceIds).ToList();
 
@@ -88,10 +80,10 @@ public class SubtaskInstanceFacade(
             taskId ??= creationResult.taskId;
         }
 
-        // 3. Finalize and Notify
         if (taskId.HasValue)
         {
             await dbContext.SaveChangesAsync();
+            // Recalculate and update the status of the parent Task and the user's Invitation chip
             await FinalizeTaskAndInvitationStatusAsync(taskId.Value);
             await SendBulkCompleteNotificationsAsync(taskId.Value);
             await dbContext.SaveChangesAsync();
@@ -105,7 +97,7 @@ public class SubtaskInstanceFacade(
     }
 
     /// <summary>
-    /// Updates properties of existing subtask instances in the database.
+    /// Validates permissions and updates the completion state of existing instances.
     /// </summary>
     private Result<int> ProcessExistingInstances(
         List<SubtaskInstanceEntity> instances,
@@ -121,18 +113,22 @@ public class SubtaskInstanceFacade(
             var task = instance.TemplateSubtask?.ParentTask;
             if (task == null) continue;
 
+            // Security checks
             if (task.RequiresAuthenticationToComplete && currentUserId == null)
                 return Result<int>.Unauthorized("Authentication is required for this task.");
 
             if (instance.AssignedToUserId.HasValue && instance.AssignedToUserId.Value != currentUserId)
                 return Result<int>.Unauthorized("Unauthorized access to subtask instance.");
 
+            // Adopt "Ghost" instances (unassigned) if completed by a registered user
+            if (instance.AssignedToUserId == null) instance.AssignedToUserId = currentUserId;
+            if (!string.IsNullOrEmpty(currentUserEmail)) instance.AssignedToEmail = currentUserEmail;
+
             instance.IsCompleted = true;
             instance.CompletedByUserId = currentUserId;
             instance.CompletedAt = DateTime.UtcNow;
             instance.RespondentName = model.RespondentName;
 
-            if (!string.IsNullOrEmpty(currentUserEmail)) instance.AssignedToEmail = currentUserEmail;
             count++;
         }
 
@@ -140,7 +136,8 @@ public class SubtaskInstanceFacade(
     }
 
     /// <summary>
-    /// Generates a new ResponseGroup and set of instances when an Individual task is first interacted with.
+    /// For Individual mode: creates a personal set of subtask instances for a user 
+    /// if they provided blueprint template IDs.
     /// </summary>
     private async Task<(Guid? taskId, int count)> CreateInstancesFromTemplates(
         List<Guid> templateIds,
@@ -154,44 +151,88 @@ public class SubtaskInstanceFacade(
         if (firstTemplate == null) return (null, 0);
 
         var parentTaskId = firstTemplate.ParentTaskId;
+
+        // Check if the user already has a partial response group in this task to avoid duplicates
+        Guid? existingGroupId = null;
+        if (currentUserId.HasValue)
+        {
+            existingGroupId = await dbContext.Set<SubtaskInstanceEntity>()
+                .Where(i => i.TemplateSubtask.ParentTaskId == parentTaskId && i.AssignedToUserId == currentUserId.Value)
+                .Select(i => i.ResponseGroupId)
+                .FirstOrDefaultAsync();
+        }
+
+        if (existingGroupId == null && !string.IsNullOrEmpty(currentUserEmail))
+        {
+            existingGroupId = await dbContext.Set<SubtaskInstanceEntity>()
+                .Where(i => i.TemplateSubtask.ParentTaskId == parentTaskId && i.AssignedToEmail == currentUserEmail)
+                .Select(i => i.ResponseGroupId)
+                .FirstOrDefaultAsync();
+        }
+
+        var responseGroupId = existingGroupId ?? Guid.NewGuid();
+        int count = 0;
+
         var allTemplatesOfTask = await dbContext.Set<SubtaskTemplateEntity>()
             .Where(t => t.ParentTaskId == parentTaskId).ToListAsync();
 
-        var anonymousResponseGroupId = Guid.NewGuid();
-        int count = 0;
+        // Fetch all existing instances in this group to fill gaps rather than recreating the whole set
+        var existingInstancesInGroup = await dbContext.Set<SubtaskInstanceEntity>()
+            .Where(i => i.ResponseGroupId == responseGroupId).ToListAsync();
 
         foreach (var template in allTemplatesOfTask)
         {
-            bool isActuallyCompleted = templateIds.Contains(template.Id);
-            var newInstance = new SubtaskInstanceEntity
-            {
-                TemplateSubtaskId = template.Id,
-                ResponseGroupId = anonymousResponseGroupId,
-                IsCompleted = isActuallyCompleted,
-                RespondentName = model.RespondentName,
-                CompletedAt = isActuallyCompleted ? DateTime.UtcNow : null,
-                CompletedByUserId = currentUserId,
-                AssignedToEmail = isActuallyCompleted && !string.IsNullOrEmpty(currentUserEmail)
-                    ? currentUserEmail
-                    : null
-            };
+            bool isCompletingNow = templateIds.Contains(template.Id);
+            var existingInstance = existingInstancesInGroup.FirstOrDefault(i => i.TemplateSubtaskId == template.Id);
 
-            await dbContext.Set<SubtaskInstanceEntity>().AddAsync(newInstance);
-            if (isActuallyCompleted) count++;
+            if (existingInstance != null)
+            {
+                // Update unassigned instance metadata
+                if (existingInstance.AssignedToUserId == null && string.IsNullOrEmpty(existingInstance.AssignedToEmail))
+                {
+                    existingInstance.AssignedToUserId = currentUserId;
+                    if (!string.IsNullOrEmpty(currentUserEmail)) existingInstance.AssignedToEmail = currentUserEmail;
+                    existingInstance.RespondentName = model.RespondentName ?? existingInstance.RespondentName;
+                }
+
+                if (isCompletingNow && !existingInstance.IsCompleted)
+                {
+                    existingInstance.IsCompleted = true;
+                    existingInstance.CompletedAt = DateTime.UtcNow;
+                    existingInstance.CompletedByUserId = currentUserId;
+                    count++;
+                }
+            }
+            else
+            {
+                // Create a completely new instance if no entry exists for this template/group combination
+                var newInstance = new SubtaskInstanceEntity
+                {
+                    TemplateSubtaskId = template.Id,
+                    ResponseGroupId = responseGroupId,
+                    IsCompleted = isCompletingNow,
+                    RespondentName = model.RespondentName,
+                    CompletedAt = isCompletingNow ? DateTime.UtcNow : null,
+                    CompletedByUserId = currentUserId,
+                    AssignedToUserId = currentUserId,
+                    AssignedToEmail = !string.IsNullOrEmpty(currentUserEmail) ? currentUserEmail : null
+                };
+
+                await dbContext.Set<SubtaskInstanceEntity>().AddAsync(newInstance);
+                if (isCompletingNow) count++;
+            }
         }
 
         return (parentTaskId, count);
     }
 
     /// <summary>
-    /// Orchestrates the status updates for both the parent Task and the user's Invitation.
+    /// Synchronizes invitation and task statuses after changes to subtask instances.
     /// </summary>
     private async Task FinalizeTaskAndInvitationStatusAsync(Guid taskId)
     {
-        // 1. Evaluate Task-wide completion
         await CheckAndSetTaskCompletionAsync(taskId);
 
-        // 2. Synchronize user's personal invitation status (The Green Chip)
         var userEmail = userContext.GetEmail();
         if (string.IsNullOrEmpty(userEmail)) return;
 
@@ -206,7 +247,7 @@ public class SubtaskInstanceFacade(
 
         if (taskMode == SubtaskMode.Shared)
         {
-            // SHARED MODE logic: If user contributed at least once, chip turns green.
+            // In Shared mode, the user's status chip turns green if they contributed at least one subtask
             var hasAnyContributed = await dbContext.Set<SubtaskInstanceEntity>()
                 .AnyAsync(i => i.TemplateSubtask.ParentTaskId == taskId &&
                                i.IsCompleted &&
@@ -216,7 +257,7 @@ public class SubtaskInstanceFacade(
         }
         else
         {
-            // INDIVIDUAL MODE logic: All instances assigned to this user must be completed.
+            // In Individual mode, the status chip turns green only when ALL their assigned work is done
             var hasPendingWork = await dbContext.Set<SubtaskInstanceEntity>()
                 .AnyAsync(i => i.TemplateSubtask.ParentTaskId == taskId &&
                                (i.AssignedToEmail == userEmail || i.RespondentName == userEmail) &&
@@ -233,7 +274,7 @@ public class SubtaskInstanceFacade(
     }
 
     /// <summary>
-    /// Evaluates if the entire task should be marked as Completed.
+    /// Determines if the overall parent Task state should move to 'Completed'.
     /// </summary>
     private async Task CheckAndSetTaskCompletionAsync(Guid taskId)
     {
@@ -277,7 +318,7 @@ public class SubtaskInstanceFacade(
     }
 
     /// <summary>
-    /// Sends SignalR notifications to the task room and the author's dashboard.
+    /// Dispatches SignalR notifications to refresh UI for the author and participants.
     /// </summary>
     private async Task SendBulkCompleteNotificationsAsync(Guid taskId)
     {
