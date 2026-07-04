@@ -1,16 +1,36 @@
-# CheckIn System
+# 🎓 Bachelor's Thesis: Check-In Guru
 
-A web-based attendance and task management system built with **ASP.NET Core 9** (Backend), **Flutter Web** (Frontend), and **PostgreSQL**.
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Check--In_Guru-blue?style=for-the-badge)](https://checkin.fit.vutbr.cz/checkin/welcome)
+[![Thesis Details](https://img.shields.io/badge/Thesis_Evaluation-VUT_FIT-orange?style=for-the-badge)](https://www.vut.cz/studenti/zav-prace/detail/172215)
 
-## Project Structure
-- `CheckIn.Api.App/` - Entry point for the ASP.NET Core API.
-- `CheckIn.Api.Bl/` - Business Logic layer.
-- `CheckIn.Api.Dal/` - Data Access layer (Entity Framework Core).
-- `checkin_frontend/` - Flutter Web application.
-- `deployment/` - Nginx and Linux deployment templates.
-- `docker-compose.yml` - Infrastructure for local development (Database).
+**Check-In Guru** is a modern web-based task management and attendance application developed as a Bachelor's Thesis at the Faculty of Information Technology, Brno University of Technology (FIT BUT).
 
----  
+The system is designed to simplify the process of assigning tasks to groups of users and providing the author with a real-time overview of their completion status. It eliminates unnecessary friction in user interaction while maintaining high data integrity, dynamic access control, and a fully responsive UI.
+
+## Key Features
+
+* **Two Task Completion Modes:**
+    * 👥 **Collaborative Mode:** A shared task list where completing a task by one user saves work for the rest of the group. Ideal for team coordination and shared responsibilities.
+    * 👤 **Individual Mode:** Each participant receives their own isolated copy of the task list to complete independently.
+* **Flexible Access Control:** Tasks can be configured as completely public (accessible via a unique hash link), restricted to authenticated Google users, or strictly limited to specific email domains (e.g., `@vutbr.cz`).
+* **Real-Time Synchronization:** Powered by SignalR WebSockets. The author's dashboard and collaborative lists update instantly without needing to refresh the page.
+* **Smart Email Invitations:** The system automatically extracts email addresses from raw text, validates target DNS/MX records to prevent bounces, and sends invitations asynchronously in the background.
+* **Rich Text Support:** Tasks can be formatted using a rich text editor (Flutter Quill), saved safely as platform-independent Delta JSON.
+
+##  Technology Stack
+
+* **Frontend:** [Flutter Web](https://flutter.dev/web) (Dart), Riverpod (State Management), GoRouter, Dio/Retrofit.
+* **Backend:** [.NET 9](https://dotnet.microsoft.com/) (ASP.NET Core Web API), Entity Framework Core.
+* **Database:** PostgreSQL 17 (Dockerized).
+* **Authentication:** Firebase Auth (Google Sign-In) integrated with custom backend JWT & HttpOnly Cookie session management (Silent Refresh).
+* **Real-Time:** ASP.NET Core SignalR.
+
+##  Architecture Highlights
+
+* **Template-Instance Pattern:** The database cleanly separates task definitions (Templates) from user progress (Instances) to efficiently handle data scaling for both Collaborative and Individual modes without redundant rows.
+* **Reactive UI (Signal-then-Fetch):** The Flutter frontend utilizes a reactive data flow. SignalR only notifies the client about data changes, triggering Riverpod to invalidate the local state and fetch fresh data via REST API. This ensures the UI is perfectly synced with the database as the single source of truth.
+
+---
 
 ## Local Development Setup
 
@@ -22,7 +42,7 @@ A web-based attendance and task management system built with **ASP.NET Core 9** 
 ### 2. Database Setup
 Run the following command in the root directory to start the PostgreSQL 17 container:
 ```bash  
-docker-compose up -d  
+docker-compose up -d
 ```
 The database will be available at `localhost:5432` (User: `checkin_admin`, DB: `checkin_local_db`).
 
